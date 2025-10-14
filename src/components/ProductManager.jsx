@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import ImageUpload from './ImageUpload'
 
 function ProductManager({ category }) {
   const [products, setProducts] = useState([])
@@ -169,14 +170,24 @@ function ProductManager({ category }) {
             </div>
 
             <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>URL Immagine</label>
-              <input
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                style={{ width: '100%', padding: '8px' }}
-                placeholder="https://esempio.com/immagine.jpg"
+              <ImageUpload
+                currentImageUrl={formData.image_url}
+                onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+                folder="products"
               />
+              
+              <details style={{ marginTop: '10px' }}>
+                <summary style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}>
+                  💡 Oppure inserisci URL manualmente
+                </summary>
+                <input
+                  type="text"
+                  placeholder="https://esempio.com/prodotto.jpg"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  style={{ marginTop: '10px', width: '100%', padding: '8px' }}
+                />
+              </details>
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>

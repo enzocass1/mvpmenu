@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import ImageUpload from './ImageUpload'
 
 function RestaurantForm({ restaurant, onSave }) {
   const [loading, setLoading] = useState(false)
@@ -8,6 +9,7 @@ function RestaurantForm({ restaurant, onSave }) {
     address: '',
     phone: '',
     subdomain: '',
+    logo_url: '',
   })
 
   useEffect(() => {
@@ -17,6 +19,7 @@ function RestaurantForm({ restaurant, onSave }) {
         address: restaurant.address || '',
         phone: restaurant.phone || '',
         subdomain: restaurant.subdomain || '',
+        logo_url: restaurant.logo_url || '',
       })
     }
   }, [restaurant])
@@ -36,6 +39,7 @@ function RestaurantForm({ restaurant, onSave }) {
             address: formData.address,
             phone: formData.phone,
             subdomain: formData.subdomain,
+            logo_url: formData.logo_url,
             updated_at: new Date().toISOString(),
           })
           .eq('id', restaurant.id)
@@ -52,6 +56,7 @@ function RestaurantForm({ restaurant, onSave }) {
               address: formData.address,
               phone: formData.phone,
               subdomain: formData.subdomain,
+              logo_url: formData.logo_url,
             }
           ])
 
@@ -81,6 +86,28 @@ function RestaurantForm({ restaurant, onSave }) {
           style={{ width: '100%', padding: '8px' }}
           placeholder="Es: Ristorante Da Mario"
         />
+      </div>
+
+      <div style={{ marginBottom: '15px' }}>
+        <label style={{ display: 'block', marginBottom: '5px' }}>Logo Ristorante</label>
+        <ImageUpload
+          currentImageUrl={formData.logo_url}
+          onImageUploaded={(url) => setFormData({ ...formData, logo_url: url })}
+          folder="logos"
+        />
+        
+        <details style={{ marginTop: '10px' }}>
+          <summary style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}>
+            💡 Oppure inserisci URL manualmente
+          </summary>
+          <input
+            type="text"
+            placeholder="https://esempio.com/logo.jpg"
+            value={formData.logo_url}
+            onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+            style={{ marginTop: '10px', width: '100%', padding: '8px' }}
+          />
+        </details>
       </div>
 
       <div style={{ marginBottom: '15px' }}>

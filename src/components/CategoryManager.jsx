@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import ProductManager from './ProductManager'
+import ImageUpload from './ImageUpload'  // ← AGGIUNGI QUESTA RIGA
 
 function CategoryManager({ restaurantId }) {
   const [categories, setCategories] = useState([])
@@ -127,16 +128,25 @@ function CategoryManager({ restaurantId }) {
           <h3>{editingCategory ? 'Modifica Categoria' : 'Nuova Categoria'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Nome Categoria *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px' }}
-                placeholder="Es: Colazione, Aperitivi, Primi piatti..."
-              />
-            </div>
+  <ImageUpload
+    currentImageUrl={formData.image_url}
+    onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+    folder="categories"
+  />
+  
+  <details style={{ marginTop: '10px' }}>
+    <summary style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}>
+      💡 Oppure inserisci URL manualmente
+    </summary>
+    <input
+      type="text"
+      placeholder="https://esempio.com/categoria.jpg"
+      value={formData.image_url}
+      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+      style={{ marginTop: '10px', width: '100%', padding: '8px' }}
+    />
+  </details>
+</div>
 
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px' }}>URL Immagine</label>
