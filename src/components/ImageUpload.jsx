@@ -12,24 +12,20 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
       const file = e.target.files[0]
       if (!file) return
 
-      // Verifica che sia un'immagine
       if (!file.type.startsWith('image/')) {
         alert('Per favore seleziona un file immagine')
         return
       }
 
-      // Mostra preview locale
       const reader = new FileReader()
       reader.onloadend = () => {
         setPreview(reader.result)
       }
       reader.readAsDataURL(file)
 
-      // Genera nome file unico
       const fileExt = file.name.split('.').pop()
       const fileName = `${folder}/${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
 
-      // Upload su Supabase Storage
       const { data, error } = await supabase.storage
         .from('menu-images')
         .upload(fileName, file, {
@@ -37,18 +33,13 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
           upsert: false
         })
 
-      if (error) {
-        throw error
-      }
+      if (error) throw error
 
-      // Ottieni URL pubblico
       const { data: { publicUrl } } = supabase.storage
         .from('menu-images')
         .getPublicUrl(fileName)
 
-      // Notifica il componente parent
       onImageUploaded(publicUrl)
-
       alert('✅ Immagine caricata con successo!')
 
     } catch (error) {
@@ -84,7 +75,6 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
       <input
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFileChange}
         disabled={uploading}
         style={{
@@ -104,7 +94,7 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
       )}
 
       <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-        💡 Su mobile, puoi scattare una foto al momento o scegliere dalla galleria
+        💡 Tocca per scegliere dalla galleria o scattare una foto
       </p>
     </div>
   )
