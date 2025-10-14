@@ -89,7 +89,7 @@ function App() {
 <p>
   <strong>URL Menu:</strong>{' '}
   <a 
-    href={`/menu/${restaurant.subdomain}`} 
+    href={`/#/menu/${restaurant.subdomain}`} 
     style={{ color: '#2196F3', textDecoration: 'underline' }}
     onClick={(e) => {
       e.preventDefault()
