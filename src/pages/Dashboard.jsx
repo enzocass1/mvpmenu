@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import RestaurantForm from '../components/RestaurantForm'
 import CategoryManager from '../components/CategoryManager'
 import OpeningHoursManager from '../components/OpeningHoursManager'
+import ThemeCustomizer from '../components/ThemeCustomizer'
 
 function Dashboard({ session }) {
   const [restaurant, setRestaurant] = useState(null)
@@ -78,6 +79,7 @@ function Dashboard({ session }) {
 
         {restaurant && <CategoryManager restaurantId={restaurant.id} />}
         {restaurant && <OpeningHoursManager restaurantId={restaurant.id} />}
+        {restaurant && <ThemeCustomizer restaurantId={restaurant.id} />}
       </div>
     </div>
   )
