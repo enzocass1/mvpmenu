@@ -86,7 +86,20 @@ function App() {
             <p><strong>Nome:</strong> {restaurant.name}</p>
             <p><strong>Indirizzo:</strong> {restaurant.address}</p>
             <p><strong>Telefono:</strong> {restaurant.phone}</p>
-<p><strong>URL Menu:</strong> <a href={`/menu/${restaurant.subdomain}`} target="_blank" style={{ color: '#2196F3', textDecoration: 'underline' }}>{restaurant.subdomain}.mvpmenu.com</a></p>            <p style={{ marginTop: '20px', color: '#666' }}>
+<p>
+  <strong>URL Menu:</strong>{' '}
+  <a 
+    href={`/menu/${restaurant.subdomain}`} 
+    style={{ color: '#2196F3', textDecoration: 'underline' }}
+    onClick={(e) => {
+      e.preventDefault()
+      window.location.href = `/menu/${restaurant.subdomain}`
+    }}
+  >
+    Vai al menu pubblico
+  </a>
+  {' '}({restaurant.subdomain}.mvpmenu.vercel.app)
+</p>          <p style={{ marginTop: '20px', color: '#666' }}>
               Prossimi passi: Aggiungi categorie e prodotti al tuo menu!
             </p>
           </div>
