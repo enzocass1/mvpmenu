@@ -89,17 +89,17 @@ function App() {
 <p>
   <strong>URL Menu:</strong>{' '}
   <a 
-    href={`/#/menu/${restaurant.subdomain}`} 
+    href={`${window.location.origin}/#/menu/${restaurant.subdomain}`}
+    target="_blank"
+    rel="noopener noreferrer"
     style={{ color: '#2196F3', textDecoration: 'underline' }}
-    onClick={(e) => {
-      e.preventDefault()
-      window.location.href = `/menu/${restaurant.subdomain}`
-    }}
   >
-    Vai al menu pubblico
+    Apri menu pubblico
   </a>
-  {' '}({restaurant.subdomain}.mvpmenu.vercel.app)
-</p>          <p style={{ marginTop: '20px', color: '#666' }}>
+</p>
+<p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+  Link condivisibile: <code>{window.location.origin}/#/menu/{restaurant.subdomain}</code>
+</p>         <p style={{ marginTop: '20px', color: '#666' }}>
               Prossimi passi: Aggiungi categorie e prodotti al tuo menu!
             </p>
           </div>
