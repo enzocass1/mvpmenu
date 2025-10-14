@@ -14,7 +14,10 @@ function PublicMenu() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showQR, setShowQR] = useState(false)
   const [expandedProducts, setExpandedProducts] = useState({})
-
+useEffect(() => {
+  console.log('🔍 DEBUG - subdomain:', subdomain)
+  console.log('🔍 DEBUG - window.location:', window.location.href)
+}, [subdomain])
   useEffect(() => {
     loadMenu()
   }, [subdomain])
