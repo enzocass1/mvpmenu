@@ -11,7 +11,6 @@ function PublicMenu() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [expandedProducts, setExpandedProducts] = useState({})
-  const [showQR, setShowQR] = useState(false)
 
   useEffect(() => {
     loadMenu()
@@ -72,17 +71,19 @@ function PublicMenu() {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={styles.loadingText}>Caricamento menu...</p>
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Caricamento menu...</p>
+        <style>{styles}</style>
       </div>
     )
   }
 
   if (!restaurant) {
     return (
-      <div style={styles.loadingContainer}>
-        <p style={styles.loadingText}>Ristorante non trovato</p>
+      <div className="loading-container">
+        <p>Ristorante non trovato</p>
+        <style>{styles}</style>
       </div>
     )
   }
@@ -93,612 +94,722 @@ function PublicMenu() {
     const categoryProducts = products[selectedCategory] || []
 
     return (
-      <div style={styles.container}>
-        {/* Header Sticky */}
-        <div style={styles.productsHeader}>
-          <button 
-            onClick={() => setSelectedCategory(null)}
-            style={styles.backButton}
-          >
-            <span style={{ fontSize: '20px' }}>←</span>
-            <span style={{ marginLeft: '8px' }}>Categorie</span>
-          </button>
-          <h1 style={styles.categoryTitle}>
-            {categoryData?.name}
-          </h1>
-          <p style={styles.productCount}>
-            {categoryProducts.length} {categoryProducts.length === 1 ? 'prodotto' : 'prodotti'}
-          </p>
-        </div>
+      <>
+        <style>{styles}</style>
+        <div className="menu-container">
+          {/* Header Sticky */}
+          <div className="products-header">
+            <button 
+              onClick={() => setSelectedCategory(null)}
+              className="back-button"
+            >
+              <span style={{ fontSize: '20px' }}>←</span>
+              <span style={{ marginLeft: '8px' }}>Categorie</span>
+            </button>
+            <h1 className="category-title">
+              {categoryData?.name}
+            </h1>
+            <p className="product-count">
+              {categoryProducts.length} {categoryProducts.length === 1 ? 'prodotto' : 'prodotti'}
+            </p>
+          </div>
 
-        {/* Lista Prodotti */}
-        <div style={styles.productsContainer}>
-          {categoryProducts.length === 0 ? (
-            <div style={styles.emptyState}>
-              <span style={{ fontSize: '48px', marginBottom: '16px' }}>🍽️</span>
-              <p style={{ color: '#999', fontSize: '16px' }}>
-                Nessun prodotto in questa categoria
-              </p>
-            </div>
-          ) : (
-            categoryProducts.map((product) => (
-              <div key={product.id} style={styles.productCard}>
-                <button
-                  onClick={() => toggleProduct(product.id)}
-                  style={styles.productButton}
-                >
-                  <div style={styles.productHeader}>
-                    <span style={styles.productName}>{product.name}</span>
-                    <span style={styles.productPrice}>
-                      €{product.price.toFixed(2)}
-                    </span>
-                  </div>
-                  <span style={styles.expandIcon}>
-                    {expandedProducts[product.id] ? '▲' : '▼'}
-                  </span>
-                </button>
-                
-                {expandedProducts[product.id] && (
-                  <div style={styles.productDetails}>
-                    {product.image_url && (
-                      <img 
-                        src={product.image_url} 
-                        alt={product.name} 
-                        style={styles.productImage}
-                        loading="lazy"
-                      />
-                    )}
-                    {product.description && (
-                      <p style={styles.productDescription}>
-                        {product.description}
-                      </p>
-                    )}
-                  </div>
-                )}
+          {/* Lista Prodotti */}
+          <div className="products-list">
+            {categoryProducts.length === 0 ? (
+              <div className="empty-state">
+                <span style={{ fontSize: '48px', marginBottom: '16px' }}>🍽️</span>
+                <p>Nessun prodotto in questa categoria</p>
               </div>
-            ))
-          )}
+            ) : (
+              categoryProducts.map((product) => (
+                <div key={product.id} className="product-card">
+                  <button
+                    onClick={() => toggleProduct(product.id)}
+                    className="product-button"
+                  >
+                    <div className="product-header">
+                      <span className="product-name">{product.name}</span>
+                      <span className="product-price">
+                        €{product.price.toFixed(2)}
+                      </span>
+                    </div>
+                    <span className="expand-icon">
+                      {expandedProducts[product.id] ? '▲' : '▼'}
+                    </span>
+                  </button>
+                  
+                  {expandedProducts[product.id] && (
+                    <div className="product-details">
+                      {product.image_url && (
+                        <img 
+                          src={product.image_url} 
+                          alt={product.name} 
+                          className="product-image"
+                          loading="lazy"
+                        />
+                      )}
+                      {product.description && (
+                        <p className="product-description">
+                          {product.description}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   // Vista Home
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <header style={styles.header}>
-        {restaurant.logo_url && (
-          <img 
-            src={restaurant.logo_url} 
-            alt={restaurant.name} 
-            style={styles.logo}
-            loading="eager"
-          />
-        )}
-        <h1 style={styles.restaurantName}>
-          {restaurant.name}
-        </h1>
-        <p style={styles.subtitle}>
-          Scorri per esplorare le categorie
-        </p>
-      </header>
-
-      {/* Carousel Categorie */}
-      <section style={styles.carouselSection}>
-        <div style={styles.carouselContainer}>
-          {/* Frecce Navigazione */}
-          {categories.length > 1 && (
-            <>
-              <button 
-                onClick={prevSlide} 
-                style={{...styles.navButton, ...styles.navButtonLeft}}
-                aria-label="Categoria precedente"
-              >
-                <span style={{ fontSize: '24px' }}>←</span>
-              </button>
-              <button 
-                onClick={nextSlide} 
-                style={{...styles.navButton, ...styles.navButtonRight}}
-                aria-label="Categoria successiva"
-              >
-                <span style={{ fontSize: '24px' }}>→</span>
-              </button>
-            </>
+    <>
+      <style>{styles}</style>
+      <div className="menu-container">
+        {/* Header */}
+        <header className="header">
+          {restaurant.logo_url && (
+            <img 
+              src={restaurant.logo_url} 
+              alt={restaurant.name} 
+              className="logo"
+            />
           )}
+          <h1 className="restaurant-name">
+            {restaurant.name}
+          </h1>
+          <p className="subtitle">
+            Scorri per esplorare le categorie
+          </p>
+        </header>
 
-          {/* Card Categoria */}
-          <div style={styles.carouselWrapper}>
-            {categories.map((category, index) => {
-              if (index !== currentIndex) return null
-              
-              return (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  style={styles.categoryCard}
-                  aria-label={`Visualizza ${category.name}`}
+        {/* Carousel Categorie */}
+        <section className="carousel-section">
+          <div className="carousel-container">
+            {/* Frecce Navigazione */}
+            {categories.length > 1 && (
+              <>
+                <button 
+                  onClick={prevSlide} 
+                  className="nav-button nav-left"
+                  aria-label="Categoria precedente"
                 >
-                  <img 
-                    src={category.image_url || 'https://via.placeholder.com/400x500/333/fff?text=Nessuna+Immagine'} 
-                    alt={category.name}
-                    style={styles.categoryImage}
-                    loading="lazy"
-                  />
-                  <div style={styles.categoryOverlay}>
-                    <h2 style={styles.categoryName}>{category.name}</h2>
-                    <p style={styles.categoryProductCount}>
-                      {products[category.id]?.length || 0} {(products[category.id]?.length || 0) === 1 ? 'prodotto' : 'prodotti'}
-                    </p>
-                  </div>
+                  ←
                 </button>
-              )
-            })}
-          </div>
-
-          {/* Indicatori */}
-          {categories.length > 1 && (
-            <div style={styles.indicators}>
-              {categories.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  style={{
-                    ...styles.indicator,
-                    ...(index === currentIndex ? styles.indicatorActive : {})
-                  }}
-                  aria-label={`Vai alla categoria ${index + 1}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Informazioni */}
-      <section style={styles.infoSection}>
-        <div style={styles.infoContainer}>
-          <h2 style={styles.infoTitle}>📍 Dove Siamo</h2>
-          
-          <div style={styles.infoCard}>
-            <div style={styles.infoItem}>
-              <span style={styles.infoIcon}>📍</span>
-              <div>
-                <strong style={styles.infoLabel}>Indirizzo</strong>
-                <p style={styles.infoText}>{restaurant.address}</p>
-              </div>
-            </div>
-
-            <div style={styles.infoItem}>
-              <span style={styles.infoIcon}>📞</span>
-              <div>
-                <strong style={styles.infoLabel}>Telefono</strong>
-                <a 
-                  href={`tel:${restaurant.phone}`}
-                  style={styles.phoneLink}
+                <button 
+                  onClick={nextSlide} 
+                  className="nav-button nav-right"
+                  aria-label="Categoria successiva"
                 >
-                  {restaurant.phone}
-                </a>
+                  →
+                </button>
+              </>
+            )}
+
+            {/* Card Categoria */}
+            <div className="carousel-wrapper">
+              {categories.map((category, index) => {
+                if (index !== currentIndex) return null
+                
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className="category-card"
+                  >
+                    <img 
+                      src={category.image_url || 'https://via.placeholder.com/400x500/333/fff?text=Nessuna+Immagine'} 
+                      alt={category.name}
+                      className="category-image"
+                    />
+                    <div className="category-overlay">
+                      <h2 className="category-name">{category.name}</h2>
+                      <p className="category-product-count">
+                        {products[category.id]?.length || 0} {(products[category.id]?.length || 0) === 1 ? 'prodotto' : 'prodotti'}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Indicatori */}
+            {categories.length > 1 && (
+              <div className="indicators">
+                {categories.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentIndex(index)}
+                    className={`indicator ${index === currentIndex ? 'active' : ''}`}
+                    aria-label={`Vai alla categoria ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Informazioni */}
+        <section className="info-section">
+          <div className="info-container">
+            <h2 className="info-title">📍 Dove Siamo</h2>
+            
+            <div className="info-card">
+              <div className="info-item">
+                <span className="info-icon">📍</span>
+                <div>
+                  <strong className="info-label">Indirizzo</strong>
+                  <p className="info-text">{restaurant.address}</p>
+                </div>
+              </div>
+
+              <div className="info-item">
+                <span className="info-icon">📞</span>
+                <div>
+                  <strong className="info-label">Telefono</strong>
+                  <a 
+                    href={`tel:${restaurant.phone}`}
+                    className="phone-link"
+                  >
+                    {restaurant.phone}
+                  </a>
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          {/* Pulsante Condividi */}
-          <button
-            onClick={() => setShowQR(!showQR)}
-            style={styles.shareButton}
-          >
-            {showQR ? '✕ Chiudi QR Code' : '📱 Condividi Menu'}
-          </button>
-
-          {showQR && (
-            <div style={styles.qrContainer}>
-              <p style={styles.qrText}>Scansiona per condividere</p>
-              <div style={styles.qrPlaceholder}>
-                [QR CODE]
-              </div>
-              <p style={styles.urlText}>
-                {window.location.href}
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer style={styles.footer}>
-        <p style={styles.footerText}>
-          © 2025 {restaurant.name}
-        </p>
-        <p style={styles.footerPowered}>
-          Powered by <strong>MVPMenu</strong>
-        </p>
-      </footer>
-    </div>
+        {/* Footer */}
+        <footer className="footer">
+          <p className="footer-text">
+            © 2025 {restaurant.name}
+          </p>
+          <p className="footer-powered">
+            Powered by <strong>MVPMenu</strong>
+          </p>
+        </footer>
+      </div>
+    </>
   )
 }
 
-// Stili Responsive
-const styles = {
-  // Layout Base
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#000',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-  },
+// CSS Completo con Media Queries
+const styles = `
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-  // Loading
-  loadingContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#000',
-  },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: '4px solid #333',
-    borderTop: '4px solid #4CAF50',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    marginBottom: '16px',
-  },
-  loadingText: {
-    color: 'white',
-    fontSize: '16px',
-  },
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  // Header Home
-  header: {
-    padding: '40px 20px',
-    textAlign: 'center',
-    borderBottom: '1px solid #222',
-  },
-  logo: {
-    height: '60px',
-    maxWidth: '100%',
-    objectFit: 'contain',
-    marginBottom: '20px',
-  },
-  restaurantName: {
-    color: 'white',
-    fontSize: 'clamp(24px, 6vw, 40px)',
-    fontWeight: '300',
-    letterSpacing: '2px',
-    margin: '0 0 12px 0',
-    textTransform: 'uppercase',
-  },
-  subtitle: {
-    color: '#999',
-    fontSize: 'clamp(12px, 3vw, 14px)',
-    margin: 0,
-  },
+  .menu-container {
+    min-height: 100vh;
+    width: 100%;
+    background-color: #000;
+  }
 
-  // Carousel
-  carouselSection: {
-    padding: '40px 20px',
-  },
-  carouselContainer: {
-    position: 'relative',
-    maxWidth: '500px',
-    margin: '0 auto',
-  },
-  carouselWrapper: {
-    height: 'clamp(350px, 70vw, 450px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryCard: {
-    width: '90%',
-    maxWidth: '350px',
-    height: '100%',
-    borderRadius: '20px',
-    overflow: 'hidden',
-    border: 'none',
-    cursor: 'pointer',
-    position: 'relative',
-    padding: 0,
-    transition: 'transform 0.2s ease',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-  },
-  categoryImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  categoryOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
-    padding: '30px 20px',
-    color: 'white',
-  },
-  categoryName: {
-    margin: 0,
-    fontSize: 'clamp(20px, 5vw, 28px)',
-    fontWeight: 'bold',
-    letterSpacing: '1px',
-  },
-  categoryProductCount: {
-    margin: '8px 0 0 0',
-    fontSize: 'clamp(12px, 3vw, 14px)',
-    opacity: 0.9,
-  },
+  /* Loading */
+  .loading-container {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #000;
+    color: white;
+  }
 
-  // Bottoni Navigazione
-  navButton: {
-    position: 'absolute',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    zIndex: 10,
-    background: 'rgba(76, 175, 80, 0.9)',
-    color: 'white',
-    border: 'none',
-    borderRadius: '50%',
-    width: 'clamp(40px, 10vw, 50px)',
-    height: 'clamp(40px, 10vw, 50px)',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.2s ease',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-  },
-  navButtonLeft: {
-    left: 'clamp(5px, 2vw, 10px)',
-  },
-  navButtonRight: {
-    right: 'clamp(5px, 2vw, 10px)',
-  },
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #333;
+    border-top: 4px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
 
-  // Indicatori
-  indicators: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '8px',
-    marginTop: '20px',
-  },
-  indicator: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    border: 'none',
-    background: '#333',
-    cursor: 'pointer',
-    padding: 0,
-    transition: 'all 0.2s ease',
-  },
-  indicatorActive: {
-    background: '#4CAF50',
-    width: '24px',
-    borderRadius: '5px',
-  },
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 
-  // Vista Prodotti
-  productsHeader: {
-    padding: '20px',
-    borderBottom: '1px solid #222',
-    position: 'sticky',
-    top: 0,
-    backgroundColor: '#000',
-    zIndex: 100,
-  },
-  backButton: {
-    display: 'flex',
-    alignItems: 'center',
-    color: '#4CAF50',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    padding: '8px 0',
-    fontSize: 'clamp(14px, 3.5vw, 16px)',
-    fontWeight: '500',
-    marginBottom: '12px',
-  },
-  categoryTitle: {
-    color: 'white',
-    fontSize: 'clamp(24px, 6vw, 32px)',
-    margin: '0 0 8px 0',
-    fontWeight: 'bold',
-  },
-  productCount: {
-    color: '#999',
-    fontSize: 'clamp(12px, 3vw, 14px)',
-    margin: 0,
-  },
+  /* Header Home */
+  .header {
+    padding: 40px 20px;
+    text-align: center;
+    border-bottom: 1px solid #222;
+    width: 100%;
+  }
 
-  // Lista Prodotti
-  productsContainer: {
-    padding: '16px',
-    maxWidth: '800px',
-    margin: '0 auto',
-  },
-  productCard: {
-    marginBottom: '12px',
-    border: '1px solid #222',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    backgroundColor: '#111',
-    transition: 'border-color 0.2s ease',
-  },
-  productButton: {
-    width: '100%',
-    padding: '16px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'white',
-    gap: '12px',
-  },
-  productHeader: {
-    flex: 1,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '12px',
-    flexWrap: 'wrap',
-  },
-  productName: {
-    fontSize: 'clamp(14px, 4vw, 16px)',
-    fontWeight: '500',
-    textAlign: 'left',
-  },
-  productPrice: {
-    color: '#4CAF50',
-    fontWeight: 'bold',
-    fontSize: 'clamp(14px, 4vw, 16px)',
-    whiteSpace: 'nowrap',
-  },
-  expandIcon: {
-    fontSize: '12px',
-    color: '#666',
-  },
-  productDetails: {
-    padding: '0 16px 16px 16px',
-    backgroundColor: '#0a0a0a',
-    animation: 'slideDown 0.3s ease',
-  },
-  productImage: {
-    width: '100%',
-    maxHeight: '250px',
-    objectFit: 'cover',
-    borderRadius: '8px',
-    marginBottom: '12px',
-  },
-  productDescription: {
-    color: '#ccc',
-    fontSize: 'clamp(13px, 3.5vw, 15px)',
-    margin: 0,
-    lineHeight: '1.6',
-  },
+  .logo {
+    height: 60px;
+    max-width: 100%;
+    object-fit: contain;
+    margin-bottom: 20px;
+  }
 
-  // Empty State
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-    textAlign: 'center',
-  },
+  .restaurant-name {
+    color: white;
+    font-size: 32px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+  }
 
-  // Info Section
-  infoSection: {
-    backgroundColor: 'white',
-    padding: '40px 20px',
-  },
-  infoContainer: {
-    maxWidth: '600px',
-    margin: '0 auto',
-  },
-  infoTitle: {
-    fontSize: 'clamp(20px, 5vw, 24px)',
-    marginBottom: '24px',
-    fontWeight: 'bold',
-  },
-  infoCard: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: '12px',
-    padding: '20px',
-    marginBottom: '24px',
-  },
-  infoItem: {
-    display: 'flex',
-    gap: '16px',
-    marginBottom: '20px',
-  },
-  infoIcon: {
-    fontSize: '24px',
-    flexShrink: 0,
-  },
-  infoLabel: {
-    display: 'block',
-    fontSize: 'clamp(12px, 3vw, 14px)',
-    color: '#666',
-    marginBottom: '4px',
-  },
-  infoText: {
-    margin: 0,
-    fontSize: 'clamp(14px, 3.5vw, 16px)',
-    lineHeight: '1.5',
-  },
-  phoneLink: {
-    color: '#4CAF50',
-    textDecoration: 'none',
-    fontSize: 'clamp(14px, 3.5vw, 16px)',
-    fontWeight: '500',
-  },
+  .subtitle {
+    color: #999;
+    font-size: 14px;
+    margin: 0;
+  }
 
-  // Share Button
-  shareButton: {
-    width: '100%',
-    padding: '16px',
-    background: '#4CAF50',
-    color: 'white',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    fontSize: 'clamp(14px, 3.5vw, 16px)',
-    fontWeight: 'bold',
-    transition: 'background 0.2s ease',
-  },
+  /* Carousel */
+  .carousel-section {
+    padding: 60px 20px;
+    width: 100%;
+  }
 
-  // QR Code
-  qrContainer: {
-    marginTop: '24px',
-    padding: '24px',
-    backgroundColor: '#f5f5f5',
-    borderRadius: '12px',
-    textAlign: 'center',
-  },
-  qrText: {
-    fontSize: 'clamp(13px, 3vw, 14px)',
-    color: '#666',
-    marginBottom: '16px',
-  },
-  qrPlaceholder: {
-    width: '200px',
-    height: '200px',
-    margin: '0 auto 16px',
-    backgroundColor: '#ddd',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '16px',
-    color: '#999',
-  },
-  urlText: {
-    fontSize: 'clamp(11px, 2.5vw, 12px)',
-    color: '#999',
-    wordBreak: 'break-all',
-  },
+  .carousel-container {
+    position: relative;
+    max-width: 500px;
+    margin: 0 auto;
+  }
 
-  // Footer
-  footer: {
-    backgroundColor: '#0a0a0a',
-    padding: '32px 20px',
-    textAlign: 'center',
-    borderTop: '1px solid #222',
-  },
-  footerText: {
-    color: '#666',
-    margin: '0 0 8px 0',
-    fontSize: 'clamp(12px, 3vw, 14px)',
-  },
-  footerPowered: {
-    color: '#444',
-    margin: 0,
-    fontSize: 'clamp(11px, 2.5vw, 12px)',
-  },
-}
+  .carousel-wrapper {
+    height: 450px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .category-card {
+    width: 100%;
+    max-width: 350px;
+    height: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+    transition: transform 0.2s ease;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    display: block;
+    margin: 0 auto;
+  }
+
+  .category-card:active {
+    transform: scale(0.98);
+  }
+
+  .category-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .category-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%);
+    padding: 30px 20px;
+    color: white;
+  }
+
+  .category-name {
+    margin: 0;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+
+  .category-product-count {
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  /* Bottoni Navigazione */
+  .nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .nav-button:hover {
+    background: rgba(76, 175, 80, 1);
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  .nav-button:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  .nav-left {
+    left: 10px;
+  }
+
+  .nav-right {
+    right: 10px;
+  }
+
+  /* Indicatori */
+  .indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 30px;
+  }
+
+  .indicator {
+    width: 10px;
+    height: 10px;
+    borderradius: 50%;
+    border: none;
+    background: #333;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease;
+  }
+
+  .indicator.active {
+    background: #4CAF50;
+    width: 24px;
+    border-radius: 5px;
+  }
+
+  /* Vista Prodotti */
+  .products-header {
+    padding: 20px;
+    border-bottom: 1px solid #222;
+    position: sticky;
+    top: 0;
+    background-color: #000;
+    z-index: 100;
+    width: 100%;
+  }
+
+  .back-button {
+    display: flex;
+    align-items: center;
+    color: #4CAF50;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 0;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 12px;
+  }
+
+  .back-button:active {
+    opacity: 0.7;
+  }
+
+  .category-title {
+    color: white;
+    font-size: 32px;
+    margin: 0 0 8px 0;
+    font-weight: bold;
+  }
+
+  .product-count {
+    color: #999;
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* Lista Prodotti */
+  .products-list {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .product-card {
+    margin-bottom: 12px;
+    border: 1px solid #222;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #111;
+    transition: border-color 0.2s ease;
+  }
+
+  .product-card:hover {
+    border-color: #4CAF50;
+  }
+
+  .product-button {
+    width: 100%;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: white;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .product-header {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .product-name {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .product-price {
+    color: #4CAF50;
+    font-weight: bold;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  .expand-icon {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .product-details {
+    padding: 0 16px 16px 16px;
+    background-color: #0a0a0a;
+  }
+
+  .product-image {
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .product-description {
+    color: #ccc;
+    font-size: 15px;
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* Empty State */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: #999;
+  }
+
+  /* Info Section */
+  .info-section {
+    background-color: white;
+    padding: 40px 20px;
+    width: 100%;
+  }
+
+  .info-container {
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .info-title {
+    font-size: 24px;
+    margin-bottom: 24px;
+    font-weight: bold;
+  }
+
+  .info-card {
+    background-color: #f5f5f5;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .info-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .info-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .info-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .info-label {
+    display: block;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+
+  .info-text {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #000;
+  }
+
+  .phone-link {
+    color: #4CAF50;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .phone-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Footer */
+  .footer {
+    background-color: #0a0a0a;
+    padding: 32px 20px;
+    text-align: center;
+    border-top: 1px solid #222;
+    width: 100%;
+  }
+
+  .footer-text {
+    color: #666;
+    margin: 0 0 8px 0;
+    font-size: 14px;
+  }
+
+  .footer-powered {
+    color: #444;
+    margin: 0;
+    font-size: 12px;
+  }
+
+  /* MEDIA QUERIES RESPONSIVE */
+  
+  /* Mobile Small */
+  @media (max-width: 375px) {
+    .restaurant-name {
+      font-size: 24px;
+    }
+    
+    .category-name {
+      font-size: 22px;
+    }
+    
+    .carousel-wrapper {
+      height: 380px;
+    }
+    
+    .nav-button {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .header {
+      padding: 30px 16px;
+    }
+    
+    .carousel-section {
+      padding: 40px 16px;
+    }
+    
+    .carousel-wrapper {
+      height: 400px;
+    }
+    
+    .category-card {
+      max-width: 90%;
+    }
+    
+    .products-header {
+      padding: 16px;
+    }
+    
+    .category-title {
+      font-size: 24px;
+    }
+    
+    .products-list {
+      padding: 16px;
+    }
+  }
+
+  /* Tablet */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .carousel-wrapper {
+      height: 500px;
+    }
+    
+    .category-card {
+      max-width: 400px;
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 1025px) {
+    .restaurant-name {
+      font-size: 40px;
+    }
+    
+    .carousel-wrapper {
+      height: 550px;
+    }
+    
+    .category-card:hover {
+      transform: scale(1.02);
+    }
+    
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
+  }
+`
 
 export default PublicMenu
