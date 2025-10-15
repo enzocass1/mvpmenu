@@ -51,25 +51,26 @@ function RestaurantForm({ restaurant, onSave }) {
 
   // Inizializza l'autocomplete quando lo script è caricato
   useEffect(() => {
-    // Disabilita autocomplete su mobile per evitare problemi
-    const isMobile = window.innerWidth <= 768
-    
-    if (scriptLoaded && addressInputRef.current && !autocompleteRef.current && !isMobile) {
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(
-        addressInputRef.current,
-        {
-          componentRestrictions: { country: 'it' },
-          fields: ['formatted_address', 'geometry', 'name'],
-          types: ['address']
-        }
-      )
+    if (scriptLoaded && addressInputRef.current && !autocompleteRef.current) {
+      try {
+        autocompleteRef.current = new window.google.maps.places.Autocomplete(
+          addressInputRef.current,
+          {
+            componentRestrictions: { country: 'it' },
+            fields: ['formatted_address', 'geometry', 'name'],
+            types: ['address']
+          }
+        )
 
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace()
-        if (place.formatted_address) {
-          setFormData(prev => ({ ...prev, address: place.formatted_address }))
-        }
-      })
+        autocompleteRef.current.addListener('place_changed', () => {
+          const place = autocompleteRef.current.getPlace()
+          if (place.formatted_address) {
+            setFormData(prev => ({ ...prev, address: place.formatted_address }))
+          }
+        })
+      } catch (error) {
+        console.error('Errore inizializzazione autocomplete:', error)
+      }
     }
   }, [scriptLoaded])
 
@@ -273,7 +274,7 @@ function RestaurantForm({ restaurant, onSave }) {
           </details>
         </div>
 
-        {/* Indirizzo con Google Autocomplete - FIX MOBILE */}
+        {/* Indirizzo con Google Autocomplete */}
         <div style={{ marginBottom: '25px' }}>
           <label style={{
             display: 'block',
@@ -292,24 +293,21 @@ function RestaurantForm({ restaurant, onSave }) {
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             required
-            autoComplete="off"
+            name="address"
+            id="address-input"
+            autoComplete="new-password"
             style={{
               width: '100%',
-              padding: '12px 15px',
+              padding: '12px 15px 12px 15px',
               fontSize: '16px',
               border: '2px solid #000000',
               borderRadius: '4px',
               background: '#F5F5F5',
               color: '#000000',
-              boxSizing: 'border-box',
-              WebkitAppearance: 'none',
-              appearance: 'none'
+              boxSizing: 'border-box'
             }}
             placeholder="Inizia a digitare l'indirizzo..."
-            onFocus={(e) => {
-              e.target.style.background = '#FFFFFF'
-              e.target.style.fontSize = '16px'
-            }}
+            onFocus={(e) => e.target.style.background = '#FFFFFF'}
             onBlur={(e) => e.target.style.background = '#F5F5F5'}
           />
           <small style={{
@@ -318,7 +316,7 @@ function RestaurantForm({ restaurant, onSave }) {
             color: '#666',
             fontSize: '12px'
           }}>
-            💡 {window.innerWidth <= 768 ? 'Digita l\'indirizzo completo' : 'Inizia a digitare e seleziona dalla lista'}
+            💡 Inizia a digitare e seleziona dalla lista
           </small>
         </div>
 
@@ -494,50 +492,58 @@ function RestaurantForm({ restaurant, onSave }) {
 
       {/* CSS per personalizzare dropdown Google */}
       <style>{`
-        .pac-container {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          border: 2px solid #000000 !important;
-          border-radius: 4px;
-          box-shadow: 4px 4px 0px #000000 !important;
-          margin-top: 5px;
-          z-index: 10000;
-        }
-        .pac-item {
-          padding: 10px 15px;
-          font-size: 14px;
-          border-top: 1px solid #E0E0E0;
-          cursor: pointer;
-        }
-        .pac-item:hover {
-          background: #F5F5F5;
-        }
-        .pac-item-query {
-          font-weight: 600;
-          color: #000000;
-        }
+        /* Nascondi le icone problematiche di Google Places */
         .pac-icon {
-          margin-top: 5px;
-        }
-        
-        /* FIX MOBILE: Rimuovi icone problematiche */
-        .pac-icon-marker {
           display: none !important;
         }
         
-        /* FIX MOBILE: Migliora touch target */
+        .pac-container {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+          border: 2px solid #000000 !important;
+          border-radius: 4px !important;
+          box-shadow: 4px 4px 0px #000000 !important;
+          margin-top: 5px !important;
+          z-index: 10000 !important;
+          background: white !important;
+        }
+        
+        .pac-item {
+          padding: 12px 15px !important;
+          font-size: 14px !important;
+          border-top: 1px solid #E0E0E0 !important;
+          cursor: pointer !important;
+          line-height: 1.4 !important;
+        }
+        
+        .pac-item:hover {
+          background: #F5F5F5 !important;
+        }
+        
+        .pac-item-query {
+          font-weight: 600 !important;
+          color: #000000 !important;
+          font-size: 14px !important;
+        }
+        
+        .pac-matched {
+          font-weight: 700 !important;
+        }
+        
+        /* Mobile fixes */
         @media (max-width: 768px) {
           .pac-container {
+            border: 1px solid #000 !important;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
-            border: 1px solid #ccc !important;
             margin-top: 2px !important;
           }
+          
           .pac-item {
-            padding: 15px 10px;
-            font-size: 16px;
-            line-height: 1.4;
+            padding: 15px 10px !important;
+            font-size: 16px !important;
           }
+          
           .pac-item-query {
-            font-size: 16px;
+            font-size: 16px !important;
           }
         }
       `}</style>
