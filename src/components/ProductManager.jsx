@@ -707,16 +707,15 @@ function ProductManager({ category }) {
                         padding: '12px',
                         fontSize: '14px',
                         fontWeight: '700',
-                        color: index === 0 ? '#999999' : '#000000',
-                        background: index === 0 ? '#E0E0E0' : '#FFFFFF',
+                        color: '#FFFFFF',
+                        background: index === 0 ? '#999999' : '#000000',
                         border: '2px solid #000000',
                         borderRadius: '4px',
                         cursor: index === 0 ? 'not-allowed' : 'pointer',
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px',
                         boxShadow: '2px 2px 0px #000000',
-                        transition: 'all 0.2s ease',
-                        opacity: index === 0 ? 0.5 : 1
+                        transition: 'all 0.2s ease'
                       }}
                       onMouseDown={(e) => {
                         if (index !== 0) {
@@ -748,16 +747,15 @@ function ProductManager({ category }) {
                         padding: '12px',
                         fontSize: '14px',
                         fontWeight: '700',
-                        color: index === products.length - 1 ? '#999999' : '#000000',
-                        background: index === products.length - 1 ? '#E0E0E0' : '#FFFFFF',
+                        color: '#FFFFFF',
+                        background: index === products.length - 1 ? '#999999' : '#000000',
                         border: '2px solid #000000',
                         borderRadius: '4px',
                         cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px',
                         boxShadow: '2px 2px 0px #000000',
-                        transition: 'all 0.2s ease',
-                        opacity: index === products.length - 1 ? 0.5 : 1
+                        transition: 'all 0.2s ease'
                       }}
                       onMouseDown={(e) => {
                         if (index !== products.length - 1) {
