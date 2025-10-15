@@ -489,6 +489,124 @@ function Dashboard({ session }) {
           </div>
         )}
 
+        {/* SEZIONE 5: Scarica o Carica Menu (Toggle) */}
+        {restaurant && (
+          <div style={{ marginBottom: '20px' }}>
+            <button
+              onClick={() => toggleSection('importExport')}
+              style={{
+                width: '100%',
+                background: '#FFFFFF',
+                border: '2px solid #000000',
+                borderRadius: '8px',
+                padding: '20px 30px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                cursor: 'pointer',
+                boxShadow: '4px 4px 0px #000000',
+                transition: 'all 0.2s ease',
+                marginBottom: openSections.importExport ? '20px' : '0'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'translateY(2px)'
+                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
+              }}
+            >
+              <h2 style={{
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#000000'
+              }}>
+                📥 Scarica o Carica Menu
+              </h2>
+              <span style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#000000',
+                transform: openSections.importExport ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }}>
+                ▼
+              </span>
+            </button>
+
+            {openSections.importExport && (
+              <div>
+                <MenuImportExport restaurantId={restaurant.id} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SEZIONE 5: Importa/Esporta Menu (Toggle) */}
+        {restaurant && (
+          <div style={{ marginBottom: '20px' }}>
+            <button
+              onClick={() => toggleSection('importExport')}
+              style={{
+                width: '100%',
+                background: '#FFFFFF',
+                border: '2px solid #000000',
+                borderRadius: '8px',
+                padding: '20px 30px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                cursor: 'pointer',
+                boxShadow: '4px 4px 0px #000000',
+                transition: 'all 0.2s ease',
+                marginBottom: openSections.importExport ? '20px' : '0'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'translateY(2px)'
+                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
+              }}
+            >
+              <h2 style={{
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#000000'
+              }}>
+                📥 Importa/Esporta Menu
+              </h2>
+              <span style={{
+                fontSize: '28px',
+                fontWeight: '700',
+                color: '#000000',
+                transform: openSections.importExport ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }}>
+                ▼
+              </span>
+            </button>
+
+            {openSections.importExport && (
+              <div>
+                <MenuImportExport restaurantId={restaurant.id} />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Footer */}
         <footer style={{
           marginTop: '50px',
