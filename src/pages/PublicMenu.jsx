@@ -467,12 +467,12 @@ const styles = {
   
   // Header
   header: {
-    width: '100%',
-    padding: '40px 5%',
-    textAlign: 'center',
-    borderBottom: '1px solid #e0e0e0',
-    backgroundColor: '#ffffff',
-  },
+  width: '100%',
+  padding: '30px 5% 20px 5%',  // ← Top 30px, Bottom 20px
+  textAlign: 'center',
+  borderBottom: 'none',  // ← ELIMINA LINEA
+  backgroundColor: '#ffffff',
+},
   
   logo: {
     maxHeight: '80px',
@@ -499,11 +499,11 @@ const styles = {
   
   // Carousel 3D
   carouselSection: {
-    width: '100%',
-    padding: '80px 0',
-    backgroundColor: '#ffffff',
-    position: 'relative',
-  },
+  width: '100%',
+  padding: '30px 0 60px 0',  // ← Top 30px, Bottom 60px
+  backgroundColor: '#ffffff',
+  position: 'relative',
+},
   
   carouselContainer: {
     width: '100%',
