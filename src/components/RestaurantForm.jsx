@@ -67,25 +67,70 @@ function RestaurantForm({ restaurant, onSave }) {
     }
   }, [])
 
-  // Inizializza l'autocomplete quando lo script è caricato
+  // Inizializza l'autocomplete quando lo script è caricato - VERSIONE SENZA ICONE
   useEffect(() => {
     if (scriptLoaded && addressInputRef.current && !autocompleteRef.current) {
       try {
+        // Crea autocomplete senza icone predefinite
+        const options = {
+          componentRestrictions: { country: 'it' },
+          fields: ['formatted_address', 'address_components', 'geometry'],
+          types: ['address']
+        }
+        
         autocompleteRef.current = new window.google.maps.places.Autocomplete(
           addressInputRef.current,
-          {
-            componentRestrictions: { country: 'it' },
-            fields: ['formatted_address', 'address_components', 'geometry'],
-            types: ['address']
-          }
+          options
         )
 
+        // Listener per quando viene selezionato un indirizzo
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace()
           if (place.formatted_address) {
             setFormData(prev => ({ ...prev, address: place.formatted_address }))
           }
         })
+
+        // CRUCIALE: Rimuovi le icone dopo che il container è stato creato
+        // Aspetta che l'autocomplete sia inizializzato
+        setTimeout(() => {
+          const pacContainers = document.querySelectorAll('.pac-container')
+          pacContainers.forEach(container => {
+            // Rimuovi tutti gli elementi con classe pac-icon
+            const icons = container.querySelectorAll('.pac-icon')
+            icons.forEach(icon => {
+              icon.style.display = 'none'
+              icon.style.width = '0'
+              icon.style.height = '0'
+            })
+          })
+        }, 100)
+
+        // Observer per rimuovere icone quando compaiono
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length) {
+              mutation.addedNodes.forEach((node) => {
+                if (node.classList && node.classList.contains('pac-container')) {
+                  const icons = node.querySelectorAll('.pac-icon')
+                  icons.forEach(icon => {
+                    icon.style.display = 'none'
+                    icon.style.width = '0'
+                    icon.style.height = '0'
+                  })
+                }
+              })
+            }
+          })
+        })
+
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        })
+
+        // Cleanup observer
+        return () => observer.disconnect()
       } catch (error) {
         console.error('Errore inizializzazione autocomplete:', error)
       }
@@ -506,22 +551,31 @@ function RestaurantForm({ restaurant, onSave }) {
         )}
       </form>
 
-      {/* CSS per nascondere COMPLETAMENTE le icone di Google Places */}
+      {/* CSS DEFINITIVO - Blocca completamente le icone di Google Places */}
       <style>{`
-        /* SOLUZIONE AGGRESSIVA: Nascondi tutto ciò che riguarda le icone */
+        /* BLOCCO TOTALE ICONE - Nessuna icona verrà mai mostrata */
         .pac-icon,
         .pac-icon-marker,
-        span[class*="pac-icon"] {
+        span[class*="pac-icon"],
+        .pac-item-icon {
           display: none !important;
           width: 0 !important;
           height: 0 !important;
           min-width: 0 !important;
           min-height: 0 !important;
+          max-width: 0 !important;
+          max-height: 0 !important;
           opacity: 0 !important;
           visibility: hidden !important;
           background: none !important;
           background-image: none !important;
-          content: none !important;
+          background-size: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: none !important;
+          overflow: hidden !important;
+          position: absolute !important;
+          left: -9999px !important;
         }
         
         /* Container principale */
@@ -535,7 +589,7 @@ function RestaurantForm({ restaurant, onSave }) {
           background: white !important;
         }
         
-        /* Ogni elemento della lista - RIMUOVI GRID LAYOUT */
+        /* Ogni elemento della lista */
         .pac-item {
           padding: 12px 15px !important;
           font-size: 14px !important;
@@ -543,15 +597,17 @@ function RestaurantForm({ restaurant, onSave }) {
           cursor: pointer !important;
           line-height: 1.4 !important;
           display: block !important;
-          grid-template-columns: none !important;
-          grid-template-rows: none !important;
+          grid-template-columns: 0 1fr !important;
+          grid-gap: 0 !important;
         }
         
         .pac-item:first-child {
           border-top: none !important;
         }
         
-        .pac-item:hover {
+        .pac-item:hover,
+        .pac-item:focus,
+        .pac-item-selected {
           background: #F5F5F5 !important;
         }
         
@@ -563,22 +619,23 @@ function RestaurantForm({ restaurant, onSave }) {
           margin: 0 !important;
           padding: 0 !important;
           display: inline !important;
+          grid-column: 2 !important;
         }
         
         .pac-matched {
           font-weight: 700 !important;
         }
         
-        /* Rimuovi TUTTO ciò che potrebbe essere un'icona o pseudo-elemento */
+        /* Rimuovi TUTTO ciò che potrebbe essere un'icona */
         .pac-container *::before,
         .pac-container *::after,
         .pac-item::before,
-        .pac-item::after,
-        .pac-icon::before,
-        .pac-icon::after {
+        .pac-item::after {
           display: none !important;
-          content: none !important;
+          content: "" !important;
           background: none !important;
+          width: 0 !important;
+          height: 0 !important;
         }
         
         /* Mobile responsiveness */
