@@ -48,6 +48,7 @@ function PublicMenu() {
           .from('categories')
           .select('*')
           .eq('restaurant_id', restaurantData.id)
+          .eq('is_visible', true)
           .order('order', { ascending: true })
 
         setCategories(categoriesData || [])
@@ -58,19 +59,21 @@ function PublicMenu() {
             .from('products')
             .select('*')
             .eq('category_id', category.id)
+            .eq('is_visible', true)
             .order('order', { ascending: true })
 
           productsMap[category.id] = productsData || []
         }
         setProducts(productsMap)
+        
         // Carica orari di apertura
-const { data: hoursData } = await supabase
-  .from('opening_hours')
-  .select('*')
-  .eq('restaurant_id', restaurantData.id)
-  .order('order', { ascending: true })
+        const { data: hoursData } = await supabase
+          .from('opening_hours')
+          .select('*')
+          .eq('restaurant_id', restaurantData.id)
+          .order('order', { ascending: true })
 
-setOpeningHours(hoursData || [])
+        setOpeningHours(hoursData || [])
       }
     } catch (error) {
       console.error('Errore:', error)
@@ -120,32 +123,33 @@ setOpeningHours(hoursData || [])
       [productId]: !prev[productId]
     }))
   }
+
   const formatOpeningHours = () => {
-  if (openingHours.length === 0) {
-    return <div style={styles.infoText}>Orari non disponibili</div>
+    if (openingHours.length === 0) {
+      return <div style={styles.infoText}>Orari non disponibili</div>
+    }
+
+    return openingHours.map((hour, index) => {
+      // Costruisci stringa giorni
+      let dayString = hour.day_start
+      if (hour.day_end && hour.day_end !== hour.day_start) {
+        dayString += `-${hour.day_end}`
+      }
+
+      // Costruisci stringa orari
+      let timeString = `${hour.time_start_1}-${hour.time_end_1}`
+      if (hour.time_start_2 && hour.time_end_2) {
+        timeString += `, ${hour.time_start_2}-${hour.time_end_2}`
+      }
+
+      return (
+        <div key={index} style={{ marginBottom: '8px' }}>
+          <span style={{ fontWeight: '600', color: '#000' }}>{dayString}:</span>{' '}
+          <span style={styles.infoText}>{timeString}</span>
+        </div>
+      )
+    })
   }
-
-  return openingHours.map((hour, index) => {
-    // Costruisci stringa giorni
-    let dayString = hour.day_start
-    if (hour.day_end && hour.day_end !== hour.day_start) {
-      dayString += `-${hour.day_end}`
-    }
-
-    // Costruisci stringa orari
-    let timeString = `${hour.time_start_1}-${hour.time_end_1}`
-    if (hour.time_start_2 && hour.time_end_2) {
-      timeString += `, ${hour.time_start_2}-${hour.time_end_2}`
-    }
-
-    return (
-      <div key={index} style={{ marginBottom: '8px' }}>
-        <span style={{ fontWeight: '600', color: '#000' }}>{dayString}:</span>{' '}
-        <span style={styles.infoText}>{timeString}</span>
-      </div>
-    )
-  })
-}
 
   if (loading) {
     return (
@@ -198,7 +202,7 @@ setOpeningHours(hoursData || [])
             {categoryProducts.length === 0 ? (
               <div style={styles.emptyState}>
                 <p style={{ color: '#666', fontSize: '16px' }}>
-                  Nessun prodotto in questa categoria
+                  Nessun prodotto disponibile in questa categoria
                 </p>
               </div>
             ) : (
@@ -238,6 +242,24 @@ setOpeningHours(hoursData || [])
               ))
             )}
           </div>
+
+          {/* Footer */}
+          <footer style={styles.footer}>
+            <div style={styles.footerContent}>
+              <p style={styles.footerText}>
+                Made with <span role="img" aria-label="cuore">❤️</span> by{' '}
+                <a 
+                  href="/#/landing" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={styles.footerLink}
+                >
+                  MVPMenu
+                </a>
+                {' '}| © 2025
+              </p>
+            </div>
+          </footer>
 
           {/* Bottoni Sticky */}
           <div style={styles.stickyButtons}>
@@ -313,6 +335,8 @@ setOpeningHours(hoursData || [])
                   rotateY(${position * 15}deg)
                 `
                 
+                const visibleProductCount = products[category.id]?.length || 0
+                
                 return (
                   <div
                     key={category.id}
@@ -335,7 +359,7 @@ setOpeningHours(hoursData || [])
                     <div style={styles.categoryOverlay}>
                       <h2 style={styles.categoryName}>{category.name}</h2>
                       <p style={styles.categoryCount}>
-                        {products[category.id]?.length || 0} prodotti
+                        {visibleProductCount} {visibleProductCount === 1 ? 'prodotto' : 'prodotti'}
                       </p>
                     </div>
                   </div>
@@ -363,53 +387,65 @@ setOpeningHours(hoursData || [])
         </div>
 
         <div style={styles.infoCard}>
-  {/* ORARI - NUOVO */}
-  <div style={styles.infoItem}>
-  <div style={{ flex: 1 }}>
-    <div style={styles.infoLabel}>Orari di Apertura</div>
-    <div style={{ marginTop: '8px' }}>
-      {formatOpeningHours()}
-    </div>
-  </div>
-</div>
+          {/* ORARI */}
+          <div style={styles.infoItem}>
+            <div style={{ flex: 1 }}>
+              <div style={styles.infoLabel}>Orari di Apertura</div>
+              <div style={{ marginTop: '8px' }}>
+                {formatOpeningHours()}
+              </div>
+            </div>
+          </div>
 
-  {/* INDIRIZZO */}
-  <div style={styles.infoItem}>
-    <div style={{ flex: 1 }}>
-      <div style={styles.infoLabel}>Indirizzo</div>
-      <div style={styles.infoText}>{restaurant.address}</div>
-    </div>
-  </div>
+          {/* INDIRIZZO */}
+          <div style={styles.infoItem}>
+            <div style={{ flex: 1 }}>
+              <div style={styles.infoLabel}>Indirizzo</div>
+              <div style={styles.infoText}>{restaurant.address}</div>
+            </div>
+          </div>
 
-  {/* TELEFONO */}
-  <div style={styles.infoItem}>
-    <div style={{ flex: 1 }}>
-      <div style={styles.infoLabel}>Telefono</div>
-      <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
-        {restaurant.phone}
-      </a>
-    </div>
-  </div>
+          {/* TELEFONO */}
+          <div style={styles.infoItem}>
+            <div style={{ flex: 1 }}>
+              <div style={styles.infoLabel}>Telefono</div>
+              <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
+                {restaurant.phone}
+              </a>
+            </div>
+          </div>
 
-  {/* Mappa Google Maps */}
-  <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none' }}>
-    <iframe
-      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
-      width="100%"
-      height="100%"
-      style={{ border: 0 }}
-      allowFullScreen=""
-      loading="lazy"
-      referrerPolicy="no-referrer-when-downgrade"
-    />
-  </div>
-</div>
+          {/* Mappa Google Maps */}
+          <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none' }}>
+            <iframe
+              src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
 
         {/* Footer */}
-        <div style={styles.footer}>
-          <p style={styles.footerText}>© 2025 {restaurant.name}</p>
-          <p style={styles.footerPowered}>Powered by MVPMenu</p>
-        </div>
+        <footer style={styles.footer}>
+          <div style={styles.footerContent}>
+            <p style={styles.footerText}>
+              Made with <span role="img" aria-label="cuore">❤️</span> by{' '}
+              <a 
+                href="/#/landing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={styles.footerLink}
+              >
+                MVPMenu
+              </a>
+              {' '}| © 2025
+            </p>
+          </div>
+        </footer>
 
         {/* Bottoni Sticky */}
         <div style={styles.stickyButtons}>
@@ -501,12 +537,12 @@ const styles = {
   
   // Header
   header: {
-  width: '100%',
-  padding: '30px 5% 20px 5%',  // ← Top 30px, Bottom 20px
-  textAlign: 'center',
-  borderBottom: 'none',  // ← ELIMINA LINEA
-  backgroundColor: '#ffffff',
-},
+    width: '100%',
+    padding: '30px 5% 20px 5%',
+    textAlign: 'center',
+    borderBottom: 'none',
+    backgroundColor: '#ffffff',
+  },
   
   logo: {
     maxHeight: '80px',
@@ -533,11 +569,11 @@ const styles = {
   
   // Carousel 3D
   carouselSection: {
-  width: '100%',
-  padding: '0px 0 60px 0',  // ← Top 30px, Bottom 60px
-  backgroundColor: '#ffffff',
-  position: 'relative',
-},
+    width: '100%',
+    padding: '0px 0 60px 0',
+    backgroundColor: '#ffffff',
+    position: 'relative',
+  },
   
   carouselContainer: {
     width: '100%',
@@ -769,12 +805,12 @@ const styles = {
   },
   
   infoCard: {
-  width: '100%',
-  padding: '0 20px',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '20px',
-},
+    width: '100%',
+    padding: '0 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+  },
   
   infoItem: {
     display: 'flex',
@@ -784,49 +820,56 @@ const styles = {
   },
   
   infoLabel: {
-  fontSize: '13px',
-  color: '#666',
-  marginBottom: '4px',
-  fontWeight: '600',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-},
+    fontSize: '13px',
+    color: '#666',
+    marginBottom: '4px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
 
-infoText: {
-  fontSize: '16px',
-  color: '#000',
-  overflowWrap: 'break-word',
-  lineHeight: '1.5',
-},
+  infoText: {
+    fontSize: '16px',
+    color: '#000',
+    overflowWrap: 'break-word',
+    lineHeight: '1.5',
+  },
   
   phoneLink: {
-  color: '#000',
-  textDecoration: 'none',
-  fontSize: '16px',
-  fontWeight: '500',
-  borderBottom: '1px solid rgba(0,0,0,0.3)',
-  paddingBottom: '2px',
-},
+    color: '#000',
+    textDecoration: 'none',
+    fontSize: '16px',
+    fontWeight: '500',
+    borderBottom: '1px solid rgba(0,0,0,0.3)',
+    paddingBottom: '2px',
+  },
   
   // Footer
   footer: {
-    width: '100%',
-    backgroundColor: '#f5f5f5',
-    padding: '32px 5%',
-    textAlign: 'center',
-    borderTop: '1px solid #e0e0e0',
+    marginTop: '80px',
+    padding: '30px 0',
+    backgroundColor: '#000000',
+    width: '100vw',
+    marginLeft: 'calc(-50vw + 50%)',
+  },
+  
+  footerContent: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 20px',
+    textAlign: 'left',
   },
   
   footerText: {
-    color: '#666',
-    margin: '0 0 8px 0',
-    fontSize: '14px',
+    margin: 0,
+    color: '#FFFFFF',
+    fontSize: '13px',
   },
   
-  footerPowered: {
-    color: '#999',
-    margin: 0,
-    fontSize: '12px',
+  footerLink: {
+    color: '#FFFFFF',
+    textDecoration: 'underline',
+    cursor: 'pointer',
   },
 
   // Bottoni Sticky

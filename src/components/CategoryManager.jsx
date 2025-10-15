@@ -58,7 +58,8 @@ function CategoryManager({ restaurantId }) {
               restaurant_id: restaurantId,
               name: formData.name,
               image_url: formData.image_url,
-              order: maxOrder + 1
+              order: maxOrder + 1,
+              is_visible: true // ← NUOVO: default visibile
             }
           ])
 
@@ -103,6 +104,52 @@ function CategoryManager({ restaurantId }) {
     } catch (error) {
       console.error('Error deleting category:', error)
       alert('Errore durante l\'eliminazione')
+    }
+  }
+
+  const toggleVisibility = async (category) => {
+    try {
+      const newVisibility = !category.is_visible
+      
+      // Aggiorna visibilità
+      const { error } = await supabase
+        .from('categories')
+        .update({ is_visible: newVisibility })
+        .eq('id', category.id)
+
+      if (error) throw error
+      
+      // Se nascondiamo una categoria, riordina le successive
+      if (!newVisibility) {
+        const categoriesToUpdate = categories
+          .filter(c => c.order > category.order)
+          .map(c => ({ id: c.id, order: c.order - 1 }))
+        
+        for (const cat of categoriesToUpdate) {
+          await supabase
+            .from('categories')
+            .update({ order: cat.order })
+            .eq('id', cat.id)
+        }
+        
+        // Sposta la categoria nascosta alla fine
+        await supabase
+          .from('categories')
+          .update({ order: categories.length - 1 })
+          .eq('id', category.id)
+      } else {
+        // Se mostriamo una categoria nascosta, mettila alla fine delle visibili
+        const visibleCount = categories.filter(c => c.is_visible).length
+        await supabase
+          .from('categories')
+          .update({ order: visibleCount })
+          .eq('id', category.id)
+      }
+      
+      await loadCategories()
+    } catch (error) {
+      console.error('Error toggling visibility:', error)
+      alert('Errore durante l\'aggiornamento della visibilità')
     }
   }
 
@@ -347,7 +394,8 @@ function CategoryManager({ restaurantId }) {
                 border: '1px solid #E0E0E0',
                 borderRadius: '8px',
                 overflow: 'hidden',
-                transition: 'box-shadow 0.2s ease'
+                transition: 'box-shadow 0.2s ease',
+                opacity: category.is_visible === false ? 0.5 : 1
               }}
             >
               {/* Header categoria (sempre visibile) */}
@@ -480,13 +528,13 @@ function CategoryManager({ restaurantId }) {
                         )}
                       </div>
 
-                      {/* Bottoni sotto l'immagine: Modifica ed Elimina */}
+                      {/* Bottoni sotto l'immagine: Modifica, Mostra/Nascondi, Elimina */}
                       <div style={{
                         display: 'flex',
                         gap: '8px',
                         justifyContent: 'center'
                       }}>
-                        {/* Bottone Modifica - nero con icona bianca */}
+                        {/* Bottone Modifica */}
                         <button
                           onClick={() => handleEdit(category)}
                           aria-label={`Modifica categoria ${category.name}`}
@@ -514,7 +562,43 @@ function CategoryManager({ restaurantId }) {
                           </svg>
                         </button>
 
-                        {/* Bottone Elimina - rosso con icona bianca */}
+                        {/* Bottone Mostra/Nascondi */}
+                        <button
+                          onClick={() => toggleVisibility(category)}
+                          aria-label={category.is_visible === false ? `Mostra categoria ${category.name}` : `Nascondi categoria ${category.name}`}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            padding: '0',
+                            color: '#000000',
+                            background: '#FFFFFF',
+                            border: '1px solid #000000',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                          onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+                        >
+                          {category.is_visible === false ? (
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                              <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                              <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                              <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* Bottone Elimina */}
                         <button
                           onClick={() => handleDelete(category.id)}
                           aria-label={`Elimina categoria ${category.name}`}
@@ -551,7 +635,7 @@ function CategoryManager({ restaurantId }) {
                       gap: '8px',
                       justifyContent: 'center'
                     }}>
-                      {/* Bottone Sposta Su - bianco con icona nera */}
+                      {/* Bottone Sposta Su */}
                       <button
                         onClick={() => moveCategory(category.id, 'up')}
                         disabled={index === 0}
@@ -583,7 +667,7 @@ function CategoryManager({ restaurantId }) {
                         </svg>
                       </button>
 
-                      {/* Bottone Sposta Giù - bianco con icona nera */}
+                      {/* Bottone Sposta Giù */}
                       <button
                         onClick={() => moveCategory(category.id, 'down')}
                         disabled={index === categories.length - 1}
@@ -615,6 +699,38 @@ function CategoryManager({ restaurantId }) {
                         </svg>
                       </button>
                     </div>
+                  </div>
+
+                  {/* Info categoria */}
+                  <div style={{ 
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    textAlign: 'center',
+                    paddingTop: '10px',
+                    marginBottom: '20px'
+                  }}>
+                    <h5 style={{
+                      margin: 0,
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      color: '#000000',
+                      lineHeight: '1.2'
+                    }}>
+                      {category.name}
+                    </h5>
+
+                    {category.is_visible === false && (
+                      <p style={{
+                        margin: '5px 0 0 0',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#999999',
+                        fontStyle: 'italic'
+                      }}>
+                        (Nascosta sul sito)
+                      </p>
+                    )}
                   </div>
 
                   {/* ProductManager */}

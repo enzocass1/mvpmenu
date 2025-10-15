@@ -117,12 +117,42 @@ function ProductManager({ category }) {
 
   const toggleVisibility = async (product) => {
     try {
+      const newVisibility = !product.is_visible
+      
+      // Aggiorna visibilità
       const { error } = await supabase
         .from('products')
-        .update({ is_visible: !product.is_visible })
+        .update({ is_visible: newVisibility })
         .eq('id', product.id)
 
       if (error) throw error
+      
+      // Se nascondiamo un prodotto, riordina i successivi
+      if (!newVisibility) {
+        const productsToUpdate = products
+          .filter(p => p.order > product.order)
+          .map(p => ({ id: p.id, order: p.order - 1 }))
+        
+        for (const prod of productsToUpdate) {
+          await supabase
+            .from('products')
+            .update({ order: prod.order })
+            .eq('id', prod.id)
+        }
+        
+        // Sposta il prodotto nascosto alla fine
+        await supabase
+          .from('products')
+          .update({ order: products.length - 1 })
+          .eq('id', product.id)
+      } else {
+        // Se mostriamo un prodotto nascosto, mettilo alla fine dei visibili
+        const visibleCount = products.filter(p => p.is_visible).length
+        await supabase
+          .from('products')
+          .update({ order: visibleCount })
+          .eq('id', product.id)
+      }
       
       await loadProducts()
     } catch (error) {

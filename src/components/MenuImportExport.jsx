@@ -2,81 +2,123 @@ import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 
 function MenuImportExport({ restaurantId }) {
-  const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [emailSending, setEmailSending] = useState(false)
 
-  // Esporta menu in CSV
-  const handleExportMenu = async () => {
-    setLoading(true)
+  // Invia menu via email (usando Supabase Storage)
+  const handleSendMenuEmail = async () => {
+    setEmailSending(true)
     try {
-      // Carica categorie con i loro prodotti
-      const { data: categories, error: catError } = await supabase
-        .from('categories')
-        .select('*, products(*)')
-        .eq('restaurant_id', restaurantId)
-        .order('order', { ascending: true })
+      // Ottieni email utente
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.email) {
+        alert('Email utente non trovata')
+        setEmailSending(false)
+        return
+      }
 
-      if (catError) throw catError
+      // Ottieni dati ristorante
+      const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('name')
+        .eq('id', restaurantId)
+        .single()
 
-      // Crea CSV
-      let csvContent = 'Categoria,Immagine Categoria,Prodotto,Descrizione,Prezzo,Immagine Prodotto\n'
+      const csvContent = await generateCSV()
+      const fileName = `menu-backup-${Date.now()}.csv`
 
-      categories.forEach(category => {
-        if (category.products && category.products.length > 0) {
-          // Ordina prodotti
-          const sortedProducts = category.products.sort((a, b) => a.order - b.order)
-          
-          sortedProducts.forEach(product => {
-            const row = [
-              category.name,
-              category.image_url || '',
-              product.name,
-              product.description || '',
-              product.price,
-              product.image_url || ''
-            ]
-            // Escape virgole e virgolette
-            const escapedRow = row.map(field => {
-              const str = String(field)
-              if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                return `"${str.replace(/"/g, '""')}"`
-              }
-              return str
-            })
-            csvContent += escapedRow.join(',') + '\n'
-          })
-        } else {
-          // Categoria senza prodotti
+      // Upload file su Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('menu-backups')
+        .upload(`${user.id}/${fileName}`, csvContent, {
+          contentType: 'text/csv',
+          upsert: false
+        })
+
+      if (uploadError) throw uploadError
+
+      // Genera URL pubblico con scadenza (7 giorni)
+      const { data: urlData } = await supabase.storage
+        .from('menu-backups')
+        .createSignedUrl(`${user.id}/${fileName}`, 604800) // 7 giorni in secondi
+
+      if (!urlData?.signedUrl) {
+        throw new Error('Impossibile generare link di download')
+      }
+
+      // Prepara email
+      const subject = `Backup Menu - ${restaurant?.name || 'Ristorante'}`
+      const body = `Ciao,\n\nIl backup del tuo menu è pronto!\n\nScarica il file CSV qui:\n${urlData.signedUrl}\n\n(Il link scadrà tra 7 giorni)\n\nCordiali saluti,\nIl team di MVPMenu`
+      
+      const mailtoLink = `mailto:${user.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      
+      window.location.href = mailtoLink
+      
+      setTimeout(() => {
+        setEmailSending(false)
+        alert('Client email aperto con link di download. Completa e invia il messaggio.')
+      }, 1000)
+
+    } catch (error) {
+      console.error('Error sending email:', error)
+      alert('Errore durante la creazione del backup: ' + error.message)
+      setEmailSending(false)
+    }
+  }
+
+  // Genera CSV (funzione condivisa)
+  const generateCSV = async () => {
+    // Carica categorie con i loro prodotti
+    const { data: categories, error: catError } = await supabase
+      .from('categories')
+      .select('*, products(*)')
+      .eq('restaurant_id', restaurantId)
+      .order('order', { ascending: true })
+
+    if (catError) throw catError
+
+    // Crea CSV
+    let csvContent = 'Categoria,Immagine Categoria,Prodotto,Descrizione,Prezzo,Immagine Prodotto\n'
+
+    categories.forEach(category => {
+      if (category.products && category.products.length > 0) {
+        // Ordina prodotti
+        const sortedProducts = category.products.sort((a, b) => a.order - b.order)
+        
+        sortedProducts.forEach(product => {
           const row = [
             category.name,
             category.image_url || '',
-            '',
-            '',
-            '',
-            ''
+            product.name,
+            product.description || '',
+            product.price,
+            product.image_url || ''
           ]
-          csvContent += row.join(',') + '\n'
-        }
-      })
+          // Escape virgole e virgolette
+          const escapedRow = row.map(field => {
+            const str = String(field)
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+              return `"${str.replace(/"/g, '""')}"`
+            }
+            return str
+          })
+          csvContent += escapedRow.join(',') + '\n'
+        })
+      } else {
+        // Categoria senza prodotti
+        const row = [
+          category.name,
+          category.image_url || '',
+          '',
+          '',
+          '',
+          ''
+        ]
+        csvContent += row.join(',') + '\n'
+      }
+    })
 
-      // Download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
-      const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      link.setAttribute('download', `menu-${new Date().getTime()}.csv`)
-      link.style.visibility = 'hidden'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-
-      alert('✅ Menu esportato con successo!')
-    } catch (error) {
-      console.error('Error exporting menu:', error)
-      alert('❌ Errore durante l\'esportazione del menu')
-    } finally {
-      setLoading(false)
-    }
+    return csvContent
   }
 
   // Importa menu da CSV
@@ -131,13 +173,13 @@ function MenuImportExport({ restaurantId }) {
       })
 
       if (parsedData.length === 0) {
-        alert('❌ File CSV vuoto o non valido')
+        alert('File CSV vuoto o non valido')
         setImporting(false)
         return
       }
 
       // Conferma import
-      if (!window.confirm(`Vuoi importare ${parsedData.length} righe dal CSV?\n\n⚠️ ATTENZIONE: Questo sostituirà completamente il menu esistente!`)) {
+      if (!window.confirm(`Vuoi importare ${parsedData.length} righe dal CSV?\n\nATTENZIONE: Questo sostituirà completamente il menu esistente!`)) {
         setImporting(false)
         return
       }
@@ -209,101 +251,74 @@ function MenuImportExport({ restaurantId }) {
         }
       }
 
-      alert('✅ Menu importato con successo!\n\nRicarica la pagina per vedere le modifiche.')
+      alert('Menu importato con successo!\n\nRicarica la pagina per vedere le modifiche.')
       window.location.reload()
     } catch (error) {
       console.error('Error importing menu:', error)
-      alert('❌ Errore durante l\'importazione del menu')
+      alert('Errore durante l\'importazione del menu')
     } finally {
       setImporting(false)
+      event.target.value = null // Reset input file
     }
   }
 
   return (
     <div style={{
-      background: '#FFFFFF',
-      border: '2px solid #000000',
-      borderRadius: '8px',
-      padding: '30px',
-      boxShadow: '4px 4px 0px #000000'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
     }}>
-      <h3 style={{
-        margin: '0 0 25px 0',
-        fontSize: '20px',
-        fontWeight: '700',
-        color: '#000000',
-        textTransform: 'uppercase',
-        letterSpacing: '0.5px'
-      }}>
-        📥 Importa/Esporta Menu
-      </h3>
-
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '15px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '10px',
+        marginBottom: '30px'
       }}>
-        {/* Scarica Menu */}
+        {/* Invia Menu via Email */}
         <button
-          onClick={handleExportMenu}
-          disabled={loading}
+          onClick={handleSendMenuEmail}
+          disabled={emailSending}
+          aria-label="Invia backup menu via email"
           style={{
-            padding: '16px 24px',
-            fontSize: '16px',
-            fontWeight: '700',
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontWeight: '500',
             color: '#FFFFFF',
-            background: loading ? '#999999' : '#4CAF50',
-            border: '2px solid #000000',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            boxShadow: '3px 3px 0px #000000',
-            transition: 'all 0.2s ease'
+            background: emailSending ? '#999' : '#000000',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: emailSending ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s ease',
+            outline: 'none'
           }}
-          onMouseDown={(e) => {
-            if (!loading) {
-              e.target.style.transform = 'translate(2px, 2px)'
-              e.target.style.boxShadow = '1px 1px 0px #000000'
-            }
-          }}
-          onMouseUp={(e) => {
-            if (!loading) {
-              e.target.style.transform = 'translate(0, 0)'
-              e.target.style.boxShadow = '3px 3px 0px #000000'
-            }
+          onMouseEnter={(e) => {
+            if (!emailSending) e.target.style.background = '#333333'
           }}
           onMouseLeave={(e) => {
-            if (!loading) {
-              e.target.style.transform = 'translate(0, 0)'
-              e.target.style.boxShadow = '3px 3px 0px #000000'
-            }
+            if (!emailSending) e.target.style.background = '#000000'
           }}
         >
-          {loading ? '⏳ Esportando...' : '⬇️ Scarica Menu CSV'}
+          {emailSending ? 'Creando Backup...' : 'Invia Backup via Email'}
         </button>
 
         {/* Carica Menu */}
         <label style={{
-          padding: '16px 24px',
-          fontSize: '16px',
-          fontWeight: '700',
-          color: '#FFFFFF',
-          background: importing ? '#999999' : '#FF9800',
-          border: '2px solid #000000',
-          borderRadius: '4px',
+          padding: '10px 20px',
+          fontSize: '14px',
+          fontWeight: '500',
+          color: '#000000',
+          background: importing ? '#F5F5F5' : '#FFFFFF',
+          border: '1px solid #000000',
+          borderRadius: '6px',
           cursor: importing ? 'not-allowed' : 'pointer',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          boxShadow: '3px 3px 0px #000000',
           transition: 'all 0.2s ease',
-          display: 'block',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           textAlign: 'center'
         }}>
-          {importing ? '⏳ Importando...' : '⬆️ Carica Menu CSV'}
+          {importing ? 'Importando...' : 'Carica Menu CSV'}
           <input
             type="file"
-  accept=".csv,.txt,text/csv,text/plain,application/csv,application/vnd.ms-excel"
+            accept=".csv,.txt,text/csv,text/plain,application/csv,application/vnd.ms-excel"
             onChange={handleImportMenu}
             disabled={importing}
             style={{ display: 'none' }}
@@ -313,34 +328,62 @@ function MenuImportExport({ restaurantId }) {
 
       {/* Istruzioni */}
       <div style={{
-        marginTop: '25px',
+        background: '#F9F9F9',
         padding: '20px',
-        background: '#F5F5F5',
-        border: '2px solid #000000',
-        borderRadius: '4px'
+        borderRadius: '8px',
+        border: '1px solid #E0E0E0'
       }}>
         <h4 style={{
           margin: '0 0 15px 0',
-          fontSize: '16px',
-          fontWeight: '700',
+          fontSize: '14px',
+          fontWeight: '500',
           color: '#000000'
         }}>
-          📖 Come usare
+          Come usare
         </h4>
         
         <div style={{ marginBottom: '15px' }}>
-          <strong style={{ color: '#4CAF50' }}>⬇️ Scarica Menu:</strong>
-          <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>
-            Esporta il tuo menu attuale in formato CSV per backup o modifica offline.
+          <strong style={{ 
+            color: '#000000',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}>
+            Invia Backup via Email:
+          </strong>
+          <p style={{ 
+            margin: '5px 0 0 0', 
+            fontSize: '13px', 
+            color: '#666',
+            fontWeight: '400',
+            lineHeight: '1.5'
+          }}>
+            Crea un backup del tuo menu e ricevi il link per scaricarlo via email. Il link sarà valido per 7 giorni.
           </p>
         </div>
 
-        <div>
-          <strong style={{ color: '#FF9800' }}>⬆️ Carica Menu:</strong>
-          <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>
+        <div style={{ marginBottom: '15px' }}>
+          <strong style={{ 
+            color: '#000000',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}>
+            Carica Menu CSV:
+          </strong>
+          <p style={{ 
+            margin: '5px 0 0 0', 
+            fontSize: '13px', 
+            color: '#666',
+            fontWeight: '400',
+            lineHeight: '1.5'
+          }}>
             Importa un file CSV per sostituire completamente il menu esistente.
           </p>
-          <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: '#f44336', fontWeight: '600' }}>
+          <p style={{ 
+            margin: '8px 0 0 0', 
+            fontSize: '13px', 
+            color: '#f44336', 
+            fontWeight: '500'
+          }}>
             ⚠️ ATTENZIONE: Questa operazione eliminerà tutte le categorie e prodotti attuali!
           </p>
         </div>
@@ -350,27 +393,29 @@ function MenuImportExport({ restaurantId }) {
           padding: '15px',
           background: '#FFFFFF',
           border: '1px solid #E0E0E0',
-          borderRadius: '4px'
+          borderRadius: '6px'
         }}>
           <p style={{
             margin: '0 0 10px 0',
-            fontSize: '14px',
-            fontWeight: '600',
+            fontSize: '13px',
+            fontWeight: '500',
             color: '#000000'
           }}>
             Formato CSV richiesto:
           </p>
           <code style={{
             display: 'block',
-            padding: '10px',
+            padding: '12px',
             background: '#F5F5F5',
             border: '1px solid #E0E0E0',
             borderRadius: '4px',
             fontSize: '12px',
-            fontFamily: 'monospace',
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
             color: '#000000',
             whiteSpace: 'pre-wrap',
-            wordBreak: 'break-all'
+            wordBreak: 'break-all',
+            lineHeight: '1.6',
+            fontWeight: '400'
           }}>
 Categoria,Immagine Categoria,Prodotto,Descrizione,Prezzo,Immagine Prodotto{'\n'}
 Antipasti,https://...,Bruschetta,Pomodoro e basilico,5.50,https://...{'\n'}

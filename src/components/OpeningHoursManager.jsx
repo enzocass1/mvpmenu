@@ -54,7 +54,7 @@ function OpeningHoursManager({ restaurantId }) {
           .eq('id', editingHour.id)
 
         if (error) throw error
-        alert('✅ Orario aggiornato!')
+        alert('Orario aggiornato con successo')
       } else {
         const maxOrder = hours.length > 0 ? Math.max(...hours.map(h => h.order)) : -1
         
@@ -74,7 +74,7 @@ function OpeningHoursManager({ restaurantId }) {
           ])
 
         if (error) throw error
-        alert('✅ Orario creato!')
+        alert('Orario creato con successo')
       }
 
       setFormData({
@@ -121,7 +121,7 @@ function OpeningHoursManager({ restaurantId }) {
     if (error) {
       alert('Errore: ' + error.message)
     } else {
-      alert('✅ Orario eliminato!')
+      alert('Orario eliminato con successo')
       loadHours()
     }
   }
@@ -141,78 +141,57 @@ function OpeningHoursManager({ restaurantId }) {
 
   return (
     <div style={{
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
     }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '25px'
-      }}>
-        {!showForm && (
+      {/* Bottone Nuovo Orario */}
+      {!showForm && (
+        <div style={{ marginBottom: '25px' }}>
           <button 
             onClick={() => setShowForm(true)}
+            aria-label="Aggiungi nuovo orario"
             style={{
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: '600',
+              padding: '10px 20px',
+              fontSize: '14px',
+              fontWeight: '500',
               color: '#FFFFFF',
               background: '#000000',
-              border: '2px solid #000000',
-              borderRadius: '4px',
+              border: 'none',
+              borderRadius: '6px',
               cursor: 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              boxShadow: '3px 3px 0px rgba(0,0,0,0.2)',
               transition: 'all 0.2s ease',
-              width: '100%'
+              outline: 'none'
             }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.transform = 'translateY(2px)'
-              e.currentTarget.style.boxShadow = '1px 1px 0px rgba(0,0,0,0.2)'
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '3px 3px 0px rgba(0,0,0,0.2)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '3px 3px 0px rgba(0,0,0,0.2)'
-            }}
+            onMouseEnter={(e) => e.target.style.background = '#333333'}
+            onMouseLeave={(e) => e.target.style.background = '#000000'}
           >
-            + Nuovo Orario
+            Nuovo Orario
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Form Orario */}
       {showForm && (
         <div style={{
           background: '#FFFFFF',
-          border: '2px solid #000000',
+          border: '1px solid #E0E0E0',
           borderRadius: '8px',
-          padding: '30px',
-          marginBottom: '25px',
-          boxShadow: '4px 4px 0px #000000'
+          padding: '25px',
+          marginBottom: '25px'
         }}>
           <h3 style={{
-            margin: '0 0 25px 0',
-            fontSize: '20px',
-            fontWeight: '700',
+            margin: '0 0 20px 0',
+            fontSize: '16px',
+            fontWeight: '500',
             color: '#000000'
           }}>
-            {editingHour ? '✏️ Modifica Orario' : '➕ Nuovo Orario'}
+            {editingHour ? 'Modifica Orario' : 'Nuovo Orario'}
           </h3>
 
           <form onSubmit={handleSubmit}>
             {/* Giorni */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '15px',
               marginBottom: '20px'
             }}>
@@ -220,11 +199,9 @@ function OpeningHoursManager({ restaurantId }) {
                 <label style={{
                   display: 'block',
                   marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#000000',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: '#666'
                 }}>
                   Giorno Inizio *
                 </label>
@@ -234,13 +211,15 @@ function OpeningHoursManager({ restaurantId }) {
                   required
                   style={{
                     width: '100%',
-                    padding: '12px 15px',
-                    fontSize: '16px',
-                    border: '2px solid #000000',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
                     borderRadius: '4px',
-                    background: '#F5F5F5',
+                    background: '#FFFFFF',
                     color: '#000000',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    fontWeight: '400'
                   }}
                 >
                   {days.map(day => (
@@ -253,11 +232,9 @@ function OpeningHoursManager({ restaurantId }) {
                 <label style={{
                   display: 'block',
                   marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#000000',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: '#666'
                 }}>
                   Giorno Fine (opzionale)
                 </label>
@@ -266,13 +243,15 @@ function OpeningHoursManager({ restaurantId }) {
                   onChange={(e) => setFormData({ ...formData, day_end: e.target.value })}
                   style={{
                     width: '100%',
-                    padding: '12px 15px',
-                    fontSize: '16px',
-                    border: '2px solid #000000',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
                     borderRadius: '4px',
-                    background: '#F5F5F5',
+                    background: '#FFFFFF',
                     color: '#000000',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    fontWeight: '400'
                   }}
                 >
                   <option value="">Stesso giorno</option>
@@ -282,36 +261,35 @@ function OpeningHoursManager({ restaurantId }) {
                 </select>
                 <small style={{
                   display: 'block',
-                  marginTop: '5px',
-                  color: '#666',
-                  fontSize: '12px'
+                  marginTop: '6px',
+                  color: '#999',
+                  fontSize: '12px',
+                  fontWeight: '400'
                 }}>
-                  💡 Es: Lunedì - Giovedì
+                  Es: Lunedì - Giovedì
                 </small>
               </div>
             </div>
 
             {/* Prima Fascia Oraria */}
             <div style={{
-              background: '#F5F5F5',
+              background: '#F9F9F9',
               padding: '20px',
-              borderRadius: '4px',
-              border: '2px solid #000000',
+              borderRadius: '6px',
+              border: '1px solid #E0E0E0',
               marginBottom: '15px'
             }}>
               <h4 style={{
                 margin: '0 0 15px 0',
-                fontSize: '16px',
-                fontWeight: '700',
-                color: '#000000',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#000000'
               }}>
                 Prima Fascia Oraria *
               </h4>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
                 gap: '15px'
               }}>
                 <div>
@@ -319,10 +297,8 @@ function OpeningHoursManager({ restaurantId }) {
                     display: 'block',
                     marginBottom: '6px',
                     fontSize: '13px',
-                    fontWeight: '600',
-                    color: '#000000',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    fontWeight: '500',
+                    color: '#666'
                   }}>
                     Apertura
                   </label>
@@ -333,13 +309,15 @@ function OpeningHoursManager({ restaurantId }) {
                     required
                     style={{
                       width: '100%',
-                      padding: '12px 15px',
-                      fontSize: '16px',
-                      border: '2px solid #000000',
+                      padding: '10px 12px',
+                      fontSize: '14px',
+                      border: '1px solid #E0E0E0',
                       borderRadius: '4px',
                       background: '#FFFFFF',
                       color: '#000000',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      fontWeight: '400'
                     }}
                   />
                 </div>
@@ -348,10 +326,8 @@ function OpeningHoursManager({ restaurantId }) {
                     display: 'block',
                     marginBottom: '6px',
                     fontSize: '13px',
-                    fontWeight: '600',
-                    color: '#000000',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    fontWeight: '500',
+                    color: '#666'
                   }}>
                     Chiusura
                   </label>
@@ -362,13 +338,15 @@ function OpeningHoursManager({ restaurantId }) {
                     required
                     style={{
                       width: '100%',
-                      padding: '12px 15px',
-                      fontSize: '16px',
-                      border: '2px solid #000000',
+                      padding: '10px 12px',
+                      fontSize: '14px',
+                      border: '1px solid #E0E0E0',
                       borderRadius: '4px',
                       background: '#FFFFFF',
                       color: '#000000',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      fontWeight: '400'
                     }}
                   />
                 </div>
@@ -377,25 +355,23 @@ function OpeningHoursManager({ restaurantId }) {
 
             {/* Seconda Fascia Oraria */}
             <div style={{
-              background: '#F5F5F5',
+              background: '#F9F9F9',
               padding: '20px',
-              borderRadius: '4px',
-              border: '2px solid #000000',
+              borderRadius: '6px',
+              border: '1px solid #E0E0E0',
               marginBottom: '25px'
             }}>
               <h4 style={{
                 margin: '0 0 15px 0',
-                fontSize: '16px',
-                fontWeight: '700',
-                color: '#000000',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#000000'
               }}>
                 Seconda Fascia Oraria (opzionale)
               </h4>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
                 gap: '15px'
               }}>
                 <div>
@@ -403,10 +379,8 @@ function OpeningHoursManager({ restaurantId }) {
                     display: 'block',
                     marginBottom: '6px',
                     fontSize: '13px',
-                    fontWeight: '600',
-                    color: '#000000',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    fontWeight: '500',
+                    color: '#666'
                   }}>
                     Apertura
                   </label>
@@ -416,13 +390,15 @@ function OpeningHoursManager({ restaurantId }) {
                     onChange={(e) => setFormData({ ...formData, time_start_2: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '12px 15px',
-                      fontSize: '16px',
-                      border: '2px solid #000000',
+                      padding: '10px 12px',
+                      fontSize: '14px',
+                      border: '1px solid #E0E0E0',
                       borderRadius: '4px',
                       background: '#FFFFFF',
                       color: '#000000',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      fontWeight: '400'
                     }}
                   />
                 </div>
@@ -431,10 +407,8 @@ function OpeningHoursManager({ restaurantId }) {
                     display: 'block',
                     marginBottom: '6px',
                     fontSize: '13px',
-                    fontWeight: '600',
-                    color: '#000000',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
+                    fontWeight: '500',
+                    color: '#666'
                   }}>
                     Chiusura
                   </label>
@@ -444,13 +418,15 @@ function OpeningHoursManager({ restaurantId }) {
                     onChange={(e) => setFormData({ ...formData, time_end_2: e.target.value })}
                     style={{
                       width: '100%',
-                      padding: '12px 15px',
-                      fontSize: '16px',
-                      border: '2px solid #000000',
+                      padding: '10px 12px',
+                      fontSize: '14px',
+                      border: '1px solid #E0E0E0',
                       borderRadius: '4px',
                       background: '#FFFFFF',
                       color: '#000000',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      fontWeight: '400'
                     }}
                   />
                 </div>
@@ -458,57 +434,68 @@ function OpeningHoursManager({ restaurantId }) {
               <small style={{
                 display: 'block',
                 marginTop: '10px',
-                color: '#666',
-                fontSize: '12px'
+                color: '#999',
+                fontSize: '12px',
+                fontWeight: '400'
               }}>
-                💡 Es: 11:30-15:00 e 18:30-23:00
+                Es: 11:30-15:00 e 18:30-23:00
               </small>
             </div>
 
             {/* Bottoni */}
-            <div style={{ display: 'flex', gap: '15px' }}>
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  color: '#FFFFFF',
-                  background: loading ? '#CCCCCC' : '#4CAF50',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  boxShadow: loading ? 'none' : '3px 3px 0px #000000',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                {loading ? '⏳ Salvando...' : (editingHour ? '✓ Aggiorna' : '+ Crea')}
-              </button>
-
+            <div style={{ 
+              display: 'flex', 
+              gap: '10px',
+              flexWrap: 'wrap'
+            }}>
               <button 
                 type="button"
                 onClick={handleCancel}
                 style={{
                   flex: 1,
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: '700',
+                  minWidth: '120px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
                   color: '#000000',
                   background: '#FFFFFF',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
+                  border: '1px solid #000000',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  boxShadow: '3px 3px 0px #000000',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+              >
+                Annulla
+              </button>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  minWidth: '120px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: loading ? '#999' : '#000000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.target.style.background = '#333333'
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.target.style.background = '#000000'
                 }}
               >
-                ✕ Annulla
+                {loading ? 'Salvando...' : (editingHour ? 'Aggiorna' : 'Salva')}
               </button>
             </div>
           </form>
@@ -520,93 +507,99 @@ function OpeningHoursManager({ restaurantId }) {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '15px'
+          gap: '12px'
         }}>
           {hours.map((hour) => (
             <div 
               key={hour.id} 
               style={{
                 background: '#FFFFFF',
-                border: '2px solid #000000',
+                border: '1px solid #E0E0E0',
                 borderRadius: '8px',
                 padding: '20px',
-                boxShadow: '3px 3px 0px #000000'
+                transition: 'all 0.2s ease'
               }}
             >
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'start',
-                gap: '15px'
+                alignItems: 'flex-start',
+                gap: '15px',
+                flexWrap: 'wrap'
               }}>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
                   <h4 style={{
-                    margin: '0 0 12px 0',
-                    fontSize: '18px',
-                    fontWeight: '700',
+                    margin: '0 0 10px 0',
+                    fontSize: '15px',
+                    fontWeight: '500',
                     color: '#000000'
                   }}>
-                    📅 {hour.day_start}{hour.day_end && ` - ${hour.day_end}`}
+                    {hour.day_start}{hour.day_end && ` - ${hour.day_end}`}
                   </h4>
                   <p style={{
-                    margin: '8px 0',
-                    fontSize: '15px',
-                    color: '#000000',
-                    fontWeight: '500'
+                    margin: '6px 0',
+                    fontSize: '14px',
+                    color: '#666',
+                    fontWeight: '400'
                   }}>
-                    🕐 {hour.time_start_1} - {hour.time_end_1}
+                    {hour.time_start_1} - {hour.time_end_1}
                   </p>
                   {hour.time_start_2 && hour.time_end_2 && (
                     <p style={{
-                      margin: '8px 0',
-                      fontSize: '15px',
-                      color: '#000000',
-                      fontWeight: '500'
+                      margin: '6px 0',
+                      fontSize: '14px',
+                      color: '#666',
+                      fontWeight: '400'
                     }}>
-                      🕐 {hour.time_start_2} - {hour.time_end_2}
+                      {hour.time_start_2} - {hour.time_end_2}
                     </p>
                   )}
                 </div>
 
                 <div style={{
                   display: 'flex',
-                  gap: '8px'
+                  gap: '8px',
+                  flexWrap: 'wrap'
                 }}>
                   <button 
                     onClick={() => handleEdit(hour)}
+                    aria-label="Modifica orario"
                     style={{
-                      padding: '10px 16px',
+                      padding: '8px 16px',
                       fontSize: '13px',
-                      fontWeight: '600',
-                      color: '#FFFFFF',
-                      background: '#2196F3',
-                      border: '2px solid #000000',
-                      borderRadius: '4px',
+                      fontWeight: '500',
+                      color: '#000000',
+                      background: '#FFFFFF',
+                      border: '1px solid #000000',
+                      borderRadius: '6px',
                       cursor: 'pointer',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      boxShadow: '2px 2px 0px #000000'
+                      transition: 'all 0.2s ease',
+                      outline: 'none'
                     }}
+                    onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                    onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
                   >
-                    ✏️ Modifica
+                    Modifica
                   </button>
                   <button 
                     onClick={() => handleDelete(hour.id)}
+                    aria-label="Elimina orario"
                     style={{
-                      padding: '10px 16px',
+                      padding: '8px 16px',
                       fontSize: '13px',
-                      fontWeight: '600',
+                      fontWeight: '500',
                       color: '#FFFFFF',
                       background: '#f44336',
-                      border: '2px solid #000000',
-                      borderRadius: '4px',
+                      border: 'none',
+                      borderRadius: '6px',
                       cursor: 'pointer',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      boxShadow: '2px 2px 0px #000000'
+                      transition: 'all 0.2s ease',
+                      outline: 'none'
                     }}
+                    onMouseEnter={(e) => e.target.style.background = '#d32f2f'}
+                    onMouseLeave={(e) => e.target.style.background = '#f44336'}
                   >
-                    🗑️ Elimina
+                    Elimina
                   </button>
                 </div>
               </div>
@@ -618,18 +611,17 @@ function OpeningHoursManager({ restaurantId }) {
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',
-            background: '#F5F5F5',
-            border: '2px dashed #CCCCCC',
+            background: '#F9F9F9',
+            border: '1px dashed #E0E0E0',
             borderRadius: '8px'
           }}>
             <p style={{
               margin: 0,
-              fontSize: '18px',
-              color: '#666',
-              fontWeight: '500'
+              fontSize: '14px',
+              color: '#999',
+              fontWeight: '400'
             }}>
-              🕒 Nessun orario configurato.<br />
-              <span style={{ fontSize: '14px' }}>Clicca su "+ Nuovo Orario" per iniziare!</span>
+              Nessun orario configurato
             </p>
           </div>
         )

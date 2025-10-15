@@ -59,11 +59,11 @@ function ResetPassword() {
           }).then(({ data, error }) => {
             if (error) {
               console.error('Error setting session:', error)
-              setMessage({ text: '❌ Token non valido o scaduto', type: 'error' })
+              setMessage({ text: 'Token non valido o scaduto', type: 'error' })
             } else {
               console.log('✅ Session set successfully!')
               setAccessToken(token)
-              setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
+              setMessage({ text: 'Token valido! Inserisci la nuova password.', type: 'success' })
             }
           })
         } else {
@@ -71,12 +71,12 @@ function ResetPassword() {
           console.error('  Type:', type)
           console.error('  Token:', token ? 'Present' : 'Missing')
           console.error('  Refresh:', refreshToken ? 'Present' : 'Missing')
-          setMessage({ text: '❌ Token mancante o non valido. Usa il link dall\'email.', type: 'error' })
+          setMessage({ text: 'Token mancante o non valido. Usa il link dall\'email.', type: 'error' })
         }
       } else {
         console.error('❌ No parameters found in URL')
         console.error('Full hash was:', fullHash)
-        setMessage({ text: '❌ Token mancante. Usa il link dall\'email.', type: 'error' })
+        setMessage({ text: 'Token mancante. Usa il link dall\'email.', type: 'error' })
       }
     }
     
@@ -86,7 +86,7 @@ function ResetPassword() {
       if (event === 'PASSWORD_RECOVERY' && session) {
         console.log('✅ PASSWORD_RECOVERY event detected')
         setAccessToken(session.access_token)
-        setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
+        setMessage({ text: 'Token valido! Inserisci la nuova password.', type: 'success' })
       }
     })
     
@@ -103,17 +103,17 @@ function ResetPassword() {
     e.preventDefault()
     
     if (!accessToken) {
-      setMessage({ text: '❌ Token mancante. Usa il link dall\'email.', type: 'error' })
+      setMessage({ text: 'Token mancante. Usa il link dall\'email.', type: 'error' })
       return
     }
     
     if (password !== confirmPassword) {
-      setMessage({ text: '❌ Le password non corrispondono!', type: 'error' })
+      setMessage({ text: 'Le password non corrispondono!', type: 'error' })
       return
     }
 
     if (password.length < 6) {
-      setMessage({ text: '❌ La password deve essere di almeno 6 caratteri!', type: 'error' })
+      setMessage({ text: 'La password deve essere di almeno 6 caratteri!', type: 'error' })
       return
     }
 
@@ -131,7 +131,7 @@ function ResetPassword() {
       if (error) throw error
 
       console.log('✅ Password aggiornata!')
-      setMessage({ text: '✅ Password aggiornata con successo!', type: 'success' })
+      setMessage({ text: 'Password aggiornata con successo!', type: 'success' })
       
       // Reindirizza al login dopo 2 secondi
       setTimeout(() => {
@@ -139,7 +139,7 @@ function ResetPassword() {
       }, 2000)
     } catch (error) {
       console.error('Reset password error:', error)
-      setMessage({ text: `❌ ${error.message}`, type: 'error' })
+      setMessage({ text: error.message, type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -148,38 +148,39 @@ function ResetPassword() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#F5F5F5',
+      backgroundColor: '#FFFFFF',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       padding: '20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
     }}>
       <div style={{
         background: '#FFFFFF',
-        border: '2px solid #000000',
+        border: '1px solid #E0E0E0',
         borderRadius: '8px',
         padding: '40px',
         maxWidth: '450px',
         width: '100%',
-        boxShadow: '8px 8px 0px #000000'
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
       }}>
         
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <h1 style={{
-            fontSize: '36px',
-            fontWeight: '700',
+            fontSize: '28px',
+            fontWeight: '400',
             color: '#000000',
-            margin: '0 0 10px 0',
-            letterSpacing: '-1px'
+            margin: '0 0 8px 0',
+            letterSpacing: '-0.5px'
           }}>
-            🔒 Reimposta Password
+            Reimposta Password
           </h1>
           <p style={{
-            fontSize: '16px',
+            fontSize: '14px',
             color: '#666',
-            margin: 0
+            margin: 0,
+            fontWeight: '400'
           }}>
             Inserisci la tua nuova password
           </p>
@@ -187,18 +188,20 @@ function ResetPassword() {
 
         <form onSubmit={handleResetPassword}>
           <div style={{ marginBottom: '20px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#000000',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              🔑 Nuova Password
+            <label 
+              htmlFor="new-password"
+              style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '13px',
+                fontWeight: '400',
+                color: '#666'
+              }}
+            >
+              Nuova Password
             </label>
             <input
+              id="new-password"
               type="password"
               placeholder="••••••••"
               value={password}
@@ -207,40 +210,51 @@ function ResetPassword() {
               minLength="6"
               style={{
                 width: '100%',
-                padding: '12px 15px',
-                fontSize: '16px',
-                border: '2px solid #000000',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #E0E0E0',
                 borderRadius: '4px',
-                background: '#F5F5F5',
+                background: '#FFFFFF',
                 color: '#000000',
                 boxSizing: 'border-box',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                fontWeight: '400',
+                outline: 'none'
               }}
-              onFocus={(e) => e.target.style.background = '#FFFFFF'}
-              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#000000'
+                e.target.style.boxShadow = '0 0 0 1px #000000'
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#E0E0E0'
+                e.target.style.boxShadow = 'none'
+              }}
             />
             <p style={{
               fontSize: '12px',
-              color: '#666',
-              margin: '5px 0 0 0'
+              color: '#999',
+              margin: '6px 0 0 0',
+              fontWeight: '400'
             }}>
               Minimo 6 caratteri
             </p>
           </div>
 
           <div style={{ marginBottom: '25px' }}>
-            <label style={{
-              display: 'block',
-              marginBottom: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#000000',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              🔑 Conferma Password
+            <label 
+              htmlFor="confirm-password"
+              style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '13px',
+                fontWeight: '400',
+                color: '#666'
+              }}
+            >
+              Conferma Password
             </label>
             <input
+              id="confirm-password"
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
@@ -249,17 +263,25 @@ function ResetPassword() {
               minLength="6"
               style={{
                 width: '100%',
-                padding: '12px 15px',
-                fontSize: '16px',
-                border: '2px solid #000000',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #E0E0E0',
                 borderRadius: '4px',
-                background: '#F5F5F5',
+                background: '#FFFFFF',
                 color: '#000000',
                 boxSizing: 'border-box',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                fontWeight: '400',
+                outline: 'none'
               }}
-              onFocus={(e) => e.target.style.background = '#FFFFFF'}
-              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#000000'
+                e.target.style.boxShadow = '0 0 0 1px #000000'
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#E0E0E0'
+                e.target.style.boxShadow = 'none'
+              }}
             />
           </div>
 
@@ -268,28 +290,32 @@ function ResetPassword() {
             disabled={loading}
             style={{
               width: '100%',
-              padding: '14px 24px',
-              fontSize: '16px',
-              fontWeight: '700',
+              padding: '10px 20px',
+              fontSize: '14px',
+              fontWeight: '500',
               color: '#FFFFFF',
-              background: loading ? '#999' : '#4CAF50',
-              border: '2px solid #000000',
-              borderRadius: '4px',
+              background: loading ? '#999' : '#000000',
+              border: 'none',
+              borderRadius: '6px',
               cursor: loading ? 'not-allowed' : 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              boxShadow: '3px 3px 0px #000000',
               transition: 'all 0.2s ease',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              outline: 'none'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) e.target.style.background = '#333333'
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) e.target.style.background = '#000000'
             }}
           >
-            {loading ? '⏳ Aggiornamento...' : '✅ Aggiorna Password'}
+            {loading ? 'Aggiornamento...' : 'Aggiorna Password'}
           </button>
 
           <div style={{
             textAlign: 'center',
             padding: '15px 0',
-            borderTop: '2px solid #F5F5F5'
+            borderTop: '1px solid #F5F5F5'
           }}>
             <button
               type="button"
@@ -297,12 +323,16 @@ function ResetPassword() {
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#2196F3',
+                color: '#666',
                 cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                textDecoration: 'underline'
+                fontSize: '13px',
+                fontWeight: '400',
+                textDecoration: 'none',
+                padding: 0,
+                transition: 'color 0.2s ease'
               }}
+              onMouseEnter={(e) => e.target.style.color = '#000000'}
+              onMouseLeave={(e) => e.target.style.color = '#666'}
             >
               ← Torna al Login
             </button>
@@ -313,14 +343,15 @@ function ResetPassword() {
         {message.text && (
           <div style={{
             padding: '12px 15px',
-            borderRadius: '4px',
-            border: '2px solid #000000',
+            borderRadius: '6px',
+            border: 'none',
             background: message.type === 'success' ? '#E8F5E9' : '#FFEBEE',
             color: message.type === 'success' ? '#2E7D32' : '#C62828',
-            fontSize: '14px',
-            fontWeight: '600',
+            fontSize: '13px',
+            fontWeight: '400',
             marginTop: '20px',
-            textAlign: 'center'
+            textAlign: 'center',
+            lineHeight: '1.5'
           }}>
             {message.text}
           </div>
@@ -328,20 +359,48 @@ function ResetPassword() {
 
         {/* Footer */}
         <div style={{
-          marginTop: '30px',
+          marginTop: '40px',
           paddingTop: '20px',
-          borderTop: '2px solid #F5F5F5',
+          borderTop: '1px solid #F5F5F5',
           textAlign: 'center'
         }}>
           <p style={{
             fontSize: '12px',
             color: '#999',
-            margin: 0
+            margin: 0,
+            fontWeight: '400'
           }}>
-            Made with ❤️ by MVPMenu | © 2025
+            Made with <span role="img" aria-label="cuore">❤️</span> by{' '}
+            <a 
+              href="/#/landing" 
+              style={{
+                color: '#999',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.color = '#000000'}
+              onMouseLeave={(e) => e.target.style.color = '#999'}
+            >
+              MVPMenu
+            </a>
+            {' '}| © 2025
           </p>
         </div>
       </div>
+
+      {/* Global Styles */}
+      <style>{`
+        button:focus-visible {
+          outline: 2px solid #2196F3 !important;
+          outline-offset: 2px;
+        }
+
+        @media (max-width: 480px) {
+          body {
+            font-size: 14px;
+          }
+        }
+      `}</style>
     </div>
   )
 }

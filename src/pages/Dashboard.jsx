@@ -166,13 +166,22 @@ function Dashboard({ session }) {
     importExport: false
   })
   const [showSupportModal, setShowSupportModal] = useState(false)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [supportForm, setSupportForm] = useState({
     email: session?.user?.email || '',
     phone: '',
     message: ''
   })
+  const [feedbackForm, setFeedbackForm] = useState({
+    email: session?.user?.email || '',
+    phone: '',
+    category: 'Nuova Funzionalità',
+    message: ''
+  })
   const [sendingSupport, setSendingSupport] = useState(false)
+  const [sendingFeedback, setSendingFeedback] = useState(false)
   const [formErrors, setFormErrors] = useState({})
+  const [feedbackErrors, setFeedbackErrors] = useState({})
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
@@ -326,6 +335,68 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
     }
   }
 
+  const handleSendFeedback = async (e) => {
+    e.preventDefault()
+    
+    const errors = {}
+    
+    if (!feedbackForm.phone.trim()) {
+      errors.phone = 'Il numero di telefono è obbligatorio'
+    } else if (!validatePhoneNumber(feedbackForm.phone)) {
+      errors.phone = 'Inserisci un numero di telefono valido'
+    }
+    
+    if (!feedbackForm.message.trim()) {
+      errors.message = 'La descrizione del suggerimento è obbligatoria'
+    } else if (feedbackForm.message.trim().length < 10) {
+      errors.message = 'Descrivi il suggerimento con almeno 10 caratteri'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFeedbackErrors(errors)
+      return
+    }
+
+    setSendingFeedback(true)
+    setFeedbackErrors({})
+
+    const emailBody = `
+SUGGERIMENTO MIGLIORAMENTO MVPMENU
+
+Email utente: ${feedbackForm.email}
+Telefono: ${feedbackForm.phone}
+Ristorante: ${restaurant?.name || 'N/A'} (${restaurant?.subdomain || 'N/A'})
+Categoria: ${feedbackForm.category}
+
+Suggerimento:
+${feedbackForm.message}
+
+---
+Inviato il: ${new Date().toLocaleString('it-IT')}
+    `.trim()
+
+    const mailtoLink = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('MVPMenu - Suggerimento Miglioramento')}&body=${encodeURIComponent(emailBody)}`
+    
+    try {
+      window.location.href = mailtoLink
+      
+      setTimeout(() => {
+        setSendingFeedback(false)
+        setShowFeedbackModal(false)
+        setFeedbackForm({
+          email: session?.user?.email || '',
+          phone: '',
+          category: 'Nuova Funzionalità',
+          message: ''
+        })
+        showToast('Client email aperto. Completa e invia il messaggio.', 'success')
+      }, 1000)
+    } catch (error) {
+      setSendingFeedback(false)
+      showToast('Errore nell\'apertura del client email', 'error')
+    }
+  }
+
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text)
       .then(() => showToast('Link copiato negli appunti', 'success'))
@@ -376,7 +447,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'flex-start',
+              alignItems: 'flex-end',
               gap: '12px'
             }}>
               <span style={{
@@ -388,8 +459,30 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
 
               <div style={{
                 display: 'flex',
-                gap: '12px'
+                gap: '12px',
+                flexWrap: 'wrap'
               }}>
+                <button 
+                  onClick={() => setShowFeedbackModal(true)}
+                  aria-label="Lascia un suggerimento"
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                    background: '#2E7D32',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#1B5E20'}
+                  onMouseLeave={(e) => e.target.style.background = '#2E7D32'}
+                >
+                  Lascia un Suggerimento
+                </button>
+
                 <button 
                   onClick={() => setShowSupportModal(true)}
                   aria-label="Apri form assistenza"
@@ -915,6 +1008,332 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         </div>
       )}
 
+      {/* Modal Feedback/Suggerimento */}
+      {showFeedbackModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowFeedbackModal(false)
+              setFeedbackErrors({})
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="feedback-modal-title"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+        >
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '10px'
+            }}>
+              <h2 id="feedback-modal-title" style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: '400',
+                color: '#000000'
+              }}>
+                Lascia un Suggerimento
+              </h2>
+              <button
+                onClick={() => {
+                  setShowFeedbackModal(false)
+                  setFeedbackErrors({})
+                }}
+                aria-label="Chiudi finestra suggerimenti"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '0',
+                  color: '#999',
+                  fontWeight: '300'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{
+              margin: '0 0 25px 0',
+              fontSize: '13px',
+              color: '#2E7D32',
+              fontWeight: '500',
+              fontStyle: 'italic'
+            }}>
+              💡 Le tue idee ci aiutano a crescere!
+            </p>
+
+            <div>
+              <div style={{ marginBottom: '20px' }}>
+                <label 
+                  htmlFor="feedback-email"
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    color: '#666'
+                  }}
+                >
+                  Email
+                </label>
+                <input
+                  id="feedback-email"
+                  type="email"
+                  value={feedbackForm.email}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '4px',
+                    background: '#F5F5F5',
+                    color: '#666',
+                    boxSizing: 'border-box',
+                    fontWeight: '400'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label 
+                  htmlFor="feedback-phone"
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    color: '#666'
+                  }}
+                >
+                  Numero di Telefono *
+                </label>
+                <input
+                  id="feedback-phone"
+                  type="tel"
+                  value={feedbackForm.phone}
+                  onChange={(e) => {
+                    setFeedbackForm({ ...feedbackForm, phone: e.target.value })
+                    if (feedbackErrors.phone) {
+                      setFeedbackErrors({ ...feedbackErrors, phone: null })
+                    }
+                  }}
+                  placeholder="+39 123 456 7890"
+                  aria-invalid={!!feedbackErrors.phone}
+                  aria-describedby={feedbackErrors.phone ? "feedback-phone-error" : undefined}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: `1px solid ${feedbackErrors.phone ? '#f44336' : '#E0E0E0'}`,
+                    borderRadius: '4px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    fontWeight: '400'
+                  }}
+                />
+                {feedbackErrors.phone && (
+                  <span 
+                    id="feedback-phone-error"
+                    role="alert"
+                    style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      fontSize: '12px',
+                      color: '#f44336',
+                      fontWeight: '400'
+                    }}
+                  >
+                    {feedbackErrors.phone}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label 
+                  htmlFor="feedback-category"
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    color: '#666'
+                  }}
+                >
+                  Categoria Suggerimento *
+                </label>
+                <select
+                  id="feedback-category"
+                  value={feedbackForm.category}
+                  onChange={(e) => setFeedbackForm({ ...feedbackForm, category: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '4px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    fontWeight: '400',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="Nuova Funzionalità">Nuova Funzionalità</option>
+                  <option value="Miglioramento Esistente">Miglioramento Esistente</option>
+                  <option value="Design/UX">Design/UX</option>
+                  <option value="Altro">Altro</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '25px' }}>
+                <label 
+                  htmlFor="feedback-message"
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    color: '#666'
+                  }}
+                >
+                  Descrizione Suggerimento *
+                </label>
+                <textarea
+                  id="feedback-message"
+                  value={feedbackForm.message}
+                  onChange={(e) => {
+                    setFeedbackForm({ ...feedbackForm, message: e.target.value })
+                    if (feedbackErrors.message) {
+                      setFeedbackErrors({ ...feedbackErrors, message: null })
+                    }
+                  }}
+                  placeholder="Raccontaci la tua idea nel dettaglio..."
+                  rows="6"
+                  aria-invalid={!!feedbackErrors.message}
+                  aria-describedby={feedbackErrors.message ? "feedback-message-error" : undefined}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: `1px solid ${feedbackErrors.message ? '#f44336' : '#E0E0E0'}`,
+                    borderRadius: '4px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    fontWeight: '400'
+                  }}
+                />
+                {feedbackErrors.message && (
+                  <span 
+                    id="feedback-message-error"
+                    role="alert"
+                    style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      fontSize: '12px',
+                      color: '#f44336',
+                      fontWeight: '400'
+                    }}
+                  >
+                    {feedbackErrors.message}
+                  </span>
+                )}
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowFeedbackModal(false)
+                    setFeedbackErrors({})
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: '120px',
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#000000',
+                    background: '#FFFFFF',
+                    border: '1px solid #000000',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                  onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+                >
+                  Annulla
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSendFeedback}
+                  disabled={sendingFeedback}
+                  style={{
+                    flex: 1,
+                    minWidth: '120px',
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                    background: sendingFeedback ? '#999' : '#2E7D32',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: sendingFeedback ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!sendingFeedback) e.target.style.background = '#1B5E20'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!sendingFeedback) e.target.style.background = '#2E7D32'
+                  }}
+                >
+                  {sendingFeedback ? 'Invio...' : 'Invia Suggerimento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toast && (
         <Toast
@@ -963,6 +1382,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           
           header > div > div {
             width: 100%;
+            align-items: flex-start !important;
           }
         }
 
