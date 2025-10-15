@@ -4,23 +4,40 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import PublicMenu from './pages/PublicMenu.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 
 function Root() {
-  // Controlla se siamo su una route di menu pubblico
-  const isPublicMenuRoute = window.location.hash.startsWith('#/menu/')
+  const hash = window.location.hash
+
+  // Route pubbliche che non richiedono autenticazione
+  const isPublicMenuRoute = hash.startsWith('#/menu/')
+  const isResetPasswordRoute = hash.startsWith('#/reset-password')
 
   if (isPublicMenuRoute) {
-    // Se siamo su /menu/..., mostra SOLO PublicMenu
+    // Menu pubblico
     return (
       <HashRouter>
         <Routes>
           <Route path="/menu/:subdomain" element={<PublicMenu />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
     )
   }
 
-  // Altrimenti mostra l'app normale (login + dashboard)
+  if (isResetPasswordRoute) {
+    // Reset password
+    return (
+      <HashRouter>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </HashRouter>
+    )
+  }
+
+  // App normale (login + dashboard)
   return (
     <HashRouter>
       <Routes>
