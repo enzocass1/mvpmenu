@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import ImageUpload from './ImageUpload'
+import QRCode from 'qrcode'
 
 function RestaurantForm({ restaurant, onSave }) {
   const [loading, setLoading] = useState(false)
   const [scriptLoaded, setScriptLoaded] = useState(false)
+  const [downloadingQR, setDownloadingQR] = useState(false)
   const addressInputRef = useRef(null)
   const autocompleteRef = useRef(null)
   
@@ -113,6 +115,46 @@ function RestaurantForm({ restaurant, onSave }) {
       alert('Errore: ' + error.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Funzione per scaricare il QR Code
+  const handleDownloadQRCode = async () => {
+    if (!formData.subdomain) {
+      alert('Inserisci prima un sottodominio!')
+      return
+    }
+
+    setDownloadingQR(true)
+
+    try {
+const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
+      
+      // Genera QR Code in alta risoluzione (1024x1024)
+      const qrCodeDataUrl = await QRCode.toDataURL(menuUrl, {
+        width: 1024,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'H'
+      })
+
+      // Crea un link per il download
+      const link = document.createElement('a')
+      link.href = qrCodeDataUrl
+      link.download = `${formData.subdomain}-menu-qrcode.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      alert('✅ QR Code scaricato con successo!')
+    } catch (error) {
+      console.error('Errore durante la generazione del QR Code:', error)
+      alert('Errore durante il download del QR Code')
+    } finally {
+      setDownloadingQR(false)
     }
   }
 
@@ -371,7 +413,8 @@ function RestaurantForm({ restaurant, onSave }) {
             textTransform: 'uppercase',
             letterSpacing: '1px',
             boxShadow: loading ? 'none' : '3px 3px 0px #000000',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            marginBottom: restaurant ? '15px' : '0'
           }}
           onMouseDown={(e) => {
             if (!loading) {
@@ -394,6 +437,50 @@ function RestaurantForm({ restaurant, onSave }) {
         >
           {loading ? '⏳ Salvando...' : (restaurant ? '✓ Aggiorna Ristorante' : '+ Crea Ristorante')}
         </button>
+
+        {/* Bottone Scarica QR Code (solo se il ristorante esiste) */}
+        {restaurant && (
+          <button 
+            type="button"
+            onClick={handleDownloadQRCode}
+            disabled={downloadingQR || !formData.subdomain}
+            style={{
+              width: '100%',
+              padding: '15px',
+              fontSize: '16px',
+              fontWeight: '700',
+              color: '#000000',
+              background: downloadingQR || !formData.subdomain ? '#F5F5F5' : '#FFFFFF',
+              border: '2px solid #000000',
+              borderRadius: '4px',
+              cursor: downloadingQR || !formData.subdomain ? 'not-allowed' : 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+              boxShadow: downloadingQR || !formData.subdomain ? 'none' : '3px 3px 0px #000000',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseDown={(e) => {
+              if (!downloadingQR && formData.subdomain) {
+                e.currentTarget.style.transform = 'translateY(2px)'
+                e.currentTarget.style.boxShadow = '1px 1px 0px #000000'
+              }
+            }}
+            onMouseUp={(e) => {
+              if (!downloadingQR && formData.subdomain) {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '3px 3px 0px #000000'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!downloadingQR && formData.subdomain) {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '3px 3px 0px #000000'
+              }
+            }}
+          >
+            {downloadingQR ? '⏳ Generando...' : '📱 Scarica QR Code'}
+          </button>
+        )}
       </form>
 
       {/* CSS per personalizzare dropdown Google */}
