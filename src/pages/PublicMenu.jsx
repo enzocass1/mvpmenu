@@ -500,7 +500,7 @@ const styles = {
   // Carousel 3D
   carouselSection: {
   width: '100%',
-  padding: '30px 0 60px 0',  // ← Top 30px, Bottom 60px
+  padding: '0px 0 60px 0',  // ← Top 30px, Bottom 60px
   backgroundColor: '#ffffff',
   position: 'relative',
 },
