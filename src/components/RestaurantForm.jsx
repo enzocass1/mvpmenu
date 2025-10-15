@@ -42,6 +42,10 @@ function RestaurantForm({ restaurant, onSave }) {
     script.async = true
     script.defer = true
     script.onload = () => setScriptLoaded(true)
+    script.onerror = () => {
+      console.error('Errore nel caricamento di Google Maps')
+      setScriptLoaded(false)
+    }
     document.head.appendChild(script)
 
     return () => {
@@ -57,7 +61,7 @@ function RestaurantForm({ restaurant, onSave }) {
           addressInputRef.current,
           {
             componentRestrictions: { country: 'it' },
-            fields: ['formatted_address', 'geometry', 'name'],
+            fields: ['formatted_address', 'address_components', 'geometry'],
             types: ['address']
           }
         )
@@ -293,12 +297,10 @@ function RestaurantForm({ restaurant, onSave }) {
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             required
-            name="address"
-            id="address-input"
-            autoComplete="new-password"
+            autoComplete="off"
             style={{
               width: '100%',
-              padding: '12px 15px 12px 15px',
+              padding: '12px 15px',
               fontSize: '16px',
               border: '2px solid #000000',
               borderRadius: '4px',
@@ -490,11 +492,23 @@ function RestaurantForm({ restaurant, onSave }) {
         )}
       </form>
 
-      {/* CSS per personalizzare dropdown Google */}
+      {/* CSS per personalizzare dropdown Google - VERSIONE CORRETTA */}
       <style>{`
-        /* Nascondi le icone problematiche di Google Places */
+        /* SOLUZIONE: Nascondi completamente le icone problematiche */
         .pac-icon {
           display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          background-image: none !important;
+        }
+        
+        .pac-icon-marker {
+          display: none !important;
+        }
+        
+        /* Rimuovi spazio per le icone */
+        .pac-item {
+          padding-left: 15px !important;
         }
         
         .pac-container {
@@ -513,6 +527,12 @@ function RestaurantForm({ restaurant, onSave }) {
           border-top: 1px solid #E0E0E0 !important;
           cursor: pointer !important;
           line-height: 1.4 !important;
+          display: flex !important;
+          align-items: center !important;
+        }
+        
+        .pac-item:first-child {
+          border-top: none !important;
         }
         
         .pac-item:hover {
@@ -523,18 +543,29 @@ function RestaurantForm({ restaurant, onSave }) {
           font-weight: 600 !important;
           color: #000000 !important;
           font-size: 14px !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
         
         .pac-matched {
           font-weight: 700 !important;
         }
         
+        /* Rimuovi qualsiasi immagine di sfondo */
+        .pac-container::after,
+        .pac-container::before,
+        .pac-item::after,
+        .pac-item::before {
+          display: none !important;
+        }
+        
         /* Mobile fixes */
         @media (max-width: 768px) {
           .pac-container {
-            border: 1px solid #000 !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+            border: 2px solid #000 !important;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2) !important;
             margin-top: 2px !important;
+            max-width: calc(100vw - 40px) !important;
           }
           
           .pac-item {
