@@ -15,6 +15,13 @@ function Dashboard({ session }) {
     hours: false,
     importExport: false
   })
+  const [showSupportModal, setShowSupportModal] = useState(false)
+  const [supportForm, setSupportForm] = useState({
+    email: session?.user?.email || '',
+    phone: '',
+    message: ''
+  })
+  const [sendingSupport, setSendingSupport] = useState(false)
 
   useEffect(() => {
     if (session) {
@@ -74,6 +81,45 @@ function Dashboard({ session }) {
     }
   }
 
+  const handleSendSupport = async (e) => {
+    e.preventDefault()
+    
+    if (!supportForm.phone || !supportForm.message) {
+      alert('Per favore compila tutti i campi')
+      return
+    }
+
+    setSendingSupport(true)
+
+    const emailBody = `
+RICHIESTA SUPPORTO MVPMENU
+
+Email utente: ${supportForm.email}
+Telefono: ${supportForm.phone}
+
+Problema riscontrato:
+${supportForm.message}
+
+---
+Inviato il: ${new Date().toLocaleString('it-IT')}
+    `.trim()
+
+    const mailtoLink = `mailto:enzocassese91@gmail.com?subject=${encodeURIComponent('MVPMenu - Supporto')}&body=${encodeURIComponent(emailBody)}`
+    
+    window.location.href = mailtoLink
+
+    setTimeout(() => {
+      setSendingSupport(false)
+      setShowSupportModal(false)
+      setSupportForm({
+        email: session?.user?.email || '',
+        phone: '',
+        message: ''
+      })
+      alert('Client email aperto! Invia il messaggio dal tuo client di posta.')
+    }, 500)
+  }
+
   return (
     <div style={{ 
       minHeight: '100vh',
@@ -124,6 +170,38 @@ function Dashboard({ session }) {
             }}>
               👤 {session.user.email}
             </span>
+
+            <button 
+              onClick={() => setShowSupportModal(true)}
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                fontWeight: '700',
+                color: '#FFFFFF',
+                background: '#FF9800',
+                border: '2px solid #000000',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                boxShadow: '2px 2px 0px #000000',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.transform = 'translateY(2px)'
+                e.currentTarget.style.boxShadow = '0px 0px 0px #000000'
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
+              }}
+            >
+              🆘 Ricevi Assistenza
+            </button>
             
             <button 
               onClick={handleLogout}
@@ -562,6 +640,235 @@ function Dashboard({ session }) {
           </p>
         </footer>
       </div>
+
+      {/* Modal Supporto */}
+      {showSupportModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            border: '2px solid #000000',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '100%',
+            boxShadow: '8px 8px 0px #000000',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#000000'
+              }}>
+                🆘 Richiedi Assistenza
+              </h2>
+              <button
+                onClick={() => setShowSupportModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '0',
+                  color: '#000000'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSendSupport}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  📧 Email
+                </label>
+                <input
+                  type="email"
+                  value={supportForm.email}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '12px 15px',
+                    fontSize: '16px',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    background: '#F5F5F5',
+                    color: '#666',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  📱 Numero di Telefono *
+                </label>
+                <input
+                  type="tel"
+                  value={supportForm.phone}
+                  onChange={(e) => setSupportForm({ ...supportForm, phone: e.target.value })}
+                  placeholder="+39 123 456 7890"
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 15px',
+                    fontSize: '16px',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    background: '#F5F5F5',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => e.target.style.background = '#FFFFFF'}
+                  onBlur={(e) => e.target.style.background = '#F5F5F5'}
+                />
+              </div>
+
+              <div style={{ marginBottom: '25px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  📝 Problema Riscontrato *
+                </label>
+                <textarea
+                  value={supportForm.message}
+                  onChange={(e) => setSupportForm({ ...supportForm, message: e.target.value })}
+                  placeholder="Descrivi il problema nel dettaglio..."
+                  required
+                  rows="6"
+                  style={{
+                    width: '100%',
+                    padding: '12px 15px',
+                    fontSize: '16px',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    background: '#F5F5F5',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => e.target.style.background = '#FFFFFF'}
+                  onBlur={(e) => e.target.style.background = '#F5F5F5'}
+                />
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSupportModal(false)}
+                  style={{
+                    flex: 1,
+                    minWidth: '120px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    color: '#000000',
+                    background: '#F5F5F5',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    boxShadow: '2px 2px 0px #000000',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseDown={(e) => {
+                    e.target.style.transform = 'translate(2px, 2px)'
+                    e.target.style.boxShadow = '0px 0px 0px #000000'
+                  }}
+                  onMouseUp={(e) => {
+                    e.target.style.transform = 'translate(0, 0)'
+                    e.target.style.boxShadow = '2px 2px 0px #000000'
+                  }}
+                >
+                  Annulla
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={sendingSupport}
+                  style={{
+                    flex: 1,
+                    minWidth: '120px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    color: '#FFFFFF',
+                    background: sendingSupport ? '#999' : '#FF9800',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    cursor: sendingSupport ? 'not-allowed' : 'pointer',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    boxShadow: '2px 2px 0px #000000',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseDown={(e) => {
+                    if (!sendingSupport) {
+                      e.target.style.transform = 'translate(2px, 2px)'
+                      e.target.style.boxShadow = '0px 0px 0px #000000'
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    e.target.style.transform = 'translate(0, 0)'
+                    e.target.style.boxShadow = '2px 2px 0px #000000'
+                  }}
+                >
+                  {sendingSupport ? '⏳ Invio...' : '📧 Invia Richiesta'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Responsive Styles */}
       <style>{`
