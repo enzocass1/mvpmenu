@@ -303,7 +303,7 @@ function MenuImportExport({ restaurantId }) {
           {importing ? '⏳ Importando...' : '⬆️ Carica Menu CSV'}
           <input
             type="file"
-            accept=".csv"
+  accept=".csv,.txt,text/csv,text/plain,application/csv,application/vnd.ms-excel"
             onChange={handleImportMenu}
             disabled={importing}
             style={{ display: 'none' }}
