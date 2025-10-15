@@ -48,7 +48,7 @@ function Login() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: 'https://mvpmenu.vercel.app/#/reset-password'
       })
       if (error) throw error
       setMessage({ 
