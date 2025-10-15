@@ -1,29 +1,82 @@
 import { useState, useEffect } from 'react'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import PublicMenu from './pages/PublicMenu'
-import ResetPassword from './pages/ResetPassword'
 
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
+    console.log('🔍 App mounted - checking session...')
+    
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error('❌ Error getting session:', error)
+          setError(error.message)
+        } else {
+          console.log('✅ Session loaded:', session ? 'User logged in' : 'No session')
+          setSession(session)
+        }
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error('❌ Unexpected error:', err)
+        setError(err.message)
+        setLoading(false)
+      })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('🔄 Auth state changed:', _event, session ? 'User logged in' : 'No session')
       setSession(session)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      console.log('🧹 Cleaning up subscription')
+      subscription.unsubscribe()
+    }
   }, [])
+
+  console.log('🎨 Rendering App - Loading:', loading, 'Session:', !!session, 'Error:', error)
+
+  if (error) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        backgroundColor: '#FFEBEE',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        padding: '20px',
+        textAlign: 'center'
+      }}>
+        <div>
+          <h1 style={{ color: '#C62828', fontSize: '24px', marginBottom: '10px' }}>❌ Errore</h1>
+          <p style={{ color: '#666', fontSize: '16px' }}>{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '20px',
+              padding: '10px 20px',
+              fontSize: '14px',
+              background: '#C62828',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Ricarica Pagina
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -32,50 +85,26 @@ function App() {
         justifyContent: 'center', 
         alignItems: 'center', 
         minHeight: '100vh',
+        backgroundColor: '#F5F5F5',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         fontSize: '18px',
-        color: '#666'
+        color: '#666',
+        flexDirection: 'column',
+        gap: '20px'
       }}>
-        ⏳ Caricamento...
+        <div style={{ fontSize: '48px' }}>⏳</div>
+        <div>Caricamento...</div>
       </div>
     )
   }
 
-  return (
-    <HashRouter>
-      <Routes>
-        {/* Route pubblica - Login */}
-        <Route 
-          path="/" 
-          element={!session ? <Login /> : <Navigate to="/dashboard" replace />} 
-        />
+  if (!session) {
+    console.log('👤 Rendering Login page')
+    return <Login />
+  }
 
-        {/* Route pubblica - Reset Password */}
-        <Route 
-          path="/reset-password" 
-          element={<ResetPassword />} 
-        />
-
-        {/* Route pubblica - Menu Pubblico */}
-        <Route 
-          path="/menu/:subdomain" 
-          element={<PublicMenu />} 
-        />
-
-        {/* Route protetta - Dashboard */}
-        <Route 
-          path="/dashboard" 
-          element={session ? <Dashboard session={session} /> : <Navigate to="/" replace />} 
-        />
-
-        {/* Redirect per route non trovate */}
-        <Route 
-          path="*" 
-          element={<Navigate to="/" replace />} 
-        />
-      </Routes>
-    </HashRouter>
-  )
+  console.log('🏠 Rendering Dashboard')
+  return <Dashboard session={session} />
 }
 
 export default App
