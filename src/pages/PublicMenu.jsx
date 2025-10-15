@@ -310,22 +310,7 @@ function PublicMenu() {
               </>
             )}
 
-            {/* Indicatori */}
-            {categories.length > 1 && (
-              <div style={styles.indicators}>
-                {categories.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentIndex(index)}
-                    style={{
-                      ...styles.indicator,
-                      ...(index === currentIndex ? styles.indicatorActive : {})
-                    }}
-                    aria-label={`Vai alla categoria ${index + 1}`}
-                  />
-                ))}
-              </div>
-            )}
+            
           </div>
         </div>
 
