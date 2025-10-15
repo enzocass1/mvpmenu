@@ -148,17 +148,7 @@ function CategoryManager({ restaurantId }) {
   </details>
 </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>URL Immagine</label>
-              <input
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                style={{ width: '100%', padding: '8px' }}
-                placeholder="https://esempio.com/immagine.jpg"
-              />
-              <small style={{ color: '#666' }}>Carica un'immagine online e incolla l'URL qui</small>
-            </div>
+         
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button 
