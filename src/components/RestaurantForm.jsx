@@ -51,7 +51,10 @@ function RestaurantForm({ restaurant, onSave }) {
 
   // Inizializza l'autocomplete quando lo script è caricato
   useEffect(() => {
-    if (scriptLoaded && addressInputRef.current && !autocompleteRef.current) {
+    // Disabilita autocomplete su mobile per evitare problemi
+    const isMobile = window.innerWidth <= 768
+    
+    if (scriptLoaded && addressInputRef.current && !autocompleteRef.current && !isMobile) {
       autocompleteRef.current = new window.google.maps.places.Autocomplete(
         addressInputRef.current,
         {
@@ -128,7 +131,7 @@ function RestaurantForm({ restaurant, onSave }) {
     setDownloadingQR(true)
 
     try {
-const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
+      const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
       
       // Genera QR Code in alta risoluzione (1024x1024)
       const qrCodeDataUrl = await QRCode.toDataURL(menuUrl, {
@@ -270,7 +273,7 @@ const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
           </details>
         </div>
 
-        {/* Indirizzo con Google Autocomplete */}
+        {/* Indirizzo con Google Autocomplete - FIX MOBILE */}
         <div style={{ marginBottom: '25px' }}>
           <label style={{
             display: 'block',
@@ -289,6 +292,7 @@ const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             required
+            autoComplete="off"
             style={{
               width: '100%',
               padding: '12px 15px',
@@ -297,10 +301,15 @@ const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
               borderRadius: '4px',
               background: '#F5F5F5',
               color: '#000000',
-              boxSizing: 'border-box'
+              boxSizing: 'border-box',
+              WebkitAppearance: 'none',
+              appearance: 'none'
             }}
             placeholder="Inizia a digitare l'indirizzo..."
-            onFocus={(e) => e.target.style.background = '#FFFFFF'}
+            onFocus={(e) => {
+              e.target.style.background = '#FFFFFF'
+              e.target.style.fontSize = '16px'
+            }}
             onBlur={(e) => e.target.style.background = '#F5F5F5'}
           />
           <small style={{
@@ -309,7 +318,7 @@ const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
             color: '#666',
             fontSize: '12px'
           }}>
-            💡 Inizia a digitare e seleziona dalla lista
+            💡 {window.innerWidth <= 768 ? 'Digita l\'indirizzo completo' : 'Inizia a digitare e seleziona dalla lista'}
           </small>
         </div>
 
@@ -508,6 +517,28 @@ const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
         }
         .pac-icon {
           margin-top: 5px;
+        }
+        
+        /* FIX MOBILE: Rimuovi icone problematiche */
+        .pac-icon-marker {
+          display: none !important;
+        }
+        
+        /* FIX MOBILE: Migliora touch target */
+        @media (max-width: 768px) {
+          .pac-container {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+            border: 1px solid #ccc !important;
+            margin-top: 2px !important;
+          }
+          .pac-item {
+            padding: 15px 10px;
+            font-size: 16px;
+            line-height: 1.4;
+          }
+          .pac-item-query {
+            font-size: 16px;
+          }
         }
       `}</style>
     </div>
