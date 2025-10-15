@@ -3,6 +3,14 @@ import { supabase } from '../supabaseClient'
 import ImageUpload from './ImageUpload'
 import QRCode from 'qrcode'
 
+
+// TEMPORANEO - Solo per debug
+useEffect(() => {
+  console.log('🔑 API Key presente:', !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
+  console.log('🔑 Prime 10 caratteri:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.substring(0, 10))
+}, [])
+
+
 function RestaurantForm({ restaurant, onSave }) {
   const [loading, setLoading] = useState(false)
   const [scriptLoaded, setScriptLoaded] = useState(false)
