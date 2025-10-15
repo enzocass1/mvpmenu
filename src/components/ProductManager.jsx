@@ -7,8 +7,8 @@ function ProductManager({ category }) {
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
-  const [openMenuId, setOpenMenuId] = useState(null) // Per gestire quale menu è aperto
-  const menuRef = useRef(null)
+  const [openMenuId, setOpenMenuId] = useState(null)
+  const menuRefs = useRef({})
   
   const [formData, setFormData] = useState({
     name: '',
@@ -26,8 +26,10 @@ function ProductManager({ category }) {
   // Chiudi menu quando clicchi fuori
   useEffect(() => {
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setOpenMenuId(null)
+      if (openMenuId && menuRefs.current[openMenuId]) {
+        if (!menuRefs.current[openMenuId].contains(event.target)) {
+          setOpenMenuId(null)
+        }
       }
     }
 
@@ -106,7 +108,7 @@ function ProductManager({ category }) {
       image_url: product.image_url || '',
     })
     setShowForm(true)
-    setOpenMenuId(null) // Chiudi il menu
+    setOpenMenuId(null)
   }
 
   const handleDelete = async (productId) => {
@@ -122,7 +124,7 @@ function ProductManager({ category }) {
       
       alert('Prodotto eliminato!')
       await loadProducts()
-      setOpenMenuId(null) // Chiudi il menu
+      setOpenMenuId(null)
     } catch (error) {
       console.error('Error deleting product:', error)
       alert('Errore durante l\'eliminazione')
@@ -497,35 +499,39 @@ function ProductManager({ category }) {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {products.map((product, index) => (
             <div
               key={product.id}
               style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: '50px 70px 1fr 50px',
+                gap: '12px',
                 alignItems: 'center',
-                gap: '15px',
-                padding: '15px',
+                padding: '12px',
                 background: '#FFFFFF',
                 border: '2px solid #000000',
                 borderRadius: '8px',
                 boxShadow: '3px 3px 0px #000000',
-                position: 'relative'
+                position: 'relative',
+                minHeight: '90px'
               }}
             >
-              {/* Frecce riordinamento */}
+              {/* Colonna 1: Frecce riordinamento */}
               <div style={{ 
                 display: 'flex', 
                 flexDirection: 'column',
-                gap: '5px'
+                gap: '4px',
+                justifySelf: 'center'
               }}>
                 <button
                   onClick={() => moveProduct(product.id, 'up')}
                   disabled={index === 0}
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    fontSize: '16px',
+                    width: '36px',
+                    height: '36px',
+                    fontSize: '18px',
+                    fontWeight: '700',
                     background: index === 0 ? '#F5F5F5' : '#FFFFFF',
                     border: '2px solid #000000',
                     borderRadius: '4px',
@@ -533,7 +539,8 @@ function ProductManager({ category }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    opacity: index === 0 ? 0.5 : 1
+                    opacity: index === 0 ? 0.4 : 1,
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   ▲
@@ -542,9 +549,10 @@ function ProductManager({ category }) {
                   onClick={() => moveProduct(product.id, 'down')}
                   disabled={index === products.length - 1}
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    fontSize: '16px',
+                    width: '36px',
+                    height: '36px',
+                    fontSize: '18px',
+                    fontWeight: '700',
                     background: index === products.length - 1 ? '#F5F5F5' : '#FFFFFF',
                     border: '2px solid #000000',
                     borderRadius: '4px',
@@ -552,44 +560,70 @@ function ProductManager({ category }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    opacity: index === products.length - 1 ? 0.5 : 1
+                    opacity: index === products.length - 1 ? 0.4 : 1,
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   ▼
                 </button>
               </div>
 
-              {/* Immagine prodotto */}
-              {product.image_url && (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  style={{
-                    width: '70px',
-                    height: '70px',
-                    objectFit: 'cover',
-                    border: '2px solid #000000',
-                    borderRadius: '4px'
-                  }}
-                />
-              )}
+              {/* Colonna 2: Immagine prodotto */}
+              <div style={{ 
+                width: '70px', 
+                height: '70px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid #000000',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                background: product.image_url ? 'transparent' : '#F5F5F5'
+              }}>
+                {product.image_url ? (
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '24px' }}>🍽️</span>
+                )}
+              </div>
 
-              {/* Info prodotto */}
-              <div style={{ flex: 1 }}>
+              {/* Colonna 3: Info prodotto */}
+              <div style={{ 
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: 0,
+                overflow: 'hidden'
+              }}>
                 <h4 style={{
-                  margin: '0 0 5px 0',
+                  margin: 0,
                   fontSize: '16px',
                   fontWeight: '700',
-                  color: '#000000'
+                  color: '#000000',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
                 }}>
                   {product.name}
                 </h4>
                 {product.description && (
                   <p style={{
-                    margin: '0 0 5px 0',
-                    fontSize: '14px',
+                    margin: 0,
+                    fontSize: '13px',
                     color: '#666666',
-                    lineHeight: '1.4'
+                    lineHeight: '1.3',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
                   }}>
                     {product.description}
                   </p>
@@ -604,14 +638,20 @@ function ProductManager({ category }) {
                 </p>
               </div>
 
-              {/* Menu a tre puntini */}
-              <div style={{ position: 'relative' }} ref={openMenuId === product.id ? menuRef : null}>
+              {/* Colonna 4: Menu a tre puntini */}
+              <div 
+                style={{ 
+                  position: 'relative',
+                  justifySelf: 'center' 
+                }} 
+                ref={el => menuRefs.current[product.id] = el}
+              >
                 <button
                   onClick={() => toggleMenu(product.id)}
                   style={{
-                    width: '40px',
-                    height: '40px',
-                    fontSize: '20px',
+                    width: '44px',
+                    height: '44px',
+                    fontSize: '24px',
                     fontWeight: '700',
                     background: '#FFFFFF',
                     border: '2px solid #000000',
@@ -620,7 +660,20 @@ function ProductManager({ category }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '2px 2px 0px #000000'
+                    boxShadow: '2px 2px 0px #000000',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseDown={(e) => {
+                    e.target.style.transform = 'translate(1px, 1px)'
+                    e.target.style.boxShadow = '1px 1px 0px #000000'
+                  }}
+                  onMouseUp={(e) => {
+                    e.target.style.transform = 'translate(0, 0)'
+                    e.target.style.boxShadow = '2px 2px 0px #000000'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translate(0, 0)'
+                    e.target.style.boxShadow = '2px 2px 0px #000000'
                   }}
                 >
                   ⋮
@@ -631,20 +684,21 @@ function ProductManager({ category }) {
                   <div style={{
                     position: 'absolute',
                     right: 0,
-                    top: '45px',
+                    top: '50px',
                     background: '#FFFFFF',
                     border: '2px solid #000000',
                     borderRadius: '4px',
                     boxShadow: '4px 4px 0px #000000',
-                    minWidth: '160px',
-                    zIndex: 1000
+                    minWidth: '170px',
+                    zIndex: 1000,
+                    overflow: 'hidden'
                   }}>
                     <button
                       onClick={() => handleEdit(product)}
                       style={{
                         width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '14px',
+                        padding: '14px 16px',
+                        fontSize: '15px',
                         fontWeight: '600',
                         color: '#000000',
                         background: '#FFFFFF',
@@ -654,13 +708,13 @@ function ProductManager({ category }) {
                         textAlign: 'left',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        gap: '10px',
                         transition: 'background 0.2s ease'
                       }}
                       onMouseEnter={(e) => e.target.style.background = '#E3F2FD'}
                       onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
                     >
-                      <span>✏️</span>
+                      <span style={{ fontSize: '18px' }}>✏️</span>
                       <span>Modifica</span>
                     </button>
                     
@@ -668,8 +722,8 @@ function ProductManager({ category }) {
                       onClick={() => handleDelete(product.id)}
                       style={{
                         width: '100%',
-                        padding: '12px 16px',
-                        fontSize: '14px',
+                        padding: '14px 16px',
+                        fontSize: '15px',
                         fontWeight: '600',
                         color: '#f44336',
                         background: '#FFFFFF',
@@ -678,14 +732,13 @@ function ProductManager({ category }) {
                         textAlign: 'left',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        borderRadius: '0 0 2px 2px',
+                        gap: '10px',
                         transition: 'background 0.2s ease'
                       }}
                       onMouseEnter={(e) => e.target.style.background = '#FFEBEE'}
                       onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
                     >
-                      <span>🗑️</span>
+                      <span style={{ fontSize: '18px' }}>🗑️</span>
                       <span>Elimina</span>
                     </button>
                   </div>
