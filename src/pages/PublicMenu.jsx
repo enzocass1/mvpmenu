@@ -471,18 +471,18 @@ const styles = {
   },
   
   categoryCard: {
-  position: 'absolute',
-  width: '320px',
-  height: '420px',
-  borderRadius: '20px',
-  overflow: 'hidden',
-  border: 'none',
-  padding: 0,
-  boxShadow: '0 30px 80px rgba(0,0,0,0.25), 0 10px 30px rgba(0,0,0,0.15)',  // ← Ombra più profonda e stratificata
-  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-  transformStyle: 'preserve-3d',
-  backgroundColor: '#f5f5f5',
-},
+    position: 'absolute',
+    width: '320px',
+    height: '420px',
+    borderRadius: '20px',
+    overflow: 'hidden',
+    border: 'none',
+    padding: 0,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+    transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+    transformStyle: 'preserve-3d',
+    backgroundColor: '#f5f5f5',
+  },
   
   categoryImage: {
     width: '100%',
