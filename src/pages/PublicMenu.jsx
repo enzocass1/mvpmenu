@@ -327,43 +327,49 @@ function PublicMenu() {
           </div>
         </div>
 
-        {/* Info */}
-        <div style={styles.infoSection}>
-          <div style={styles.infoContainer}>
-            <h2 style={styles.infoTitle}>Dove Siamo</h2>
-            
-            <div style={styles.infoCard}>
-              <div style={styles.infoItem}>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.infoLabel}>Indirizzo</div>
-                  <div style={styles.infoText}>{restaurant.address}</div>
-                </div>
-              </div>
+        <div style={styles.infoCard}>
+  {/* ORARI - NUOVO */}
+  <div style={styles.infoItem}>
+    <div style={{ flex: 1 }}>
+      <div style={styles.infoLabel}>Orari di Apertura</div>
+      <div style={styles.infoText}>
+        {/* TODO: Caricare orari dal database */}
+        Lun-Ven: 12:00-15:00, 19:00-23:00
+      </div>
+    </div>
+  </div>
 
-              <div style={styles.infoItem}>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.infoLabel}>Telefono</div>
-                  <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
-                    {restaurant.phone}
-                  </a>
-                </div>
-              </div>
+  {/* INDIRIZZO */}
+  <div style={styles.infoItem}>
+    <div style={{ flex: 1 }}>
+      <div style={styles.infoLabel}>Indirizzo</div>
+      <div style={styles.infoText}>{restaurant.address}</div>
+    </div>
+  </div>
 
-              {/* Mappa Google Maps */}
-              <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                <iframe
-                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+  {/* TELEFONO */}
+  <div style={styles.infoItem}>
+    <div style={{ flex: 1 }}>
+      <div style={styles.infoLabel}>Telefono</div>
+      <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
+        {restaurant.phone}
+      </a>
+    </div>
+  </div>
+
+  {/* Mappa Google Maps */}
+  <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+    <iframe
+      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
+      width="100%"
+      height="100%"
+      style={{ border: 0 }}
+      allowFullScreen=""
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+    />
+  </div>
+</div>
 
         {/* Footer */}
         <div style={styles.footer}>
@@ -729,12 +735,12 @@ const styles = {
   },
   
   infoCard: {
-    width: '100%',
-    backgroundColor: '#2a2a2a',
-    borderRadius: '16px',
-    padding: '24px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-  },
+  width: '100%',
+  padding: '0',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '20px',
+},
   
   infoItem: {
     display: 'flex',
@@ -744,29 +750,29 @@ const styles = {
   },
   
   infoLabel: {
-    fontSize: '13px',
-    color: '#999',
-    marginBottom: '4px',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  
-  infoText: {
-    fontSize: '16px',
-    color: '#ffffff',
-    overflowWrap: 'break-word',
-    lineHeight: '1.5',
-  },
+  fontSize: '13px',
+  color: '#666',
+  marginBottom: '4px',
+  fontWeight: '600',
+  textTransform: 'uppercase',
+  letterSpacing: '0.5px',
+},
+
+infoText: {
+  fontSize: '16px',
+  color: '#000',
+  overflowWrap: 'break-word',
+  lineHeight: '1.5',
+},
   
   phoneLink: {
-    color: '#ffffff',
-    textDecoration: 'none',
-    fontSize: '16px',
-    fontWeight: '500',
-    borderBottom: '1px solid rgba(255,255,255,0.3)',
-    paddingBottom: '2px',
-  },
+  color: '#000',
+  textDecoration: 'none',
+  fontSize: '16px',
+  fontWeight: '500',
+  borderBottom: '1px solid rgba(0,0,0,0.3)',
+  paddingBottom: '2px',
+},
   
   // Footer
   footer: {
