@@ -109,6 +109,52 @@ function CategoryManager({ restaurantId }) {
     setFormData({ name: '', image_url: '' })
   }
 
+  // NUOVA FUNZIONE: Sposta categoria su
+  const moveUp = async (index) => {
+    if (index === 0) return // Già in prima posizione
+    
+    const newCategories = [...categories]
+    const temp = newCategories[index]
+    newCategories[index] = newCategories[index - 1]
+    newCategories[index - 1] = temp
+    
+    // Aggiorna l'ordine nel database
+    await updateOrder(newCategories)
+  }
+
+  // NUOVA FUNZIONE: Sposta categoria giù
+  const moveDown = async (index) => {
+    if (index === categories.length - 1) return // Già in ultima posizione
+    
+    const newCategories = [...categories]
+    const temp = newCategories[index]
+    newCategories[index] = newCategories[index + 1]
+    newCategories[index + 1] = temp
+    
+    // Aggiorna l'ordine nel database
+    await updateOrder(newCategories)
+  }
+
+  // NUOVA FUNZIONE: Aggiorna ordine nel database
+  const updateOrder = async (newCategories) => {
+    try {
+      // Aggiorna l'ordine di tutte le categorie
+      const updates = newCategories.map((cat, idx) => 
+        supabase
+          .from('categories')
+          .update({ order: idx })
+          .eq('id', cat.id)
+      )
+      
+      await Promise.all(updates)
+      
+      // Ricarica per sincronizzare
+      loadCategories()
+    } catch (error) {
+      alert('Errore nel riordinamento: ' + error.message)
+    }
+  }
+
   return (
     <div style={{ marginTop: '30px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -189,13 +235,54 @@ function CategoryManager({ restaurantId }) {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <div key={category.id} style={{ border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', background: 'white' }}>
             {category.image_url && (
               <img src={category.image_url} alt={category.name} style={{ width: '100%', height: '150px', objectFit: 'cover' }} />
             )}
             <div style={{ padding: '15px' }}>
-              <h3 style={{ margin: '0 0 10px 0' }}>{category.name}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <h3 style={{ margin: 0 }}>{category.name}</h3>
+                
+                {/* FRECCE RIORDINAMENTO */}
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <button
+                    onClick={() => moveUp(index)}
+                    disabled={index === 0}
+                    style={{
+                      padding: '4px 8px',
+                      background: index === 0 ? '#ccc' : '#FF9800',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: index === 0 ? 'not-allowed' : 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                    title="Sposta su"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => moveDown(index)}
+                    disabled={index === categories.length - 1}
+                    style={{
+                      padding: '4px 8px',
+                      background: index === categories.length - 1 ? '#ccc' : '#FF9800',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: index === categories.length - 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                    title="Sposta giù"
+                  >
+                    ▼
+                  </button>
+                </div>
+              </div>
+              
               <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button 
                   onClick={() => handleEdit(category)}
