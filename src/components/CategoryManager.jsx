@@ -492,217 +492,207 @@ function CategoryManager({ restaurantId }) {
                 <div style={{
                   padding: '20px',
                   borderTop: '2px solid #000000',
-                  background: '#FAFAFA'
+                  background: '#FAFAFA',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
+                  alignItems: 'center'
                 }}>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '120px 1fr',
-                    gap: '20px',
-                    marginBottom: '25px',
-                    alignItems: 'start'
+                  {/* Titolo categoria */}
+                  <h3 style={{
+                    margin: 0,
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: '#000000',
+                    textAlign: 'center'
                   }}>
-                    {/* Colonna sinistra: Immagine */}
-                    <div style={{ 
-                      width: '120px', 
-                      height: '120px',
-                      border: '2px solid #000000',
-                      borderRadius: '4px',
-                      overflow: 'hidden',
-                      background: category.image_url ? 'transparent' : '#F5F5F5',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      {category.image_url ? (
-                        <img
-                          src={category.image_url}
-                          alt={category.name}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                        />
-                      ) : (
-                        <span style={{ fontSize: '48px' }}>📂</span>
-                      )}
-                    </div>
+                    {category.name}
+                  </h3>
 
-                    {/* Colonna destra: Nome + Bottoni */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}>
-                      {/* Nome categoria */}
-                      <h3 style={{
-                        margin: 0,
-                        fontSize: '22px',
+                  {/* Immagine centrata */}
+                  <div style={{ 
+                    width: '150px', 
+                    height: '150px',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    background: category.image_url ? 'transparent' : '#F5F5F5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt={category.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '60px' }}>📂</span>
+                    )}
+                  </div>
+
+                  {/* Bottoni azioni - Grid 2x2 */}
+                  <div style={{
+                    width: '100%',
+                    maxWidth: '400px',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '10px'
+                  }}>
+                    {/* Riga 1: Modifica + Elimina */}
+                    <button
+                      onClick={() => handleEdit(category)}
+                      style={{
+                        padding: '12px',
+                        fontSize: '14px',
                         fontWeight: '700',
-                        color: '#000000',
-                        lineHeight: '1.2'
-                      }}>
-                        {category.name}
-                      </h3>
+                        color: '#FFFFFF',
+                        background: '#2196F3',
+                        border: '2px solid #000000',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        boxShadow: '2px 2px 0px #000000',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseDown={(e) => {
+                        e.target.style.transform = 'translate(1px, 1px)'
+                        e.target.style.boxShadow = '1px 1px 0px #000000'
+                      }}
+                      onMouseUp={(e) => {
+                        e.target.style.transform = 'translate(0, 0)'
+                        e.target.style.boxShadow = '2px 2px 0px #000000'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translate(0, 0)'
+                        e.target.style.boxShadow = '2px 2px 0px #000000'
+                      }}
+                    >
+                      ✏️ Modifica
+                    </button>
 
-                      {/* Grid bottoni 2x2 */}
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '8px'
-                      }}>
-                        {/* Modifica */}
-                        <button
-                          onClick={() => handleEdit(category)}
-                          style={{
-                            padding: '10px',
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            color: '#FFFFFF',
-                            background: '#2196F3',
-                            border: '2px solid #000000',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px',
-                            boxShadow: '2px 2px 0px #000000',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseDown={(e) => {
-                            e.target.style.transform = 'translate(1px, 1px)'
-                            e.target.style.boxShadow = '1px 1px 0px #000000'
-                          }}
-                          onMouseUp={(e) => {
-                            e.target.style.transform = 'translate(0, 0)'
-                            e.target.style.boxShadow = '2px 2px 0px #000000'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'translate(0, 0)'
-                            e.target.style.boxShadow = '2px 2px 0px #000000'
-                          }}
-                        >
-                          Modifica
-                        </button>
+                    <button
+                      onClick={() => handleDelete(category.id)}
+                      style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: '#FFFFFF',
+                        background: '#f44336',
+                        border: '2px solid #000000',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        boxShadow: '2px 2px 0px #000000',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseDown={(e) => {
+                        e.target.style.transform = 'translate(1px, 1px)'
+                        e.target.style.boxShadow = '1px 1px 0px #000000'
+                      }}
+                      onMouseUp={(e) => {
+                        e.target.style.transform = 'translate(0, 0)'
+                        e.target.style.boxShadow = '2px 2px 0px #000000'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translate(0, 0)'
+                        e.target.style.boxShadow = '2px 2px 0px #000000'
+                      }}
+                    >
+                      🗑️ Elimina
+                    </button>
 
-                        {/* Elimina */}
-                        <button
-                          onClick={() => handleDelete(category.id)}
-                          style={{
-                            padding: '10px',
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            color: '#FFFFFF',
-                            background: '#f44336',
-                            border: '2px solid #000000',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px',
-                            boxShadow: '2px 2px 0px #000000',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseDown={(e) => {
-                            e.target.style.transform = 'translate(1px, 1px)'
-                            e.target.style.boxShadow = '1px 1px 0px #000000'
-                          }}
-                          onMouseUp={(e) => {
-                            e.target.style.transform = 'translate(0, 0)'
-                            e.target.style.boxShadow = '2px 2px 0px #000000'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'translate(0, 0)'
-                            e.target.style.boxShadow = '2px 2px 0px #000000'
-                          }}
-                        >
-                          Elimina
-                        </button>
+                    {/* Riga 2: Sposta su + Sposta giù */}
+                    <button
+                      onClick={() => moveCategory(category.id, 'up')}
+                      disabled={index === 0}
+                      style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: '#FFFFFF',
+                        background: index === 0 ? '#999999' : '#000000',
+                        border: '2px solid #000000',
+                        borderRadius: '4px',
+                        cursor: index === 0 ? 'not-allowed' : 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        boxShadow: '2px 2px 0px #000000',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseDown={(e) => {
+                        if (index !== 0) {
+                          e.target.style.transform = 'translate(1px, 1px)'
+                          e.target.style.boxShadow = '1px 1px 0px #000000'
+                        }
+                      }}
+                      onMouseUp={(e) => {
+                        if (index !== 0) {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (index !== 0) {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }
+                      }}
+                    >
+                      Sposta su
+                    </button>
 
-                        {/* Sposta su */}
-                        <button
-                          onClick={() => moveCategory(category.id, 'up')}
-                          disabled={index === 0}
-                          style={{
-                            padding: '10px',
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            color: '#FFFFFF',
-                            background: index === 0 ? '#999999' : '#000000',
-                            border: '2px solid #000000',
-                            borderRadius: '4px',
-                            cursor: index === 0 ? 'not-allowed' : 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px',
-                            boxShadow: '2px 2px 0px #000000',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseDown={(e) => {
-                            if (index !== 0) {
-                              e.target.style.transform = 'translate(1px, 1px)'
-                              e.target.style.boxShadow = '1px 1px 0px #000000'
-                            }
-                          }}
-                          onMouseUp={(e) => {
-                            if (index !== 0) {
-                              e.target.style.transform = 'translate(0, 0)'
-                              e.target.style.boxShadow = '2px 2px 0px #000000'
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (index !== 0) {
-                              e.target.style.transform = 'translate(0, 0)'
-                              e.target.style.boxShadow = '2px 2px 0px #000000'
-                            }
-                          }}
-                        >
-                          Sposta su
-                        </button>
-
-                        {/* Sposta giù */}
-                        <button
-                          onClick={() => moveCategory(category.id, 'down')}
-                          disabled={index === categories.length - 1}
-                          style={{
-                            padding: '10px',
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            color: '#FFFFFF',
-                            background: index === categories.length - 1 ? '#999999' : '#000000',
-                            border: '2px solid #000000',
-                            borderRadius: '4px',
-                            cursor: index === categories.length - 1 ? 'not-allowed' : 'pointer',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px',
-                            boxShadow: '2px 2px 0px #000000',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseDown={(e) => {
-                            if (index !== categories.length - 1) {
-                              e.target.style.transform = 'translate(1px, 1px)'
-                              e.target.style.boxShadow = '1px 1px 0px #000000'
-                            }
-                          }}
-                          onMouseUp={(e) => {
-                            if (index !== categories.length - 1) {
-                              e.target.style.transform = 'translate(0, 0)'
-                              e.target.style.boxShadow = '2px 2px 0px #000000'
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (index !== categories.length - 1) {
-                              e.target.style.transform = 'translate(0, 0)'
-                              e.target.style.boxShadow = '2px 2px 0px #000000'
-                            }
-                          }}
-                        >
-                          Sposta giù
-                        </button>
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => moveCategory(category.id, 'down')}
+                      disabled={index === categories.length - 1}
+                      style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        color: '#FFFFFF',
+                        background: index === categories.length - 1 ? '#999999' : '#000000',
+                        border: '2px solid #000000',
+                        borderRadius: '4px',
+                        cursor: index === categories.length - 1 ? 'not-allowed' : 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        boxShadow: '2px 2px 0px #000000',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseDown={(e) => {
+                        if (index !== categories.length - 1) {
+                          e.target.style.transform = 'translate(1px, 1px)'
+                          e.target.style.boxShadow = '1px 1px 0px #000000'
+                        }
+                      }}
+                      onMouseUp={(e) => {
+                        if (index !== categories.length - 1) {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (index !== categories.length - 1) {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }
+                      }}
+                    >
+                      Sposta giù
+                    </button>
                   </div>
 
                   {/* ProductManager già esistente */}
-                  <ProductManager category={category} />
+                  <div style={{ width: '100%' }}>
+                    <ProductManager category={category} />
+                  </div>
                 </div>
               )}
             </div>
