@@ -218,11 +218,24 @@ function Dashboard({ session }) {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut()
-      showToast('Logout effettuato con successo', 'success')
+      showToast('Logout in corso...', 'info')
+      
+      // Prova a fare signOut ma non bloccarti se fallisce
+      await supabase.auth.signOut().catch(() => {
+        console.log('Sessione già invalidata')
+      })
+      
     } catch (error) {
       console.error('Errore logout:', error)
-      showToast('Errore durante il logout', 'error')
+    } finally {
+      // Esegui sempre queste operazioni
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      setTimeout(() => {
+        window.location.href = '/#/'
+        window.location.reload()
+      }, 100)
     }
   }
 
