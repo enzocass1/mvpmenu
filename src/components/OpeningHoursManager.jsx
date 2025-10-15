@@ -54,7 +54,7 @@ function OpeningHoursManager({ restaurantId }) {
           .eq('id', editingHour.id)
 
         if (error) throw error
-        alert('Orario aggiornato!')
+        alert('✅ Orario aggiornato!')
       } else {
         const maxOrder = hours.length > 0 ? Math.max(...hours.map(h => h.order)) : -1
         
@@ -74,7 +74,7 @@ function OpeningHoursManager({ restaurantId }) {
           ])
 
         if (error) throw error
-        alert('Orario creato!')
+        alert('✅ Orario creato!')
       }
 
       setFormData({
@@ -109,7 +109,7 @@ function OpeningHoursManager({ restaurantId }) {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Sei sicuro di voler eliminare questo orario?')) {
+    if (!window.confirm('Sei sicuro di voler eliminare questo orario?')) {
       return
     }
 
@@ -121,7 +121,7 @@ function OpeningHoursManager({ restaurantId }) {
     if (error) {
       alert('Errore: ' + error.message)
     } else {
-      alert('Orario eliminato!')
+      alert('✅ Orario eliminato!')
       loadHours()
     }
   }
@@ -140,31 +140,108 @@ function OpeningHoursManager({ restaurantId }) {
   }
 
   return (
-    <div style={{ marginTop: '30px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>🕒 Orari di Apertura</h2>
+    <div style={{
+      maxWidth: '1200px',
+      margin: '0 auto',
+      padding: '20px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '25px'
+      }}>
         {!showForm && (
           <button 
             onClick={() => setShowForm(true)}
-            style={{ padding: '10px 20px', background: '#9C27B0', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            style={{
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#FFFFFF',
+              background: '#000000',
+              border: '2px solid #000000',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              boxShadow: '3px 3px 0px rgba(0,0,0,0.2)',
+              transition: 'all 0.2s ease',
+              width: '100%'
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.transform = 'translateY(2px)'
+              e.currentTarget.style.boxShadow = '1px 1px 0px rgba(0,0,0,0.2)'
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '3px 3px 0px rgba(0,0,0,0.2)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '3px 3px 0px rgba(0,0,0,0.2)'
+            }}
           >
             + Nuovo Orario
           </button>
         )}
       </div>
 
+      {/* Form Orario */}
       {showForm && (
-        <div style={{ background: '#f3e5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-          <h3>{editingHour ? 'Modifica Orario' : 'Nuovo Orario'}</h3>
+        <div style={{
+          background: '#FFFFFF',
+          border: '2px solid #000000',
+          borderRadius: '8px',
+          padding: '30px',
+          marginBottom: '25px',
+          boxShadow: '4px 4px 0px #000000'
+        }}>
+          <h3 style={{
+            margin: '0 0 25px 0',
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#000000'
+          }}>
+            {editingHour ? '✏️ Modifica Orario' : '➕ Nuovo Orario'}
+          </h3>
+
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            {/* Giorni */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '15px',
+              marginBottom: '20px'
+            }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Giorno Inizio *</label>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Giorno Inizio *
+                </label>
                 <select
                   value={formData.day_start}
                   onChange={(e) => setFormData({ ...formData, day_start: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px' }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 15px',
+                    fontSize: '16px',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    background: '#F5F5F5',
+                    color: '#000000',
+                    boxSizing: 'border-box'
+                  }}
                 >
                   {days.map(day => (
                     <option key={day} value={day}>{day}</option>
@@ -173,132 +250,389 @@ function OpeningHoursManager({ restaurantId }) {
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Giorno Fine (opzionale)</label>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Giorno Fine (opzionale)
+                </label>
                 <select
                   value={formData.day_end}
                   onChange={(e) => setFormData({ ...formData, day_end: e.target.value })}
-                  style={{ width: '100%', padding: '8px' }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 15px',
+                    fontSize: '16px',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    background: '#F5F5F5',
+                    color: '#000000',
+                    boxSizing: 'border-box'
+                  }}
                 >
                   <option value="">Stesso giorno</option>
                   {days.map(day => (
                     <option key={day} value={day}>{day}</option>
                   ))}
                 </select>
-                <small style={{ color: '#666' }}>Es: Lunedì - Giovedì</small>
+                <small style={{
+                  display: 'block',
+                  marginTop: '5px',
+                  color: '#666',
+                  fontSize: '12px'
+                }}>
+                  💡 Es: Lunedì - Giovedì
+                </small>
               </div>
             </div>
 
-            <div style={{ background: 'white', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
-              <h4 style={{ margin: '0 0 10px 0' }}>Prima Fascia Oraria *</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {/* Prima Fascia Oraria */}
+            <div style={{
+              background: '#F5F5F5',
+              padding: '20px',
+              borderRadius: '4px',
+              border: '2px solid #000000',
+              marginBottom: '15px'
+            }}>
+              <h4 style={{
+                margin: '0 0 15px 0',
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#000000',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Prima Fascia Oraria *
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '15px'
+              }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Apertura</label>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#000000',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Apertura
+                  </label>
                   <input
                     type="time"
                     value={formData.time_start_1}
                     onChange={(e) => setFormData({ ...formData, time_start_1: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px' }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 15px',
+                      fontSize: '16px',
+                      border: '2px solid #000000',
+                      borderRadius: '4px',
+                      background: '#FFFFFF',
+                      color: '#000000',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Chiusura</label>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#000000',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Chiusura
+                  </label>
                   <input
                     type="time"
                     value={formData.time_end_1}
                     onChange={(e) => setFormData({ ...formData, time_end_1: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px' }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 15px',
+                      fontSize: '16px',
+                      border: '2px solid #000000',
+                      borderRadius: '4px',
+                      background: '#FFFFFF',
+                      color: '#000000',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
               </div>
             </div>
 
-            <div style={{ background: 'white', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
-              <h4 style={{ margin: '0 0 10px 0' }}>Seconda Fascia Oraria (opzionale)</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {/* Seconda Fascia Oraria */}
+            <div style={{
+              background: '#F5F5F5',
+              padding: '20px',
+              borderRadius: '4px',
+              border: '2px solid #000000',
+              marginBottom: '25px'
+            }}>
+              <h4 style={{
+                margin: '0 0 15px 0',
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#000000',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                Seconda Fascia Oraria (opzionale)
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '15px'
+              }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Apertura</label>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#000000',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Apertura
+                  </label>
                   <input
                     type="time"
                     value={formData.time_start_2}
                     onChange={(e) => setFormData({ ...formData, time_start_2: e.target.value })}
-                    style={{ width: '100%', padding: '8px' }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 15px',
+                      fontSize: '16px',
+                      border: '2px solid #000000',
+                      borderRadius: '4px',
+                      background: '#FFFFFF',
+                      color: '#000000',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Chiusura</label>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '6px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#000000',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    Chiusura
+                  </label>
                   <input
                     type="time"
                     value={formData.time_end_2}
                     onChange={(e) => setFormData({ ...formData, time_end_2: e.target.value })}
-                    style={{ width: '100%', padding: '8px' }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 15px',
+                      fontSize: '16px',
+                      border: '2px solid #000000',
+                      borderRadius: '4px',
+                      background: '#FFFFFF',
+                      color: '#000000',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
               </div>
-              <small style={{ color: '#666' }}>Es: 11:30-15:00 e 18:30-23:00</small>
+              <small style={{
+                display: 'block',
+                marginTop: '10px',
+                color: '#666',
+                fontSize: '12px'
+              }}>
+                💡 Es: 11:30-15:00 e 18:30-23:00
+              </small>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Bottoni */}
+            <div style={{ display: 'flex', gap: '15px' }}>
               <button 
                 type="submit" 
                 disabled={loading}
-                style={{ padding: '10px 20px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: loading ? 'not-allowed' : 'pointer' }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  color: '#FFFFFF',
+                  background: loading ? '#CCCCCC' : '#4CAF50',
+                  border: '2px solid #000000',
+                  borderRadius: '4px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  boxShadow: loading ? 'none' : '3px 3px 0px #000000',
+                  transition: 'all 0.2s ease'
+                }}
               >
-                {loading ? 'Salvando...' : (editingHour ? 'Aggiorna' : 'Crea')}
+                {loading ? '⏳ Salvando...' : (editingHour ? '✓ Aggiorna' : '+ Crea')}
               </button>
+
               <button 
                 type="button"
                 onClick={handleCancel}
-                style={{ padding: '10px 20px', background: '#999', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  color: '#000000',
+                  background: '#FFFFFF',
+                  border: '2px solid #000000',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  boxShadow: '3px 3px 0px #000000',
+                  transition: 'all 0.2s ease'
+                }}
               >
-                Annulla
+                ✕ Annulla
               </button>
             </div>
           </form>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {hours.map((hour) => (
-          <div key={hour.id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', background: 'white' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-              <div>
-                <h4 style={{ margin: '0 0 10px 0' }}>
-                  {hour.day_start}{hour.day_end && ` - ${hour.day_end}`}
-                </h4>
-                <p style={{ margin: '5px 0' }}>
-                  🕐 {hour.time_start_1} - {hour.time_end_1}
-                </p>
-                {hour.time_start_2 && hour.time_end_2 && (
-                  <p style={{ margin: '5px 0' }}>
-                    🕐 {hour.time_start_2} - {hour.time_end_2}
+      {/* Lista Orari */}
+      {hours.length > 0 ? (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px'
+        }}>
+          {hours.map((hour) => (
+            <div 
+              key={hour.id} 
+              style={{
+                background: '#FFFFFF',
+                border: '2px solid #000000',
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: '3px 3px 0px #000000'
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'start',
+                gap: '15px'
+              }}>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{
+                    margin: '0 0 12px 0',
+                    fontSize: '18px',
+                    fontWeight: '700',
+                    color: '#000000'
+                  }}>
+                    📅 {hour.day_start}{hour.day_end && ` - ${hour.day_end}`}
+                  </h4>
+                  <p style={{
+                    margin: '8px 0',
+                    fontSize: '15px',
+                    color: '#000000',
+                    fontWeight: '500'
+                  }}>
+                    🕐 {hour.time_start_1} - {hour.time_end_1}
                   </p>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <button 
-                  onClick={() => handleEdit(hour)}
-                  style={{ padding: '6px 12px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                >
-                  Modifica
-                </button>
-                <button 
-                  onClick={() => handleDelete(hour.id)}
-                  style={{ padding: '6px 12px', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                >
-                  Elimina
-                </button>
+                  {hour.time_start_2 && hour.time_end_2 && (
+                    <p style={{
+                      margin: '8px 0',
+                      fontSize: '15px',
+                      color: '#000000',
+                      fontWeight: '500'
+                    }}>
+                      🕐 {hour.time_start_2} - {hour.time_end_2}
+                    </p>
+                  )}
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  gap: '8px'
+                }}>
+                  <button 
+                    onClick={() => handleEdit(hour)}
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#FFFFFF',
+                      background: '#2196F3',
+                      border: '2px solid #000000',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      boxShadow: '2px 2px 0px #000000'
+                    }}
+                  >
+                    ✏️ Modifica
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(hour.id)}
+                    style={{
+                      padding: '10px 16px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#FFFFFF',
+                      background: '#f44336',
+                      border: '2px solid #000000',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      boxShadow: '2px 2px 0px #000000'
+                    }}
+                  >
+                    🗑️ Elimina
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {hours.length === 0 && !showForm && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
-          <p>Nessun orario configurato. Aggiungi il primo!</p>
+          ))}
         </div>
+      ) : (
+        !showForm && (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: '#F5F5F5',
+            border: '2px dashed #CCCCCC',
+            borderRadius: '8px'
+          }}>
+            <p style={{
+              margin: 0,
+              fontSize: '18px',
+              color: '#666',
+              fontWeight: '500'
+            }}>
+              🕒 Nessun orario configurato.<br />
+              <span style={{ fontSize: '14px' }}>Clicca su "+ Nuovo Orario" per iniziare!</span>
+            </p>
+          </div>
+        )
       )}
     </div>
   )
