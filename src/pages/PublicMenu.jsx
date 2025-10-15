@@ -317,24 +317,37 @@ function PublicMenu() {
             <h2 style={styles.infoTitle}>📍 Dove Siamo</h2>
             
             <div style={styles.infoCard}>
-              <div style={styles.infoItem}>
-                <span style={{ fontSize: '24px' }}>📍</span>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.infoLabel}>Indirizzo</div>
-                  <div style={styles.infoText}>{restaurant.address}</div>
-                </div>
-              </div>
+  <div style={styles.infoItem}>
+    <span style={{ fontSize: '24px' }}>📍</span>
+    <div style={{ flex: 1 }}>
+      <div style={styles.infoLabel}>Indirizzo</div>
+      <div style={styles.infoText}>{restaurant.address}</div>
+    </div>
+  </div>
 
-              <div style={styles.infoItem}>
-                <span style={{ fontSize: '24px' }}>📞</span>
-                <div style={{ flex: 1 }}>
-                  <div style={styles.infoLabel}>Telefono</div>
-                  <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
-                    {restaurant.phone}
-                  </a>
-                </div>
-              </div>
-            </div>
+  <div style={styles.infoItem}>
+    <span style={{ fontSize: '24px' }}>📞</span>
+    <div style={{ flex: 1 }}>
+      <div style={styles.infoLabel}>Telefono</div>
+      <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
+        {restaurant.phone}
+      </a>
+    </div>
+  </div>
+
+  {/* Mappa Google Maps - NUOVO */}
+  <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+    <iframe
+      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
+      width="100%"
+      height="100%"
+      style={{ border: 0 }}
+      allowFullScreen=""
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+    />
+  </div>
+</div>
           </div>
         </div>
 
