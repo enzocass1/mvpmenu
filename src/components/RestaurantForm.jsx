@@ -93,7 +93,13 @@ function RestaurantForm({ restaurant, onSave }) {
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace()
           if (place.formatted_address) {
-            setFormData(prev => ({ ...prev, address: place.formatted_address }))
+            // Formatta l'indirizzo aggiungendo spazio tra via e città se mancante
+            let formattedAddress = place.formatted_address
+            
+            // Controlla se manca lo spazio prima della città (pattern: numero+lettera maiuscola)
+            formattedAddress = formattedAddress.replace(/(\d)([A-Z][a-z])/g, '$1, $2')
+            
+            setFormData(prev => ({ ...prev, address: formattedAddress }))
           }
         })
 
