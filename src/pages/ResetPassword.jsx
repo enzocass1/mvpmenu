@@ -7,20 +7,53 @@ function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ text: '', type: '' })
+  const [accessToken, setAccessToken] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Verifica se c'è un token di reset valido
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Log dell'URL completo per debug
+    console.log('Full URL:', window.location.href)
+    console.log('Hash:', window.location.hash)
+    
+    // Intercetta l'evento di auth change di Supabase
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event)
+      console.log('Session:', session ? 'Present' : 'None')
+      
       if (event === 'PASSWORD_RECOVERY') {
-        // L'utente ha cliccato sul link email ed è pronto per resettare
-        setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
+        console.log('✅ Password recovery event detected!')
+        if (session) {
+          setAccessToken(session.access_token)
+          setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
+        }
       }
     })
+    
+    // Prova anche a estrarre manualmente dal hash
+    const fullHash = window.location.hash
+    const tokenMatch = fullHash.match(/access_token=([^&]+)/)
+    const typeMatch = fullHash.match(/type=([^&]+)/)
+    
+    if (tokenMatch && typeMatch && typeMatch[1] === 'recovery') {
+      const token = tokenMatch[1]
+      console.log('✅ Token found in URL:', token.substring(0, 20) + '...')
+      setAccessToken(token)
+      setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
+    }
+    
+    // Cleanup
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
   }, [])
 
   const handleResetPassword = async (e) => {
     e.preventDefault()
+    
+    if (!accessToken) {
+      setMessage({ text: '❌ Token mancante. Usa il link dall\'email.', type: 'error' })
+      return
+    }
     
     if (password !== confirmPassword) {
       setMessage({ text: '❌ Le password non corrispondono!', type: 'error' })
@@ -36,9 +69,11 @@ function ResetPassword() {
     setMessage({ text: '', type: '' })
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      })
+      // Usa l'API direttamente con il token
+      const { data, error } = await supabase.auth.updateUser(
+        { password: password },
+        { accessToken }
+      )
 
       if (error) throw error
 
@@ -49,6 +84,7 @@ function ResetPassword() {
         navigate('/')
       }, 2000)
     } catch (error) {
+      console.error('Reset password error:', error)
       setMessage({ text: `❌ ${error.message}`, type: 'error' })
     } finally {
       setLoading(false)
