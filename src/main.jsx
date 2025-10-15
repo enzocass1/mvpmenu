@@ -19,7 +19,7 @@ createRoot(document.getElementById('root')).render(
         {/* Route pubblica - Reset Password */}
         <Route path="/reset-password" element={<ResetPassword />} />
         
-        {/* Fallback - redirect a home */}
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>
