@@ -6,8 +6,158 @@ import OpeningHoursManager from '../components/OpeningHoursManager'
 import MenuImportExport from '../components/MenuImportExport'
 import QRCode from 'qrcode'
 
+// Configurazione
+const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || 'enzocassese91@gmail.com'
+
+// Toast Notification Component
+function Toast({ message, type = 'info', onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  const colors = {
+    success: '#4CAF50',
+    error: '#f44336',
+    warning: '#FF9800',
+    info: '#2196F3'
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: '20px',
+      right: '20px',
+      backgroundColor: colors[type],
+      color: '#FFFFFF',
+      padding: '16px 24px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      zIndex: 2000,
+      maxWidth: '400px',
+      animation: 'slideIn 0.3s ease'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+        <span style={{ fontSize: '14px', fontWeight: '500' }}>{message}</span>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#FFFFFF',
+            cursor: 'pointer',
+            fontSize: '18px',
+            padding: '0',
+            lineHeight: '1'
+          }}
+          aria-label="Chiudi notifica"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Loading Spinner Component
+function LoadingSpinner() {
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '40px',
+      minHeight: '200px'
+    }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '3px solid #E0E0E0',
+        borderTop: '3px solid #2196F3',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }} />
+    </div>
+  )
+}
+
+// Collapsible Section Component
+function CollapsibleSection({ title, isOpen, onToggle, children, ariaLabel }) {
+  return (
+    <div style={{ marginBottom: '40px' }}>
+      <button
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-label={ariaLabel || `${isOpen ? 'Chiudi' : 'Apri'} sezione ${title}`}
+        style={{
+          width: '100%',
+          background: 'transparent',
+          border: 'none',
+          padding: '0 0 2px 0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          cursor: 'pointer',
+          textAlign: 'left',
+          outline: 'none'
+        }}
+      >
+        <h2 style={{
+          margin: 0,
+          fontSize: '18px',
+          fontWeight: '400',
+          color: '#000000'
+        }}>
+          {title}
+        </h2>
+        <svg 
+          width="24" 
+          height="24" 
+          viewBox="0 0 24 24" 
+          fill="none"
+          style={{
+            transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            flexShrink: 0
+          }}
+        >
+          <path 
+            d="M4 12h16m0 0l-6-6m6 6l-6 6" 
+            stroke="#000000" 
+            strokeWidth="1" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      <div style={{
+        height: '1px',
+        backgroundColor: '#000000',
+        marginBottom: '20px'
+      }} />
+
+      <div style={{
+        display: 'grid',
+        gridTemplateRows: isOpen ? '1fr' : '0fr',
+        transition: 'grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}>
+        <div style={{ 
+          overflow: 'hidden',
+          opacity: isOpen ? 1 : 0,
+          transition: 'opacity 0.3s ease'
+        }}>
+          <div style={{ padding: '0 0 30px 0' }}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Dashboard({ session }) {
   const [restaurant, setRestaurant] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [openSections, setOpenSections] = useState({
     publicMenu: false,
     restaurant: false,
@@ -22,6 +172,8 @@ function Dashboard({ session }) {
     message: ''
   })
   const [sendingSupport, setSendingSupport] = useState(false)
+  const [formErrors, setFormErrors] = useState({})
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     if (session) {
@@ -29,24 +181,45 @@ function Dashboard({ session }) {
     }
   }, [session])
 
-  const loadRestaurant = async (userId) => {
-    const { data, error } = await supabase
-      .from('restaurants')
-      .select('*')
-      .eq('user_id', userId)
-      .single()
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
 
-    if (!error && data) {
-      setRestaurant(data)
+  const loadRestaurant = async (userId) => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        setRestaurant(data)
+      }
+    } catch (error) {
+      console.error('Errore caricamento ristorante:', error)
+      showToast('Errore nel caricamento dei dati del ristorante', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+      showToast('Logout effettuato con successo', 'success')
+    } catch (error) {
+      console.error('Errore logout:', error)
+      showToast('Errore durante il logout', 'error')
+    }
   }
 
   const handleRestaurantSave = () => {
     loadRestaurant(session.user.id)
+    showToast('Informazioni salvate con successo', 'success')
   }
 
   const toggleSection = (section) => {
@@ -56,8 +229,16 @@ function Dashboard({ session }) {
     }))
   }
 
+  const validatePhoneNumber = (phone) => {
+    const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/
+    return phoneRegex.test(phone.replace(/\s/g, ''))
+  }
+
   const downloadQRCode = async () => {
-    if (!restaurant) return
+    if (!restaurant) {
+      showToast('Nessun ristorante trovato', 'warning')
+      return
+    }
     
     const menuUrl = `${window.location.origin}/#/menu/${restaurant.subdomain}`
     
@@ -74,28 +255,48 @@ function Dashboard({ session }) {
       const link = document.createElement('a')
       link.href = qrCodeDataURL
       link.download = `qr-menu-${restaurant.subdomain}.png`
+      document.body.appendChild(link)
       link.click()
+      document.body.removeChild(link)
+      
+      showToast('QR Code scaricato con successo', 'success')
     } catch (error) {
-      console.error('Error generating QR code:', error)
-      alert('Errore durante la generazione del QR Code')
+      console.error('Errore generazione QR code:', error)
+      showToast('Impossibile generare il QR Code. Riprova più tardi.', 'error')
     }
   }
 
   const handleSendSupport = async (e) => {
     e.preventDefault()
     
-    if (!supportForm.phone || !supportForm.message) {
-      alert('Per favore compila tutti i campi')
+    const errors = {}
+    
+    if (!supportForm.phone.trim()) {
+      errors.phone = 'Il numero di telefono è obbligatorio'
+    } else if (!validatePhoneNumber(supportForm.phone)) {
+      errors.phone = 'Inserisci un numero di telefono valido'
+    }
+    
+    if (!supportForm.message.trim()) {
+      errors.message = 'La descrizione del problema è obbligatoria'
+    } else if (supportForm.message.trim().length < 10) {
+      errors.message = 'Descrivi il problema con almeno 10 caratteri'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
       return
     }
 
     setSendingSupport(true)
+    setFormErrors({})
 
     const emailBody = `
 RICHIESTA SUPPORTO MVPMENU
 
 Email utente: ${supportForm.email}
 Telefono: ${supportForm.phone}
+Ristorante: ${restaurant?.name || 'N/A'} (${restaurant?.subdomain || 'N/A'})
 
 Problema riscontrato:
 ${supportForm.message}
@@ -104,444 +305,334 @@ ${supportForm.message}
 Inviato il: ${new Date().toLocaleString('it-IT')}
     `.trim()
 
-    const mailtoLink = `mailto:enzocassese91@gmail.com?subject=${encodeURIComponent('MVPMenu - Supporto')}&body=${encodeURIComponent(emailBody)}`
+    const mailtoLink = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('MVPMenu - Supporto')}&body=${encodeURIComponent(emailBody)}`
     
-    window.location.href = mailtoLink
-
-    setTimeout(() => {
+    try {
+      window.location.href = mailtoLink
+      
+      setTimeout(() => {
+        setSendingSupport(false)
+        setShowSupportModal(false)
+        setSupportForm({
+          email: session?.user?.email || '',
+          phone: '',
+          message: ''
+        })
+        showToast('Client email aperto. Completa e invia il messaggio.', 'success')
+      }, 1000)
+    } catch (error) {
       setSendingSupport(false)
-      setShowSupportModal(false)
-      setSupportForm({
-        email: session?.user?.email || '',
-        phone: '',
-        message: ''
-      })
-      alert('Client email aperto! Invia il messaggio dal tuo client di posta.')
-    }, 500)
+      showToast('Errore nell\'apertura del client email', 'error')
+    }
+  }
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('Link copiato negli appunti', 'success'))
+      .catch(() => showToast('Impossibile copiare il link', 'error'))
+  }
+
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh',
+        backgroundColor: '#FFFFFF',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+      }}>
+        <LoadingSpinner />
+      </div>
+    )
   }
 
   return (
     <div style={{ 
       minHeight: '100vh',
-      backgroundColor: '#F5F5F5',
-      padding: '20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+      backgroundColor: '#FFFFFF',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
     }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         
         {/* Header */}
         <header style={{
-          background: '#FFFFFF',
-          border: '2px solid #000000',
-          borderRadius: '8px',
-          padding: '20px 30px',
-          marginBottom: '30px',
-          boxShadow: '4px 4px 0px #000000',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '15px'
+          padding: '30px 0',
+          marginBottom: '40px'
         }}>
-          <h1 style={{
-            color: '#000000',
-            margin: 0,
-            fontSize: '28px',
-            fontWeight: '700',
-            letterSpacing: '-0.5px'
-          }}>
-            🍕 MVPMenu Dashboard
-          </h1>
-          
           <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '15px',
-            flexWrap: 'wrap'
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            gap: '15px'
           }}>
-            <span style={{
+            <h1 style={{
               color: '#000000',
-              fontWeight: '500',
-              fontSize: '14px',
-              padding: '8px 12px',
-              background: '#F5F5F5',
-              border: '1px solid #000000',
-              borderRadius: '4px'
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: '400'
             }}>
-              👤 {session.user.email}
-            </span>
-
-            <button 
-              onClick={() => setShowSupportModal(true)}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: '#FFFFFF',
-                background: '#FF9800',
-                border: '2px solid #000000',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                boxShadow: '2px 2px 0px #000000',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              🆘 Assistenza
-            </button>
+              MVPMenu Dashboard
+            </h1>
             
-            <button 
-              onClick={handleLogout}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                fontWeight: '700',
-                color: '#FFFFFF',
-                background: '#f44336',
-                border: '2px solid #000000',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                boxShadow: '2px 2px 0px #000000',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Logout
-            </button>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '12px'
+            }}>
+              <span style={{
+                color: '#666',
+                fontSize: '14px'
+              }}>
+                {session.user.email}
+              </span>
+
+              <div style={{
+                display: 'flex',
+                gap: '12px'
+              }}>
+                <button 
+                  onClick={() => setShowSupportModal(true)}
+                  aria-label="Apri form assistenza"
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                    background: '#000000',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#333333'}
+                  onMouseLeave={(e) => e.target.style.background = '#000000'}
+                >
+                  Assistenza
+                </button>
+                
+                <button 
+                  onClick={handleLogout}
+                  aria-label="Esci dall'account"
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#000000',
+                    background: '#FFFFFF',
+                    border: '1px solid #000000',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#F5F5F5'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#FFFFFF'
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
           </div>
         </header>
 
-        {/* SEZIONE 1: Menu Pubblico (Toggle) */}
+        {/* SEZIONE 1: Menu Pubblico */}
         {restaurant && (
-          <div style={{ marginBottom: '20px' }}>
-            <button
-              onClick={() => toggleSection('publicMenu')}
-              style={{
-                width: '100%',
-                background: '#FFFFFF',
-                border: '2px solid #000000',
-                borderRadius: '8px',
-                padding: '20px 30px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                cursor: 'pointer',
-                boxShadow: '4px 4px 0px #000000',
-                transition: 'all 0.2s ease',
-                marginBottom: openSections.publicMenu ? '20px' : '0'
-              }}
-            >
-              <h2 style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: '700',
-                color: '#000000'
-              }}>
-                🌐 Menu Pubblico
-              </h2>
-              <span style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: '#000000',
-                transform: openSections.publicMenu ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease'
-              }}>
-                ▼
-              </span>
-            </button>
+          <CollapsibleSection
+            title="Menu Pubblico"
+            isOpen={openSections.publicMenu}
+            onToggle={() => toggleSection('publicMenu')}
+          >
+            <h3 style={{
+              margin: '0 0 15px 0',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#666',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Link Condivisibile
+            </h3>
 
-            {openSections.publicMenu && (
-              <div style={{
-                background: '#FFFFFF',
-                border: '2px solid #000000',
-                borderRadius: '8px',
-                padding: '30px',
-                boxShadow: '4px 4px 0px #000000'
-              }}>
-                <h3 style={{
-                  margin: '0 0 20px 0',
-                  fontSize: '18px',
-                  fontWeight: '700',
-                  color: '#000000',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  🔗 Link Condivisibile
-                </h3>
-
-                <div style={{
-                  padding: '15px',
-                  background: '#F5F5F5',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  marginBottom: '20px',
-                  fontFamily: 'monospace',
-                  fontSize: '14px',
-                  color: '#000000',
-                  wordBreak: 'break-all'
-                }}>
-                  {window.location.origin}/#/menu/{restaurant.subdomain}
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  gap: '10px',
-                  flexWrap: 'wrap'
-                }}>
-                  <a
-                    href={`${window.location.origin}/#/menu/${restaurant.subdomain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      flex: 1,
-                      minWidth: '200px',
-                      padding: '14px 24px',
-                      fontSize: '16px',
-                      fontWeight: '700',
-                      color: '#FFFFFF',
-                      background: '#2196F3',
-                      border: '2px solid #000000',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      boxShadow: '3px 3px 0px #000000',
-                      transition: 'all 0.2s ease',
-                      textAlign: 'center',
-                      textDecoration: 'none',
-                      display: 'block'
-                    }}
-                  >
-                    👁️ Apri Menu
-                  </a>
-
-                  <button
-                    onClick={downloadQRCode}
-                    style={{
-                      flex: 1,
-                      minWidth: '200px',
-                      padding: '14px 24px',
-                      fontSize: '16px',
-                      fontWeight: '700',
-                      color: '#FFFFFF',
-                      background: '#000000',
-                      border: '2px solid #000000',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      boxShadow: '3px 3px 0px #000000',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    📱 Scarica QR Code
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* SEZIONE 2: Attività (Toggle) */}
-        <div style={{ marginBottom: '20px' }}>
-          <button
-            onClick={() => toggleSection('restaurant')}
-            style={{
-              width: '100%',
-              background: '#FFFFFF',
-              border: '2px solid #000000',
-              borderRadius: '8px',
-              padding: '20px 30px',
+            <div style={{
+              padding: '12px',
+              background: '#F5F5F5',
+              borderRadius: '6px',
+              marginBottom: '20px',
+              fontFamily: 'monospace',
+              fontSize: '13px',
+              color: '#000000',
+              wordBreak: 'break-all',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              cursor: 'pointer',
-              boxShadow: '4px 4px 0px #000000',
-              transition: 'all 0.2s ease',
-              marginBottom: openSections.restaurant ? '20px' : '0'
-            }}
-          >
-            <h2 style={{
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: '700',
-              color: '#000000'
+              gap: '10px',
+              flexWrap: 'wrap'
             }}>
-              🏪 Attività
-            </h2>
-            <span style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              color: '#000000',
-              transform: openSections.restaurant ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s ease'
-            }}>
-              ▼
-            </span>
-          </button>
-
-          {openSections.restaurant && (
-            <div>
-              <RestaurantForm restaurant={restaurant} onSave={handleRestaurantSave} />
+              <span style={{ flex: 1, minWidth: '200px' }}>
+                {window.location.origin}/#/menu/{restaurant.subdomain}
+              </span>
+              <button
+                onClick={() => copyToClipboard(`${window.location.origin}/#/menu/${restaurant.subdomain}`)}
+                aria-label="Copia link menu"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000',
+                  background: '#FFFFFF',
+                  border: '1px solid #000000',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+              >
+                Copia
+              </button>
             </div>
-          )}
-        </div>
 
-        {/* SEZIONE 3: Menu (Toggle) */}
-        {restaurant && (
-          <div style={{ marginBottom: '20px' }}>
-            <button
-              onClick={() => toggleSection('categories')}
-              style={{
-                width: '100%',
-                background: '#FFFFFF',
-                border: '2px solid #000000',
-                borderRadius: '8px',
-                padding: '20px 30px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                cursor: 'pointer',
-                boxShadow: '4px 4px 0px #000000',
-                transition: 'all 0.2s ease',
-                marginBottom: openSections.categories ? '20px' : '0'
-              }}
-            >
-              <h2 style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: '700',
-                color: '#000000'
-              }}>
-                📂 Menu
-              </h2>
-              <span style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: '#000000',
-                transform: openSections.categories ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease'
-              }}>
-                ▼
-              </span>
-            </button>
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              flexWrap: 'wrap'
+            }}>
+              <a
+                href={`${window.location.origin}/#/menu/${restaurant.subdomain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Apri menu pubblico in nuova scheda"
+                style={{
+                  flex: 1,
+                  minWidth: '180px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: '#000000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                  display: 'block',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#333333'}
+                onMouseLeave={(e) => e.target.style.background = '#000000'}
+              >
+                Apri Menu
+              </a>
 
-            {openSections.categories && (
-              <div>
-                <CategoryManager restaurantId={restaurant.id} />
-              </div>
-            )}
-          </div>
+              <button
+                onClick={downloadQRCode}
+                aria-label="Scarica QR Code del menu"
+                style={{
+                  flex: 1,
+                  minWidth: '180px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000',
+                  background: '#FFFFFF',
+                  border: '1px solid #000000',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+              >
+                Scarica QR Code
+              </button>
+            </div>
+          </CollapsibleSection>
         )}
 
-        {/* SEZIONE 4: Orari di Apertura (Toggle) */}
-        {restaurant && (
-          <div style={{ marginBottom: '20px' }}>
-            <button
-              onClick={() => toggleSection('hours')}
-              style={{
-                width: '100%',
-                background: '#FFFFFF',
-                border: '2px solid #000000',
-                borderRadius: '8px',
-                padding: '20px 30px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                cursor: 'pointer',
-                boxShadow: '4px 4px 0px #000000',
-                transition: 'all 0.2s ease',
-                marginBottom: openSections.hours ? '20px' : '0'
-              }}
-            >
-              <h2 style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: '700',
-                color: '#000000'
-              }}>
-                🕒 Orari di Apertura
-              </h2>
-              <span style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: '#000000',
-                transform: openSections.hours ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease'
-              }}>
-                ▼
-              </span>
-            </button>
+        {/* SEZIONE 2: Attività */}
+        <CollapsibleSection
+          title="Attività"
+          isOpen={openSections.restaurant}
+          onToggle={() => toggleSection('restaurant')}
+        >
+          <RestaurantForm restaurant={restaurant} onSave={handleRestaurantSave} />
+        </CollapsibleSection>
 
-            {openSections.hours && (
-              <div>
-                <OpeningHoursManager restaurantId={restaurant.id} />
-              </div>
-            )}
-          </div>
+        {/* SEZIONE 3: Menu */}
+        {restaurant && (
+          <CollapsibleSection
+            title="Menu"
+            isOpen={openSections.categories}
+            onToggle={() => toggleSection('categories')}
+          >
+            <CategoryManager restaurantId={restaurant.id} />
+          </CollapsibleSection>
         )}
 
-        {/* SEZIONE 5: Scarica o Carica Menu (Toggle) */}
+        {/* SEZIONE 4: Orari di Apertura */}
         {restaurant && (
-          <div style={{ marginBottom: '20px' }}>
-            <button
-              onClick={() => toggleSection('importExport')}
-              style={{
-                width: '100%',
-                background: '#FFFFFF',
-                border: '2px solid #000000',
-                borderRadius: '8px',
-                padding: '20px 30px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                cursor: 'pointer',
-                boxShadow: '4px 4px 0px #000000',
-                transition: 'all 0.2s ease',
-                marginBottom: openSections.importExport ? '20px' : '0'
-              }}
-            >
-              <h2 style={{
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: '700',
-                color: '#000000'
-              }}>
-                📥 Scarica o Carica Menu
-              </h2>
-              <span style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                color: '#000000',
-                transform: openSections.importExport ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease'
-              }}>
-                ▼
-              </span>
-            </button>
+          <CollapsibleSection
+            title="Orari di Apertura"
+            isOpen={openSections.hours}
+            onToggle={() => toggleSection('hours')}
+          >
+            <OpeningHoursManager restaurantId={restaurant.id} />
+          </CollapsibleSection>
+        )}
 
-            {openSections.importExport && (
-              <div>
-                <MenuImportExport restaurantId={restaurant.id} />
-              </div>
-            )}
-          </div>
+        {/* SEZIONE 5: Backup Menu */}
+        {restaurant && (
+          <CollapsibleSection
+            title="Backup Menu"
+            isOpen={openSections.importExport}
+            onToggle={() => toggleSection('importExport')}
+          >
+            <MenuImportExport restaurantId={restaurant.id} />
+          </CollapsibleSection>
         )}
 
         {/* Footer */}
         <footer style={{
-          marginTop: '50px',
-          paddingTop: '20px',
-          borderTop: '2px solid #000000',
-          textAlign: 'center',
-          color: '#666',
-          fontSize: '14px'
+          marginTop: '80px',
+          padding: '30px 0',
+          backgroundColor: '#000000',
+          marginLeft: '-20px',
+          marginRight: '-20px',
+          paddingLeft: '20px',
+          paddingRight: '20px'
         }}>
-          <p style={{ margin: 0 }}>
-            Made with ❤️ by MVPMenu | © 2025
-          </p>
+          <div style={{ 
+            maxWidth: '1200px', 
+            margin: '0 auto',
+            textAlign: 'left',
+            color: '#FFFFFF',
+            fontSize: '13px'
+          }}>
+            <p style={{ margin: 0 }}>
+              Made with <span role="img" aria-label="cuore">❤️</span> by{' '}
+              <a 
+                href="/#/landing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  color: '#FFFFFF',
+                  textDecoration: 'underline',
+                  cursor: 'pointer'
+                }}
+              >
+                MVPMenu
+              </a>
+              {' '}| © 2025
+            </p>
+          </div>
         </footer>
       </div>
 
@@ -551,15 +642,19 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowSupportModal(false)
+              setFormErrors({})
             }
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="support-modal-title"
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -569,142 +664,191 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         >
           <div style={{
             background: '#FFFFFF',
-            border: '2px solid #000000',
             borderRadius: '8px',
             padding: '30px',
             maxWidth: '500px',
             width: '100%',
-            boxShadow: '8px 8px 0px #000000',
             maxHeight: '90vh',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
           }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '20px'
+              marginBottom: '25px'
             }}>
-              <h2 style={{
+              <h2 id="support-modal-title" style={{
                 margin: 0,
-                fontSize: '24px',
-                fontWeight: '700',
+                fontSize: '20px',
+                fontWeight: '400',
                 color: '#000000'
               }}>
-                🆘 Richiedi Assistenza
+                Richiedi Assistenza
               </h2>
               <button
-                onClick={() => setShowSupportModal(false)}
+                onClick={() => {
+                  setShowSupportModal(false)
+                  setFormErrors({})
+                }}
+                aria-label="Chiudi finestra assistenza"
                 style={{
                   background: 'transparent',
                   border: 'none',
                   fontSize: '24px',
                   cursor: 'pointer',
                   padding: '0',
-                  color: '#000000'
+                  color: '#999',
+                  fontWeight: '300'
                 }}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSendSupport}>
+            <div>
               <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#000000',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  📧 Email
+                <label 
+                  htmlFor="support-email"
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    color: '#666'
+                  }}
+                >
+                  Email
                 </label>
                 <input
+                  id="support-email"
                   type="email"
                   value={supportForm.email}
                   readOnly
                   style={{
                     width: '100%',
-                    padding: '12px 15px',
-                    fontSize: '16px',
-                    border: '2px solid #000000',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
                     borderRadius: '4px',
                     background: '#F5F5F5',
                     color: '#666',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    fontWeight: '400'
                   }}
                 />
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#000000',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  📱 Numero di Telefono *
+                <label 
+                  htmlFor="support-phone"
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    color: '#666'
+                  }}
+                >
+                  Numero di Telefono *
                 </label>
                 <input
+                  id="support-phone"
                   type="tel"
                   value={supportForm.phone}
-                  onChange={(e) => setSupportForm({ ...supportForm, phone: e.target.value })}
+                  onChange={(e) => {
+                    setSupportForm({ ...supportForm, phone: e.target.value })
+                    if (formErrors.phone) {
+                      setFormErrors({ ...formErrors, phone: null })
+                    }
+                  }}
                   placeholder="+39 123 456 7890"
-                  required
+                  aria-invalid={!!formErrors.phone}
+                  aria-describedby={formErrors.phone ? "phone-error" : undefined}
                   style={{
                     width: '100%',
-                    padding: '12px 15px',
-                    fontSize: '16px',
-                    border: '2px solid #000000',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: `1px solid ${formErrors.phone ? '#f44336' : '#E0E0E0'}`,
                     borderRadius: '4px',
-                    background: '#F5F5F5',
+                    background: '#FFFFFF',
                     color: '#000000',
                     boxSizing: 'border-box',
-                    transition: 'all 0.2s ease'
+                    fontWeight: '400'
                   }}
-                  onFocus={(e) => e.target.style.background = '#FFFFFF'}
-                  onBlur={(e) => e.target.style.background = '#F5F5F5'}
                 />
+                {formErrors.phone && (
+                  <span 
+                    id="phone-error"
+                    role="alert"
+                    style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      fontSize: '12px',
+                      color: '#f44336',
+                      fontWeight: '400'
+                    }}
+                  >
+                    {formErrors.phone}
+                  </span>
+                )}
               </div>
 
               <div style={{ marginBottom: '25px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#000000',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  📝 Problema Riscontrato *
+                <label 
+                  htmlFor="support-message"
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '13px',
+                    fontWeight: '400',
+                    color: '#666'
+                  }}
+                >
+                  Problema Riscontrato *
                 </label>
                 <textarea
+                  id="support-message"
                   value={supportForm.message}
-                  onChange={(e) => setSupportForm({ ...supportForm, message: e.target.value })}
+                  onChange={(e) => {
+                    setSupportForm({ ...supportForm, message: e.target.value })
+                    if (formErrors.message) {
+                      setFormErrors({ ...formErrors, message: null })
+                    }
+                  }}
                   placeholder="Descrivi il problema nel dettaglio..."
-                  required
                   rows="6"
+                  aria-invalid={!!formErrors.message}
+                  aria-describedby={formErrors.message ? "message-error" : undefined}
                   style={{
                     width: '100%',
-                    padding: '12px 15px',
-                    fontSize: '16px',
-                    border: '2px solid #000000',
+                    padding: '10px 12px',
+                    fontSize: '14px',
+                    border: `1px solid ${formErrors.message ? '#f44336' : '#E0E0E0'}`,
                     borderRadius: '4px',
-                    background: '#F5F5F5',
+                    background: '#FFFFFF',
                     color: '#000000',
                     boxSizing: 'border-box',
                     resize: 'vertical',
                     fontFamily: 'inherit',
-                    transition: 'all 0.2s ease'
+                    fontWeight: '400'
                   }}
-                  onFocus={(e) => e.target.style.background = '#FFFFFF'}
-                  onBlur={(e) => e.target.style.background = '#F5F5F5'}
                 />
+                {formErrors.message && (
+                  <span 
+                    id="message-error"
+                    role="alert"
+                    style={{
+                      display: 'block',
+                      marginTop: '6px',
+                      fontSize: '12px',
+                      color: '#f44336',
+                      fontWeight: '400'
+                    }}
+                  >
+                    {formErrors.message}
+                  </span>
+                )}
               </div>
 
               <div style={{
@@ -714,65 +858,117 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               }}>
                 <button
                   type="button"
-                  onClick={() => setShowSupportModal(false)}
+                  onClick={() => {
+                    setShowSupportModal(false)
+                    setFormErrors({})
+                  }}
                   style={{
                     flex: 1,
                     minWidth: '120px',
-                    padding: '12px 24px',
+                    padding: '10px 20px',
                     fontSize: '14px',
-                    fontWeight: '700',
+                    fontWeight: '500',
                     color: '#000000',
-                    background: '#F5F5F5',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
+                    background: '#FFFFFF',
+                    border: '1px solid #000000',
+                    borderRadius: '6px',
                     cursor: 'pointer',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    boxShadow: '2px 2px 0px #000000'
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
                   }}
+                  onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                  onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
                 >
                   Annulla
                 </button>
 
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSendSupport}
                   disabled={sendingSupport}
                   style={{
                     flex: 1,
                     minWidth: '120px',
-                    padding: '12px 24px',
+                    padding: '10px 20px',
                     fontSize: '14px',
-                    fontWeight: '700',
+                    fontWeight: '500',
                     color: '#FFFFFF',
-                    background: sendingSupport ? '#999' : '#FF9800',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
+                    background: sendingSupport ? '#999' : '#000000',
+                    border: 'none',
+                    borderRadius: '6px',
                     cursor: sendingSupport ? 'not-allowed' : 'pointer',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    boxShadow: '2px 2px 0px #000000'
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!sendingSupport) e.target.style.background = '#333333'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!sendingSupport) e.target.style.background = '#000000'
                   }}
                 >
-                  {sendingSupport ? '⏳ Invio...' : '📧 Invia Richiesta'}
+                  {sendingSupport ? 'Invio...' : 'Invia Richiesta'}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Responsive Styles */}
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* Styles */}
       <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        button:focus {
+          outline: none !important;
+        }
+
+        button:focus-visible {
+          outline: 2px solid #2196F3 !important;
+          outline-offset: 2px;
+        }
+
         @media (max-width: 768px) {
-          header {
-            padding: 15px 20px !important;
-          }
           h1 {
-            font-size: 22px !important;
+            font-size: 20px !important;
           }
+          
           header > div {
+            flex-direction: column;
+            align-items: flex-start !important;
+          }
+          
+          header > div > div {
             width: 100%;
-            justify-content: space-between;
+          }
+        }
+
+        @media (max-width: 480px) {
+          h2 {
+            font-size: 16px !important;
           }
         }
       `}</style>

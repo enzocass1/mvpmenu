@@ -7,7 +7,7 @@ function ProductManager({ category }) {
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
-  const [openProductId, setOpenProductId] = useState(null) // Per gestire quale prodotto è aperto
+  const [openProductId, setOpenProductId] = useState(null)
   
   const [formData, setFormData] = useState({
     name: '',
@@ -65,6 +65,7 @@ function ProductManager({ category }) {
               price: parseFloat(formData.price),
               image_url: formData.image_url,
               order: maxOrder + 1,
+              is_visible: true,
             }
           ])
 
@@ -111,6 +112,22 @@ function ProductManager({ category }) {
     } catch (error) {
       console.error('Error deleting product:', error)
       alert('Errore durante l\'eliminazione')
+    }
+  }
+
+  const toggleVisibility = async (product) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_visible: !product.is_visible })
+        .eq('id', product.id)
+
+      if (error) throw error
+      
+      await loadProducts()
+    } catch (error) {
+      console.error('Error toggling visibility:', error)
+      alert('Errore durante l\'aggiornamento della visibilità')
     }
   }
 
@@ -163,91 +180,73 @@ function ProductManager({ category }) {
   }
 
   return (
-    <div style={{ 
-      marginTop: '20px',
-      padding: '20px',
-      background: '#FFF3E0',
-      border: '2px solid #000000',
-      borderRadius: '8px',
-    }}>
+    <div>
+      {/* Header con pulsante */}
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
+        justifyContent: 'flex-end', 
         alignItems: 'center',
         marginBottom: '20px'
       }}>
-        <h3 style={{ 
-          margin: 0,
-          fontSize: '18px',
-          fontWeight: '700',
-          color: '#000000',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px'
-        }}>
-          📦 PRODOTTI
-        </h3>
         <button
           onClick={() => setShowForm(!showForm)}
+          aria-label={showForm ? 'Chiudi form prodotto' : 'Apri form nuovo prodotto'}
           style={{
-            padding: '10px 20px',
-            fontSize: '14px',
-            fontWeight: '700',
-            color: '#FFFFFF',
-            background: '#FF9800',
-            border: '2px solid #000000',
-            borderRadius: '4px',
+            padding: '8px 16px',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: showForm ? '#000000' : '#FFFFFF',
+            background: showForm ? '#FFFFFF' : '#000000',
+            border: '1px solid #000000',
+            borderRadius: '6px',
             cursor: 'pointer',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            boxShadow: '3px 3px 0px #000000',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            outline: 'none'
           }}
-          onMouseDown={(e) => {
-            e.target.style.transform = 'translate(2px, 2px)'
-            e.target.style.boxShadow = '1px 1px 0px #000000'
-          }}
-          onMouseUp={(e) => {
-            e.target.style.transform = 'translate(0, 0)'
-            e.target.style.boxShadow = '3px 3px 0px #000000'
+          onMouseEnter={(e) => {
+            if (showForm) {
+              e.target.style.background = '#F5F5F5'
+            } else {
+              e.target.style.background = '#333333'
+            }
           }}
           onMouseLeave={(e) => {
-            e.target.style.transform = 'translate(0, 0)'
-            e.target.style.boxShadow = '3px 3px 0px #000000'
+            if (showForm) {
+              e.target.style.background = '#FFFFFF'
+            } else {
+              e.target.style.background = '#000000'
+            }
           }}
         >
-          {showForm ? '✕ Chiudi' : '+ Prodotto'}
+          {showForm ? 'Annulla' : '+ Nuovo Prodotto'}
         </button>
       </div>
 
+      {/* Form creazione/modifica */}
       {showForm && (
         <form onSubmit={handleSubmit} style={{
-          background: '#FFFFFF',
-          border: '2px solid #000000',
+          background: '#F5F5F5',
+          border: '1px solid #E0E0E0',
           borderRadius: '8px',
-          padding: '25px',
-          marginBottom: '25px',
-          boxShadow: '4px 4px 0px #000000'
+          padding: '20px',
+          marginBottom: '20px'
         }}>
-          <h4 style={{
-            margin: '0 0 20px 0',
-            fontSize: '16px',
-            fontWeight: '700',
-            color: '#000000',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+          <h5 style={{
+            margin: '0 0 15px 0',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#000000'
           }}>
-            {editingProduct ? '✏️ Modifica Prodotto' : '➕ Nuovo Prodotto'}
-          </h4>
+            {editingProduct ? 'Modifica Prodotto' : 'Nuovo Prodotto'}
+          </h5>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '15px' }}>
             <label style={{
               display: 'block',
-              marginBottom: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#000000',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              marginBottom: '6px',
+              fontSize: '13px',
+              fontWeight: '400',
+              color: '#666'
             }}>
               Nome Prodotto *
             </label>
@@ -259,29 +258,28 @@ function ProductManager({ category }) {
               placeholder="Es: Margherita"
               style={{
                 width: '100%',
-                padding: '12px 15px',
-                fontSize: '16px',
-                border: '2px solid #000000',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #E0E0E0',
                 borderRadius: '4px',
-                background: '#F5F5F5',
+                background: '#FFFFFF',
                 color: '#000000',
                 boxSizing: 'border-box',
-                transition: 'all 0.2s ease'
+                outline: 'none',
+                transition: 'border-color 0.2s ease'
               }}
-              onFocus={(e) => e.target.style.background = '#FFFFFF'}
-              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+              onFocus={(e) => e.target.style.borderColor = '#000000'}
+              onBlur={(e) => e.target.style.borderColor = '#E0E0E0'}
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '15px' }}>
             <label style={{
               display: 'block',
-              marginBottom: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#000000',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              marginBottom: '6px',
+              fontSize: '13px',
+              fontWeight: '400',
+              color: '#666'
             }}>
               Descrizione
             </label>
@@ -292,31 +290,30 @@ function ProductManager({ category }) {
               rows={3}
               style={{
                 width: '100%',
-                padding: '12px 15px',
-                fontSize: '16px',
-                border: '2px solid #000000',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #E0E0E0',
                 borderRadius: '4px',
-                background: '#F5F5F5',
+                background: '#FFFFFF',
                 color: '#000000',
                 boxSizing: 'border-box',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto',
+                fontFamily: 'inherit',
                 resize: 'vertical',
-                transition: 'all 0.2s ease'
+                outline: 'none',
+                transition: 'border-color 0.2s ease'
               }}
-              onFocus={(e) => e.target.style.background = '#FFFFFF'}
-              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+              onFocus={(e) => e.target.style.borderColor = '#000000'}
+              onBlur={(e) => e.target.style.borderColor = '#E0E0E0'}
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '15px' }}>
             <label style={{
               display: 'block',
-              marginBottom: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#000000',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              marginBottom: '6px',
+              fontSize: '13px',
+              fontWeight: '400',
+              color: '#666'
             }}>
               Prezzo (€) *
             </label>
@@ -329,156 +326,113 @@ function ProductManager({ category }) {
               placeholder="Es: 8.50"
               style={{
                 width: '100%',
-                padding: '12px 15px',
-                fontSize: '16px',
-                border: '2px solid #000000',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #E0E0E0',
                 borderRadius: '4px',
-                background: '#F5F5F5',
+                background: '#FFFFFF',
                 color: '#000000',
                 boxSizing: 'border-box',
-                transition: 'all 0.2s ease'
+                outline: 'none',
+                transition: 'border-color 0.2s ease'
               }}
-              onFocus={(e) => e.target.style.background = '#FFFFFF'}
-              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+              onFocus={(e) => e.target.style.borderColor = '#000000'}
+              onBlur={(e) => e.target.style.borderColor = '#E0E0E0'}
             />
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '6px',
+              fontSize: '13px',
+              fontWeight: '400',
+              color: '#666'
+            }}>
+              Immagine Prodotto
+            </label>
             <ImageUpload
               currentImageUrl={formData.image_url}
               onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
               folder="products"
             />
-            
-            <details style={{ marginTop: '10px' }}>
-              <summary style={{ 
-                cursor: 'pointer', 
-                color: '#666', 
-                fontSize: '14px',
-                fontWeight: '600'
-              }}>
-                💡 Oppure inserisci URL manualmente
-              </summary>
-              <input
-                type="text"
-                placeholder="https://esempio.com/prodotto.jpg"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                style={{
-                  marginTop: '10px',
-                  width: '100%',
-                  padding: '12px 15px',
-                  fontSize: '16px',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  background: '#F5F5F5',
-                  color: '#000000',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </details>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
               type="submit"
               disabled={loading}
               style={{
                 flex: 1,
-                padding: '14px',
-                fontSize: '16px',
-                fontWeight: '700',
+                minWidth: '120px',
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: '500',
                 color: '#FFFFFF',
-                background: loading ? '#999999' : '#4CAF50',
-                border: '2px solid #000000',
-                borderRadius: '4px',
+                background: loading ? '#999999' : '#000000',
+                border: 'none',
+                borderRadius: '6px',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                boxShadow: '3px 3px 0px #000000',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                outline: 'none'
               }}
-              onMouseDown={(e) => {
-                if (!loading) {
-                  e.target.style.transform = 'translate(2px, 2px)'
-                  e.target.style.boxShadow = '1px 1px 0px #000000'
-                }
-              }}
-              onMouseUp={(e) => {
-                if (!loading) {
-                  e.target.style.transform = 'translate(0, 0)'
-                  e.target.style.boxShadow = '3px 3px 0px #000000'
-                }
+              onMouseEnter={(e) => {
+                if (!loading) e.target.style.background = '#333333'
               }}
               onMouseLeave={(e) => {
-                if (!loading) {
-                  e.target.style.transform = 'translate(0, 0)'
-                  e.target.style.boxShadow = '3px 3px 0px #000000'
-                }
+                if (!loading) e.target.style.background = '#000000'
               }}
             >
-              {loading ? 'Salvataggio...' : (editingProduct ? '💾 Aggiorna' : '✅ Crea')}
+              {loading ? 'Salvando...' : (editingProduct ? 'Aggiorna' : 'Crea Prodotto')}
             </button>
 
-            {editingProduct && (
-              <button
-                type="button"
-                onClick={resetForm}
-                style={{
-                  padding: '14px 24px',
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  color: '#000000',
-                  background: '#FFFFFF',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  boxShadow: '3px 3px 0px #000000',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseDown={(e) => {
-                  e.target.style.transform = 'translate(2px, 2px)'
-                  e.target.style.boxShadow = '1px 1px 0px #000000'
-                }}
-                onMouseUp={(e) => {
-                  e.target.style.transform = 'translate(0, 0)'
-                  e.target.style.boxShadow = '3px 3px 0px #000000'
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translate(0, 0)'
-                  e.target.style.boxShadow = '3px 3px 0px #000000'
-                }}
-              >
-                Annulla
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={resetForm}
+              style={{
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#000000',
+                background: '#FFFFFF',
+                border: '1px solid #000000',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+              onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+            >
+              Annulla
+            </button>
           </div>
         </form>
       )}
 
+      {/* Lista prodotti */}
       {products.length === 0 ? (
         <div style={{
-          padding: '40px',
+          padding: '30px',
           textAlign: 'center',
-          border: '2px dashed #000000',
+          border: '1px dashed #E0E0E0',
           borderRadius: '8px',
-          background: '#FFFFFF',
+          background: '#FAFAFA',
           color: '#666666'
         }}>
           <p style={{ 
             margin: 0, 
-            fontSize: '16px',
-            fontWeight: '600'
+            fontSize: '14px',
+            fontWeight: '400'
           }}>
-            📦 Nessun prodotto ancora.
+            Nessun prodotto ancora creato.
           </p>
           <p style={{ 
-            margin: '10px 0 0 0', 
-            fontSize: '14px'
+            margin: '6px 0 0 0', 
+            fontSize: '13px',
+            color: '#999999'
           }}>
-            Clicca su "+ Prodotto" per iniziare!
+            Clicca su "+ Nuovo Prodotto" per iniziare.
           </p>
         </div>
       ) : (
@@ -488,18 +442,21 @@ function ProductManager({ category }) {
               key={product.id}
               style={{
                 background: '#FFFFFF',
-                border: '2px solid #000000',
+                border: '1px solid #E0E0E0',
                 borderRadius: '8px',
-                boxShadow: '3px 3px 0px #000000',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                transition: 'box-shadow 0.2s ease',
+                opacity: product.is_visible === false ? 0.5 : 1
               }}
             >
-              {/* Header toggle (sempre visibile) */}
+              {/* Header prodotto (sempre visibile) */}
               <button
                 onClick={() => toggleProduct(product.id)}
+                aria-expanded={openProductId === product.id}
+                aria-label={`${openProductId === product.id ? 'Chiudi' : 'Apri'} prodotto ${product.name}`}
                 style={{
                   width: '100%',
-                  padding: '15px',
+                  padding: '12px 15px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -507,148 +464,272 @@ function ProductManager({ category }) {
                   border: 'none',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'background 0.2s ease'
+                  transition: 'background 0.2s ease',
+                  outline: 'none'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = '#F5F5F5'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  {/* Icona freccia */}
+                  <svg 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none"
+                    style={{
+                      transform: openProductId === product.id ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      flexShrink: 0
+                    }}
+                  >
+                    <path 
+                      d="M9 6l6 6-6 6" 
+                      stroke="#000000" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  
                   <span style={{ 
-                    fontSize: '20px',
-                    fontWeight: '700',
-                    color: '#000000',
-                    transition: 'transform 0.3s ease',
-                    transform: openProductId === product.id ? 'rotate(90deg)' : 'rotate(0deg)'
-                  }}>
-                    ▶
-                  </span>
-                  <span style={{ 
-                    fontSize: '16px',
-                    fontWeight: '700',
+                    fontSize: '14px',
+                    fontWeight: '500',
                     color: '#000000'
                   }}>
                     {product.name}
                   </span>
                 </div>
+                
                 <span style={{ 
-                  fontSize: '18px',
-                  fontWeight: '700',
-                  color: '#4CAF50'
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
                 }}>
                   € {product.price.toFixed(2)}
                 </span>
               </button>
 
-              {/* Contenuto dettagliato (visibile solo quando aperto) */}
+              {/* Contenuto espanso */}
               {openProductId === product.id && (
                 <div style={{
-                  padding: '20px',
-                  borderTop: '2px solid #000000',
-                  background: '#FAFAFA',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '15px'
+                  padding: '15px',
+                  borderTop: '1px solid #E0E0E0',
+                  background: '#FAFAFA'
                 }}>
-                  {/* Riga 1: Bottoni Modifica e Elimina */}
-                  <div style={{ 
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '10px'
-                  }}>
-                    {/* Modifica */}
-                    <button
-                      onClick={() => handleEdit(product)}
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        color: '#FFFFFF',
-                        background: '#2196F3',
-                        border: '2px solid #000000',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        boxShadow: '2px 2px 0px #000000',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseDown={(e) => {
-                        e.target.style.transform = 'translate(1px, 1px)'
-                        e.target.style.boxShadow = '1px 1px 0px #000000'
-                      }}
-                      onMouseUp={(e) => {
-                        e.target.style.transform = 'translate(0, 0)'
-                        e.target.style.boxShadow = '2px 2px 0px #000000'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translate(0, 0)'
-                        e.target.style.boxShadow = '2px 2px 0px #000000'
-                      }}
-                    >
-                      ✏️ Modifica
-                    </button>
-
-                    {/* Elimina */}
-                    <button
-                      onClick={() => handleDelete(product.id)}
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        color: '#FFFFFF',
-                        background: '#f44336',
-                        border: '2px solid #000000',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        boxShadow: '2px 2px 0px #000000',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseDown={(e) => {
-                        e.target.style.transform = 'translate(1px, 1px)'
-                        e.target.style.boxShadow = '1px 1px 0px #000000'
-                      }}
-                      onMouseUp={(e) => {
-                        e.target.style.transform = 'translate(0, 0)'
-                        e.target.style.boxShadow = '2px 2px 0px #000000'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translate(0, 0)'
-                        e.target.style.boxShadow = '2px 2px 0px #000000'
-                      }}
-                    >
-                      🗑️ Elimina
-                    </button>
-                  </div>
-
-                  {/* Immagine centrata */}
-                  <div style={{ 
-                    width: '100%',
-                    maxWidth: '250px',
-                    height: '180px',
-                    margin: '0 auto',
+                  {/* Layout: Immagine a sinistra, bottoni su/giù a destra */}
+                  <div style={{
                     display: 'flex',
-                    alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
-                    overflow: 'hidden',
-                    background: product.image_url ? 'transparent' : '#F5F5F5'
+                    alignItems: 'flex-start',
+                    gap: '15px',
+                    marginBottom: '15px'
                   }}>
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
+                    {/* Colonna centrale: Immagine + bottoni sotto */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}>
+                      {/* Immagine */}
+                      <div style={{ 
+                        width: '150px',
+                        height: '150px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '1px solid #E0E0E0',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        background: product.image_url ? 'transparent' : '#F5F5F5'
+                      }}>
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: '50px' }}>🍽️</span>
+                        )}
+                      </div>
+
+                      {/* Bottoni sotto l'immagine: Modifica, Mostra/Nascondi, Elimina */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        {/* Bottone Modifica */}
+                        <button
+                          onClick={() => handleEdit(product)}
+                          aria-label={`Modifica prodotto ${product.name}`}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            padding: '0',
+                            color: '#FFFFFF',
+                            background: '#000000',
+                            border: '1px solid #000000',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#333333'}
+                          onMouseLeave={(e) => e.target.style.background = '#000000'}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                            <path fillRule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+                          </svg>
+                        </button>
+
+                        {/* Bottone Mostra/Nascondi */}
+                        <button
+                          onClick={() => toggleVisibility(product)}
+                          aria-label={product.is_visible === false ? `Mostra prodotto ${product.name}` : `Nascondi prodotto ${product.name}`}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            padding: '0',
+                            color: '#000000',
+                            background: '#FFFFFF',
+                            border: '1px solid #000000',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                          onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+                        >
+                          {product.is_visible === false ? (
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                              <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                            </svg>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                              <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                              <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+                            </svg>
+                          )}
+                        </button>
+
+                        {/* Bottone Elimina */}
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          aria-label={`Elimina prodotto ${product.name}`}
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            padding: '0',
+                            color: '#FFFFFF',
+                            background: '#f44336',
+                            border: '1px solid #f44336',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            outline: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#d32f2f'}
+                          onMouseLeave={(e) => e.target.style.background = '#f44336'}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                            <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Colonna destra: Bottoni Su/Giù */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      justifyContent: 'center'
+                    }}>
+                      {/* Bottone Sposta Su */}
+                      <button
+                        onClick={() => moveProduct(product.id, 'up')}
+                        disabled={index === 0}
+                        aria-label={`Sposta prodotto ${product.name} in alto`}
                         style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover'
+                          width: '38px',
+                          height: '38px',
+                          padding: '0',
+                          color: index === 0 ? '#999999' : '#000000',
+                          background: '#FFFFFF',
+                          border: '1px solid ' + (index === 0 ? '#E0E0E0' : '#000000'),
+                          borderRadius: '6px',
+                          cursor: index === 0 ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease',
+                          outline: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: '60px' }}>🍽️</span>
-                    )}
+                        onMouseEnter={(e) => {
+                          if (index !== 0) e.target.style.background = '#F5F5F5'
+                        }}
+                        onMouseLeave={(e) => {
+                          if (index !== 0) e.target.style.background = '#FFFFFF'
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                          <path fillRule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z"/>
+                        </svg>
+                      </button>
+
+                      {/* Bottone Sposta Giù */}
+                      <button
+                        onClick={() => moveProduct(product.id, 'down')}
+                        disabled={index === products.length - 1}
+                        aria-label={`Sposta prodotto ${product.name} in basso`}
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          padding: '0',
+                          color: index === products.length - 1 ? '#999999' : '#000000',
+                          background: '#FFFFFF',
+                          border: '1px solid ' + (index === products.length - 1 ? '#E0E0E0' : '#000000'),
+                          borderRadius: '6px',
+                          cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease',
+                          outline: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (index !== products.length - 1) e.target.style.background = '#F5F5F5'
+                        }}
+                        onMouseLeave={(e) => {
+                          if (index !== products.length - 1) e.target.style.background = '#FFFFFF'
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                          <path fillRule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Info prodotto */}
@@ -656,24 +737,25 @@ function ProductManager({ category }) {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '8px',
-                    textAlign: 'left'
+                    textAlign: 'center',
+                    paddingTop: '10px'
                   }}>
                     {/* Nome */}
-                    <h4 style={{
+                    <h5 style={{
                       margin: 0,
-                      fontSize: '20px',
-                      fontWeight: '700',
+                      fontSize: '16px',
+                      fontWeight: '500',
                       color: '#000000',
                       lineHeight: '1.2'
                     }}>
                       {product.name}
-                    </h4>
+                    </h5>
 
                     {/* Descrizione */}
                     {product.description && (
                       <p style={{
                         margin: 0,
-                        fontSize: '15px',
+                        fontSize: '13px',
                         color: '#666666',
                         lineHeight: '1.5'
                       }}>
@@ -684,100 +766,25 @@ function ProductManager({ category }) {
                     {/* Prezzo */}
                     <p style={{
                       margin: 0,
-                      fontSize: '24px',
-                      fontWeight: '700',
-                      color: '#4CAF50'
+                      fontSize: '18px',
+                      fontWeight: '500',
+                      color: '#000000'
                     }}>
                       € {product.price.toFixed(2)}
                     </p>
-                  </div>
 
-                  {/* Riga 2: Bottoni Sposta su/giù */}
-                  <div style={{ 
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '10px',
-                    marginTop: '5px'
-                  }}>
-                    {/* Sposta su */}
-                    <button
-                      onClick={() => moveProduct(product.id, 'up')}
-                      disabled={index === 0}
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        color: '#FFFFFF',
-                        background: index === 0 ? '#999999' : '#000000',
-                        border: '2px solid #000000',
-                        borderRadius: '4px',
-                        cursor: index === 0 ? 'not-allowed' : 'pointer',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        boxShadow: '2px 2px 0px #000000',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseDown={(e) => {
-                        if (index !== 0) {
-                          e.target.style.transform = 'translate(1px, 1px)'
-                          e.target.style.boxShadow = '1px 1px 0px #000000'
-                        }
-                      }}
-                      onMouseUp={(e) => {
-                        if (index !== 0) {
-                          e.target.style.transform = 'translate(0, 0)'
-                          e.target.style.boxShadow = '2px 2px 0px #000000'
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (index !== 0) {
-                          e.target.style.transform = 'translate(0, 0)'
-                          e.target.style.boxShadow = '2px 2px 0px #000000'
-                        }
-                      }}
-                    >
-                      Sposta su
-                    </button>
-
-                    {/* Sposta giù */}
-                    <button
-                      onClick={() => moveProduct(product.id, 'down')}
-                      disabled={index === products.length - 1}
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        color: '#FFFFFF',
-                        background: index === products.length - 1 ? '#999999' : '#000000',
-                        border: '2px solid #000000',
-                        borderRadius: '4px',
-                        cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                        boxShadow: '2px 2px 0px #000000',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseDown={(e) => {
-                        if (index !== products.length - 1) {
-                          e.target.style.transform = 'translate(1px, 1px)'
-                          e.target.style.boxShadow = '1px 1px 0px #000000'
-                        }
-                      }}
-                      onMouseUp={(e) => {
-                        if (index !== products.length - 1) {
-                          e.target.style.transform = 'translate(0, 0)'
-                          e.target.style.boxShadow = '2px 2px 0px #000000'
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (index !== products.length - 1) {
-                          e.target.style.transform = 'translate(0, 0)'
-                          e.target.style.boxShadow = '2px 2px 0px #000000'
-                        }
-                      }}
-                    >
-                      Sposta giù
-                    </button>
+                    {/* Indicatore visibilità */}
+                    {product.is_visible === false && (
+                      <p style={{
+                        margin: '5px 0 0 0',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#999999',
+                        fontStyle: 'italic'
+                      }}>
+                        (Nascosto sul sito)
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

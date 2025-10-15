@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Landing from './pages/Landing'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -117,7 +119,7 @@ function App() {
         alignItems: 'center', 
         minHeight: '100vh',
         backgroundColor: '#FFEBEE',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
         padding: '20px',
         textAlign: 'center'
       }}>
@@ -152,7 +154,7 @@ function App() {
         alignItems: 'center', 
         minHeight: '100vh',
         backgroundColor: '#F5F5F5',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
         fontSize: '18px',
         color: '#666',
         flexDirection: 'column',
@@ -164,13 +166,32 @@ function App() {
     )
   }
 
-  if (!session) {
-    console.log('👤 Rendering Login page')
-    return <Login />
-  }
-
-  console.log('🏠 Rendering Dashboard')
-  return <Dashboard session={session} />
+  return (
+    <Routes>
+      {/* Landing Page - accessibile a tutti */}
+      <Route path="/landing" element={<Landing />} />
+      
+      {/* Login - solo se NON loggato */}
+      <Route 
+        path="/login" 
+        element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
+      />
+      
+      {/* Dashboard - solo se loggato */}
+      <Route 
+        path="/dashboard" 
+        element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
+      />
+      
+      {/* Root redirect */}
+      <Route 
+        path="/" 
+        element={
+          session ? <Navigate to="/dashboard" replace /> : <Navigate to="/landing" replace />
+        } 
+      />
+    </Routes>
+  )
 }
 
 export default App

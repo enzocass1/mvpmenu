@@ -40,11 +40,11 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
         .getPublicUrl(fileName)
 
       onImageUploaded(publicUrl)
-      alert('✅ Immagine caricata con successo!')
+      alert('Immagine caricata con successo!')
 
     } catch (error) {
       console.error('Errore upload:', error)
-      alert('❌ Errore durante il caricamento: ' + error.message)
+      alert('Errore durante il caricamento: ' + error.message)
     } finally {
       setUploading(false)
     }
@@ -52,12 +52,8 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
 
   return (
     <div style={{ marginBottom: '15px' }}>
-      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-        📸 Carica Immagine
-      </label>
-      
       {preview && (
-        <div style={{ marginBottom: '10px' }}>
+        <div style={{ marginBottom: '15px' }}>
           <img 
             src={preview} 
             alt="Preview" 
@@ -65,8 +61,8 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
               maxWidth: '200px', 
               maxHeight: '200px', 
               objectFit: 'cover', 
-              borderRadius: '8px',
-              border: '2px solid #ddd'
+              borderRadius: '6px',
+              border: '1px solid #E0E0E0'
             }} 
           />
         </div>
@@ -78,23 +74,39 @@ function ImageUpload({ currentImageUrl, onImageUploaded, folder = 'general' }) {
         onChange={handleFileChange}
         disabled={uploading}
         style={{
-          padding: '10px',
-          border: '2px dashed #2196F3',
-          borderRadius: '8px',
-          cursor: 'pointer',
+          padding: '10px 12px',
+          border: '1px solid #000000',
+          borderRadius: '6px',
+          cursor: uploading ? 'not-allowed' : 'pointer',
           width: '100%',
-          backgroundColor: uploading ? '#f5f5f5' : 'white'
+          backgroundColor: uploading ? '#F5F5F5' : '#FFFFFF',
+          fontSize: '14px',
+          fontWeight: '400',
+          color: '#000000',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+          outline: 'none',
+          transition: 'background 0.2s ease'
         }}
       />
 
       {uploading && (
-        <p style={{ color: '#2196F3', marginTop: '10px', fontWeight: 'bold' }}>
-          ⏳ Caricamento in corso...
+        <p style={{ 
+          color: '#000000', 
+          marginTop: '10px', 
+          fontWeight: '400',
+          fontSize: '13px'
+        }}>
+          Caricamento in corso...
         </p>
       )}
 
-      <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-        💡 Tocca per scegliere dalla galleria o scattare una foto
+      <p style={{ 
+        fontSize: '12px', 
+        color: '#999', 
+        marginTop: '5px',
+        fontWeight: '400'
+      }}>
+        Scegli un'immagine dalla galleria
       </p>
     </div>
   )
