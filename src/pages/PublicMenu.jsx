@@ -736,7 +736,7 @@ const styles = {
   
   infoCard: {
   width: '100%',
-  padding: '24',
+  padding: '0 20px',
   display: 'flex',
   flexDirection: 'column',
   gap: '20px',
