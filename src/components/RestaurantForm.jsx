@@ -30,12 +30,23 @@ function RestaurantForm({ restaurant, onSave }) {
     }
   }, [restaurant])
 
-  // Carica lo script di Google Maps
+  // Carica lo script di Google Maps - VERSIONE SENZA ICONE
   useEffect(() => {
     if (window.google && window.google.maps) {
       setScriptLoaded(true)
       return
     }
+
+    // Inietta CSS per bloccare le icone PRIMA del caricamento dello script
+    const style = document.createElement('style')
+    style.innerHTML = `
+      .pac-icon, .pac-icon-marker {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+      }
+    `
+    document.head.appendChild(style)
 
     const script = document.createElement('script')
     script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&language=it`
@@ -49,7 +60,10 @@ function RestaurantForm({ restaurant, onSave }) {
     document.head.appendChild(script)
 
     return () => {
-      // Cleanup se necessario
+      // Cleanup
+      if (style.parentNode) {
+        style.parentNode.removeChild(style)
+      }
     }
   }, [])
 
@@ -492,25 +506,25 @@ function RestaurantForm({ restaurant, onSave }) {
         )}
       </form>
 
-      {/* CSS per personalizzare dropdown Google - VERSIONE CORRETTA */}
+      {/* CSS per nascondere COMPLETAMENTE le icone di Google Places */}
       <style>{`
-        /* SOLUZIONE: Nascondi completamente le icone problematiche */
-        .pac-icon {
+        /* SOLUZIONE AGGRESSIVA: Nascondi tutto ciò che riguarda le icone */
+        .pac-icon,
+        .pac-icon-marker,
+        span[class*="pac-icon"] {
           display: none !important;
           width: 0 !important;
           height: 0 !important;
+          min-width: 0 !important;
+          min-height: 0 !important;
+          opacity: 0 !important;
+          visibility: hidden !important;
+          background: none !important;
           background-image: none !important;
+          content: none !important;
         }
         
-        .pac-icon-marker {
-          display: none !important;
-        }
-        
-        /* Rimuovi spazio per le icone */
-        .pac-item {
-          padding-left: 15px !important;
-        }
-        
+        /* Container principale */
         .pac-container {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
           border: 2px solid #000000 !important;
@@ -521,14 +535,16 @@ function RestaurantForm({ restaurant, onSave }) {
           background: white !important;
         }
         
+        /* Ogni elemento della lista - RIMUOVI GRID LAYOUT */
         .pac-item {
           padding: 12px 15px !important;
           font-size: 14px !important;
           border-top: 1px solid #E0E0E0 !important;
           cursor: pointer !important;
           line-height: 1.4 !important;
-          display: flex !important;
-          align-items: center !important;
+          display: block !important;
+          grid-template-columns: none !important;
+          grid-template-rows: none !important;
         }
         
         .pac-item:first-child {
@@ -539,27 +555,33 @@ function RestaurantForm({ restaurant, onSave }) {
           background: #F5F5F5 !important;
         }
         
+        /* Testo principale */
         .pac-item-query {
           font-weight: 600 !important;
           color: #000000 !important;
           font-size: 14px !important;
           margin: 0 !important;
           padding: 0 !important;
+          display: inline !important;
         }
         
         .pac-matched {
           font-weight: 700 !important;
         }
         
-        /* Rimuovi qualsiasi immagine di sfondo */
-        .pac-container::after,
-        .pac-container::before,
+        /* Rimuovi TUTTO ciò che potrebbe essere un'icona o pseudo-elemento */
+        .pac-container *::before,
+        .pac-container *::after,
+        .pac-item::before,
         .pac-item::after,
-        .pac-item::before {
+        .pac-icon::before,
+        .pac-icon::after {
           display: none !important;
+          content: none !important;
+          background: none !important;
         }
         
-        /* Mobile fixes */
+        /* Mobile responsiveness */
         @media (max-width: 768px) {
           .pac-container {
             border: 2px solid #000 !important;
