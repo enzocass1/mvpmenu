@@ -17,11 +17,26 @@ function Login() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        console.log('🔵 Inizio registrazione...')
+        console.log('📧 Email:', email)
+        console.log('🔑 Password length:', password.length)
+        
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         })
-        if (error) throw error
+        
+        console.log('📊 Signup response:', { data, error })
+        
+        if (error) {
+          console.error('❌ Errore signup:', error)
+          throw error
+        }
+        
+        console.log('✅ Registrazione completata!')
+        console.log('👤 User:', data.user)
+        console.log('🔐 Session:', data.session)
+        
         setMessage({ 
           text: '✅ Registrazione completata! Controlla la tua email per confermare.', 
           type: 'success' 
@@ -35,6 +50,7 @@ function Login() {
         setMessage({ text: '✅ Login effettuato con successo!', type: 'success' })
       }
     } catch (error) {
+      console.error('🔴 Catch error:', error)
       setMessage({ text: `❌ ${error.message}`, type: 'error' })
     } finally {
       setLoading(false)
@@ -47,7 +63,6 @@ function Login() {
     setMessage({ text: '', type: '' })
 
     try {
-      // ✅ MODIFICA: Aggiungi ? alla fine per usare query params invece di hash
       const resetUrl = window.location.origin.includes('localhost') 
         ? 'http://localhost:5173/#/reset-password?'
         : 'https://mvpmenu20.vercel.app/#/reset-password?'

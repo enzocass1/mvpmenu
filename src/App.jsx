@@ -11,28 +11,94 @@ function App() {
   useEffect(() => {
     console.log('🔍 App mounted - checking session...')
     
-    supabase.auth.getSession()
-      .then(({ data: { session }, error }) => {
-        if (error) {
-          console.error('❌ Error getting session:', error)
-          setError(error.message)
-        } else {
-          console.log('✅ Session loaded:', session ? 'User logged in' : 'No session')
-          setSession(session)
+    // Gestisci il token di conferma email dall'URL
+    const handleEmailConfirmation = async () => {
+      const hash = window.location.hash
+      
+      // Cerca access_token nell'URL (Supabase lo mette dopo la conferma)
+      if (hash.includes('access_token=')) {
+        console.log('🔑 Token trovato nell\'URL! Gestisco conferma email...')
+        
+        // Estrai i parametri dall'hash
+        const hashParams = hash.substring(1) // Rimuovi il primo #
+        const params = new URLSearchParams(hashParams.split('?')[1] || hashParams)
+        
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        const type = params.get('type')
+        
+        console.log('Token type:', type)
+        console.log('Access token presente:', !!accessToken)
+        console.log('Refresh token presente:', !!refreshToken)
+        
+        if ((type === 'signup' || type === 'recovery') && accessToken && refreshToken) {
+          console.log('✅ Email confermata! Imposto la sessione...')
+          
+          try {
+            // Imposta la sessione manualmente
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            })
+            
+            if (error) {
+              console.error('❌ Errore impostazione sessione:', error)
+              setError(error.message)
+              setLoading(false)
+            } else {
+              console.log('✅ Sessione impostata correttamente!')
+              console.log('Session data:', data.session)
+              setSession(data.session)
+              setLoading(false)
+              
+              // Pulisci l'URL dai parametri
+              window.history.replaceState({}, document.title, '/#/')
+            }
+          } catch (err) {
+            console.error('❌ Errore catch:', err)
+            setError(err.message)
+            setLoading(false)
+          }
+          return
         }
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error('❌ Unexpected error:', err)
-        setError(err.message)
-        setLoading(false)
-      })
+      }
+      
+      // Altrimenti, carica la sessione normale
+      supabase.auth.getSession()
+        .then(({ data: { session }, error }) => {
+          if (error) {
+            console.error('❌ Error getting session:', error)
+            setError(error.message)
+          } else {
+            console.log('✅ Session loaded:', session ? 'User logged in' : 'No session')
+            setSession(session)
+          }
+          setLoading(false)
+        })
+        .catch((err) => {
+          console.error('❌ Unexpected error:', err)
+          setError(err.message)
+          setLoading(false)
+        })
+    }
+    
+    handleEmailConfirmation()
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('🔄 Auth state changed:', _event, session ? 'User logged in' : 'No session')
-      setSession(session)
+      
+      if (_event === 'SIGNED_IN') {
+        console.log('✅ User signed in!')
+        setSession(session)
+      } else if (_event === 'SIGNED_OUT') {
+        console.log('👋 User signed out')
+        setSession(null)
+      } else if (_event === 'TOKEN_REFRESHED') {
+        console.log('🔄 Token refreshed')
+        setSession(session)
+      }
     })
 
     return () => {
