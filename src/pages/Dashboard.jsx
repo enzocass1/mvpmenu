@@ -187,20 +187,8 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 boxShadow: '2px 2px 0px #000000',
                 transition: 'all 0.2s ease'
               }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(2px)'
-                e.currentTarget.style.boxShadow = '0px 0px 0px #000000'
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-              }}
             >
-              🆘 Ricevi Assistenza
+              🆘 Assistenza
             </button>
             
             <button 
@@ -218,18 +206,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 letterSpacing: '0.5px',
                 boxShadow: '2px 2px 0px #000000',
                 transition: 'all 0.2s ease'
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(2px)'
-                e.currentTarget.style.boxShadow = '0px 0px 0px #000000'
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
               }}
             >
               Logout
@@ -255,18 +231,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 boxShadow: '4px 4px 0px #000000',
                 transition: 'all 0.2s ease',
                 marginBottom: openSections.publicMenu ? '20px' : '0'
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(2px)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
               }}
             >
               <h2 style={{
@@ -371,18 +335,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                       boxShadow: '3px 3px 0px #000000',
                       transition: 'all 0.2s ease'
                     }}
-                    onMouseDown={(e) => {
-                      e.target.style.transform = 'translate(2px, 2px)'
-                      e.target.style.boxShadow = '1px 1px 0px #000000'
-                    }}
-                    onMouseUp={(e) => {
-                      e.target.style.transform = 'translate(0, 0)'
-                      e.target.style.boxShadow = '3px 3px 0px #000000'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translate(0, 0)'
-                      e.target.style.boxShadow = '3px 3px 0px #000000'
-                    }}
                   >
                     📱 Scarica QR Code
                   </button>
@@ -409,18 +361,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               boxShadow: '4px 4px 0px #000000',
               transition: 'all 0.2s ease',
               marginBottom: openSections.restaurant ? '20px' : '0'
-            }}
-            onMouseDown={(e) => {
-              e.currentTarget.style.transform = 'translateY(2px)'
-              e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
             }}
           >
             <h2 style={{
@@ -467,18 +407,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 boxShadow: '4px 4px 0px #000000',
                 transition: 'all 0.2s ease',
                 marginBottom: openSections.categories ? '20px' : '0'
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(2px)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
               }}
             >
               <h2 style={{
@@ -527,18 +455,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 transition: 'all 0.2s ease',
                 marginBottom: openSections.hours ? '20px' : '0'
               }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(2px)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
-              }}
             >
               <h2 style={{
                 margin: 0,
@@ -586,18 +502,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 transition: 'all 0.2s ease',
                 marginBottom: openSections.importExport ? '20px' : '0'
               }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.transform = 'translateY(2px)'
-                e.currentTarget.style.boxShadow = '2px 2px 0px #000000'
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '4px 4px 0px #000000'
-              }}
             >
               <h2 style={{
                 margin: 0,
@@ -643,19 +547,26 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
 
       {/* Modal Supporto */}
       {showSupportModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}>
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSupportModal(false)
+            }
+          }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+        >
           <div style={{
             background: '#FFFFFF',
             border: '2px solid #000000',
@@ -817,16 +728,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                     cursor: 'pointer',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    boxShadow: '2px 2px 0px #000000',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseDown={(e) => {
-                    e.target.style.transform = 'translate(2px, 2px)'
-                    e.target.style.boxShadow = '0px 0px 0px #000000'
-                  }}
-                  onMouseUp={(e) => {
-                    e.target.style.transform = 'translate(0, 0)'
-                    e.target.style.boxShadow = '2px 2px 0px #000000'
+                    boxShadow: '2px 2px 0px #000000'
                   }}
                 >
                   Annulla
@@ -848,18 +750,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                     cursor: sendingSupport ? 'not-allowed' : 'pointer',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    boxShadow: '2px 2px 0px #000000',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseDown={(e) => {
-                    if (!sendingSupport) {
-                      e.target.style.transform = 'translate(2px, 2px)'
-                      e.target.style.boxShadow = '0px 0px 0px #000000'
-                    }
-                  }}
-                  onMouseUp={(e) => {
-                    e.target.style.transform = 'translate(0, 0)'
-                    e.target.style.boxShadow = '2px 2px 0px #000000'
+                    boxShadow: '2px 2px 0px #000000'
                   }}
                 >
                   {sendingSupport ? '⏳ Invio...' : '📧 Invia Richiesta'}
