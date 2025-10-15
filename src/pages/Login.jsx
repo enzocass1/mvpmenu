@@ -47,8 +47,13 @@ function Login() {
     setMessage({ text: '', type: '' })
 
     try {
+      // Usa l'URL corrente (funziona sia in locale che in produzione)
+      const resetUrl = window.location.origin.includes('localhost') 
+        ? 'http://localhost:5173/#/reset-password'
+        : 'https://mvpmenu.vercel.app/#/reset-password'
+      
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: 'https://mvpmenu.vercel.app/#/reset-password'
+        redirectTo: resetUrl
       })
       if (error) throw error
       setMessage({ 
