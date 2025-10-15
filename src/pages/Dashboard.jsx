@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import RestaurantForm from '../components/RestaurantForm'
 import CategoryManager from '../components/CategoryManager'
 import OpeningHoursManager from '../components/OpeningHoursManager'
+import MenuImportExport from '../components/MenuImportExport'
 import QRCode from 'qrcode'
 
 function Dashboard({ session }) {
@@ -11,7 +12,8 @@ function Dashboard({ session }) {
     publicMenu: false,
     restaurant: false,
     categories: false,
-    hours: false
+    hours: false,
+    importExport: false
   })
 
   useEffect(() => {

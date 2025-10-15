@@ -18,12 +18,6 @@ function RestaurantForm({ restaurant, onSave }) {
     logo_url: '',
   })
 
-  // TEMPORANEO - Solo per debug (DENTRO la funzione component)
-  useEffect(() => {
-    console.log('🔑 API Key presente:', !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY)
-    console.log('🔑 Prime 10 caratteri:', import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.substring(0, 10))
-  }, [])
-
   useEffect(() => {
     if (restaurant) {
       setFormData({
@@ -66,18 +60,16 @@ function RestaurantForm({ restaurant, onSave }) {
     document.head.appendChild(script)
 
     return () => {
-      // Cleanup
       if (style.parentNode) {
         style.parentNode.removeChild(style)
       }
     }
   }, [])
 
-  // Inizializza l'autocomplete quando lo script è caricato - VERSIONE SENZA ICONE
+  // Inizializza l'autocomplete quando lo script è caricato
   useEffect(() => {
     if (scriptLoaded && addressInputRef.current && !autocompleteRef.current) {
       try {
-        // Crea autocomplete senza icone predefinite
         const options = {
           componentRestrictions: { country: 'it' },
           fields: ['formatted_address', 'address_components', 'geometry'],
@@ -89,26 +81,18 @@ function RestaurantForm({ restaurant, onSave }) {
           options
         )
 
-        // Listener per quando viene selezionato un indirizzo
         autocompleteRef.current.addListener('place_changed', () => {
           const place = autocompleteRef.current.getPlace()
           if (place.formatted_address) {
-            // Formatta l'indirizzo aggiungendo spazio tra via e città se mancante
             let formattedAddress = place.formatted_address
-            
-            // Controlla se manca lo spazio prima della città (pattern: numero+lettera maiuscola)
             formattedAddress = formattedAddress.replace(/(\d)([A-Z][a-z])/g, '$1, $2')
-            
             setFormData(prev => ({ ...prev, address: formattedAddress }))
           }
         })
 
-        // CRUCIALE: Rimuovi le icone dopo che il container è stato creato
-        // Aspetta che l'autocomplete sia inizializzato
         setTimeout(() => {
           const pacContainers = document.querySelectorAll('.pac-container')
           pacContainers.forEach(container => {
-            // Rimuovi tutti gli elementi con classe pac-icon
             const icons = container.querySelectorAll('.pac-icon')
             icons.forEach(icon => {
               icon.style.display = 'none'
@@ -118,7 +102,6 @@ function RestaurantForm({ restaurant, onSave }) {
           })
         }, 100)
 
-        // Observer per rimuovere icone quando compaiono
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
             if (mutation.addedNodes.length) {
@@ -141,7 +124,6 @@ function RestaurantForm({ restaurant, onSave }) {
           subtree: true
         })
 
-        // Cleanup observer
         return () => observer.disconnect()
       } catch (error) {
         console.error('Errore inizializzazione autocomplete:', error)
@@ -157,13 +139,14 @@ function RestaurantForm({ restaurant, onSave }) {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (restaurant) {
+        // UPDATE - Il sottodominio NON viene aggiornato
         const { error } = await supabase
           .from('restaurants')
           .update({
             name: formData.name,
             address: formData.address,
             phone: formData.phone,
-            subdomain: formData.subdomain,
+            // subdomain NON incluso nell'update
             logo_url: formData.logo_url,
             updated_at: new Date().toISOString(),
           })
@@ -172,6 +155,7 @@ function RestaurantForm({ restaurant, onSave }) {
         if (error) throw error
         alert('Ristorante aggiornato!')
       } else {
+        // INSERT - Il sottodominio viene creato
         const { error } = await supabase
           .from('restaurants')
           .insert([
@@ -197,7 +181,6 @@ function RestaurantForm({ restaurant, onSave }) {
     }
   }
 
-  // Funzione per scaricare il QR Code
   const handleDownloadQRCode = async () => {
     if (!formData.subdomain) {
       alert('Inserisci prima un sottodominio!')
@@ -209,7 +192,6 @@ function RestaurantForm({ restaurant, onSave }) {
     try {
       const menuUrl = `https://mvpmenu.vercel.app/#/menu/${formData.subdomain}`
       
-      // Genera QR Code in alta risoluzione (1024x1024)
       const qrCodeDataUrl = await QRCode.toDataURL(menuUrl, {
         width: 1024,
         margin: 2,
@@ -220,7 +202,6 @@ function RestaurantForm({ restaurant, onSave }) {
         errorCorrectionLevel: 'H'
       })
 
-      // Crea un link per il download
       const link = document.createElement('a')
       link.href = qrCodeDataUrl
       link.download = `${formData.subdomain}-menu-qrcode.png`
@@ -429,7 +410,7 @@ function RestaurantForm({ restaurant, onSave }) {
           />
         </div>
 
-        {/* Sottodominio */}
+        {/* Sottodominio - READ ONLY se restaurant esiste */}
         <div style={{ marginBottom: '30px' }}>
           <label style={{
             display: 'block',
@@ -450,31 +431,43 @@ function RestaurantForm({ restaurant, onSave }) {
               subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') 
             })}
             required
+            readOnly={!!restaurant}
+            disabled={!!restaurant}
             style={{
               width: '100%',
               padding: '12px 15px',
               fontSize: '16px',
               border: '2px solid #000000',
               borderRadius: '4px',
-              background: '#F5F5F5',
-              color: '#000000',
-              boxSizing: 'border-box'
+              background: restaurant ? '#E8E8E8' : '#F5F5F5',
+              color: restaurant ? '#666666' : '#000000',
+              boxSizing: 'border-box',
+              cursor: restaurant ? 'not-allowed' : 'text',
+              opacity: restaurant ? 0.7 : 1
             }}
             placeholder="es: damario"
-            onFocus={(e) => e.target.style.background = '#FFFFFF'}
-            onBlur={(e) => e.target.style.background = '#F5F5F5'}
+            onFocus={(e) => {
+              if (!restaurant) e.target.style.background = '#FFFFFF'
+            }}
+            onBlur={(e) => {
+              if (!restaurant) e.target.style.background = '#F5F5F5'
+            }}
           />
           <small style={{
             display: 'block',
             marginTop: '8px',
-            color: '#666',
+            color: restaurant ? '#f44336' : '#666',
             fontSize: '13px',
+            fontWeight: restaurant ? '600' : '400',
             padding: '8px',
-            background: '#F5F5F5',
-            border: '1px solid #E0E0E0',
+            background: restaurant ? '#FFEBEE' : '#F5F5F5',
+            border: `1px solid ${restaurant ? '#f44336' : '#E0E0E0'}`,
             borderRadius: '4px'
           }}>
-            🌐 Il tuo menu sarà disponibile su: <strong>{formData.subdomain || 'tuoristorante'}.mvpmenu.com</strong>
+            {restaurant 
+              ? '🔒 Il sottodominio non può essere modificato dopo la creazione'
+              : `🌐 Il tuo menu sarà disponibile su: ${formData.subdomain || 'tuoristorante'}.mvpmenu.com`
+            }
           </small>
         </div>
 
@@ -565,9 +558,8 @@ function RestaurantForm({ restaurant, onSave }) {
         )}
       </form>
 
-      {/* CSS DEFINITIVO - Blocca completamente le icone di Google Places */}
+      {/* CSS per bloccare le icone di Google Places */}
       <style>{`
-        /* Disabilita autocomplete del browser */
         input[name="address-field"]:-webkit-autofill,
         input[name="address-field"]:-webkit-autofill:hover,
         input[name="address-field"]:-webkit-autofill:focus,
@@ -576,7 +568,6 @@ function RestaurantForm({ restaurant, onSave }) {
           transition: background-color 5000s ease-in-out 0s;
         }
         
-        /* Nasconde i suggerimenti del browser Chrome */
         input[name="address-field"]::-webkit-contacts-auto-fill-button,
         input[name="address-field"]::-webkit-credentials-auto-fill-button {
           visibility: hidden;
@@ -587,7 +578,6 @@ function RestaurantForm({ restaurant, onSave }) {
           margin: 0;
         }
         
-        /* BLOCCO TOTALE ICONE - Nessuna icona verrà mai mostrata */
         .pac-icon,
         .pac-icon-marker,
         span[class*="pac-icon"],
@@ -612,7 +602,6 @@ function RestaurantForm({ restaurant, onSave }) {
           left: -9999px !important;
         }
         
-        /* Container principale */
         .pac-container {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
           border: 2px solid #000000 !important;
@@ -623,7 +612,6 @@ function RestaurantForm({ restaurant, onSave }) {
           background: white !important;
         }
         
-        /* Ogni elemento della lista */
         .pac-item {
           padding: 12px 15px !important;
           font-size: 14px !important;
@@ -645,7 +633,6 @@ function RestaurantForm({ restaurant, onSave }) {
           background: #F5F5F5 !important;
         }
         
-        /* Testo principale */
         .pac-item-query {
           font-weight: 600 !important;
           color: #000000 !important;
@@ -660,7 +647,6 @@ function RestaurantForm({ restaurant, onSave }) {
           font-weight: 700 !important;
         }
         
-        /* Rimuovi TUTTO ciò che potrebbe essere un'icona */
         .pac-container *::before,
         .pac-container *::after,
         .pac-item::before,
@@ -672,7 +658,6 @@ function RestaurantForm({ restaurant, onSave }) {
           height: 0 !important;
         }
         
-        /* Mobile responsiveness */
         @media (max-width: 768px) {
           .pac-container {
             border: 2px solid #000 !important;
