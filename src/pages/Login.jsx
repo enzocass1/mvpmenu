@@ -167,20 +167,6 @@ function Login() {
                 transition: 'all 0.2s ease',
                 marginBottom: '15px'
               }}
-              onMouseDown={(e) => {
-                if (!loading) {
-                  e.target.style.transform = 'translate(2px, 2px)'
-                  e.target.style.boxShadow = '1px 1px 0px #000000'
-                }
-              }}
-              onMouseUp={(e) => {
-                e.target.style.transform = 'translate(0, 0)'
-                e.target.style.boxShadow = '3px 3px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translate(0, 0)'
-                e.target.style.boxShadow = '3px 3px 0px #000000'
-              }}
             >
               {loading ? '⏳ Invio...' : '📧 Invia Email di Reset'}
             </button>
@@ -329,20 +315,6 @@ function Login() {
                 boxShadow: '3px 3px 0px #000000',
                 transition: 'all 0.2s ease',
                 marginBottom: '20px'
-              }}
-              onMouseDown={(e) => {
-                if (!loading) {
-                  e.target.style.transform = 'translate(2px, 2px)'
-                  e.target.style.boxShadow = '1px 1px 0px #000000'
-                }
-              }}
-              onMouseUp={(e) => {
-                e.target.style.transform = 'translate(0, 0)'
-                e.target.style.boxShadow = '3px 3px 0px #000000'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translate(0, 0)'
-                e.target.style.boxShadow = '3px 3px 0px #000000'
               }}
             >
               {loading ? '⏳ Caricamento...' : (isSignUp ? '✨ Registrati' : '🚀 Accedi')}
