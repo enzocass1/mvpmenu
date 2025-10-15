@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import ImageUpload from './ImageUpload'
 
@@ -7,6 +7,9 @@ function ProductManager({ category }) {
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [openMenuId, setOpenMenuId] = useState(null) // Per gestire quale menu è aperto
+  const menuRef = useRef(null)
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -19,6 +22,20 @@ function ProductManager({ category }) {
       loadProducts()
     }
   }, [category])
+
+  // Chiudi menu quando clicchi fuori
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null)
+      }
+    }
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [openMenuId])
 
   const loadProducts = async () => {
     const { data, error } = await supabase
@@ -49,7 +66,7 @@ function ProductManager({ category }) {
           .eq('id', editingProduct.id)
 
         if (error) throw error
-        alert('✅ Prodotto aggiornato!')
+        alert('Prodotto aggiornato!')
       } else {
         const maxOrder = products.length > 0 ? Math.max(...products.map(p => p.order)) : -1
         
@@ -67,15 +84,14 @@ function ProductManager({ category }) {
           ])
 
         if (error) throw error
-        alert('✅ Prodotto creato!')
+        alert('Prodotto creato!')
       }
 
-      setFormData({ name: '', description: '', price: '', image_url: '' })
-      setShowForm(false)
-      setEditingProduct(null)
-      loadProducts()
+      await loadProducts()
+      resetForm()
     } catch (error) {
-      alert('Errore: ' + error.message)
+      console.error('Error saving product:', error)
+      alert('Errore durante il salvataggio')
     } finally {
       setLoading(false)
     }
@@ -90,475 +106,593 @@ function ProductManager({ category }) {
       image_url: product.image_url || '',
     })
     setShowForm(true)
+    setOpenMenuId(null) // Chiudi il menu
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Sei sicuro di voler eliminare questo prodotto?')) {
+  const handleDelete = async (productId) => {
+    if (!window.confirm('Sei sicuro di voler eliminare questo prodotto?')) return
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId)
+
+      if (error) throw error
+      
+      alert('Prodotto eliminato!')
+      await loadProducts()
+      setOpenMenuId(null) // Chiudi il menu
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      alert('Errore durante l\'eliminazione')
+    }
+  }
+
+  const moveProduct = async (productId, direction) => {
+    const currentIndex = products.findIndex(p => p.id === productId)
+    if (
+      (direction === 'up' && currentIndex === 0) ||
+      (direction === 'down' && currentIndex === products.length - 1)
+    ) {
       return
     }
 
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id)
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    const newProducts = [...products]
+    const [movedProduct] = newProducts.splice(currentIndex, 1)
+    newProducts.splice(newIndex, 0, movedProduct)
 
-    if (error) {
-      alert('Errore: ' + error.message)
-    } else {
-      alert('✅ Prodotto eliminato!')
-      loadProducts()
+    const updates = newProducts.map((product, index) => ({
+      id: product.id,
+      order: index,
+    }))
+
+    try {
+      for (const update of updates) {
+        await supabase
+          .from('products')
+          .update({ order: update.order })
+          .eq('id', update.id)
+      }
+      await loadProducts()
+    } catch (error) {
+      console.error('Error reordering products:', error)
+      alert('Errore durante il riordinamento')
     }
   }
 
-  const handleCancel = () => {
+  const resetForm = () => {
     setShowForm(false)
     setEditingProduct(null)
-    setFormData({ name: '', description: '', price: '', image_url: '' })
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      image_url: '',
+    })
   }
 
-  const moveProduct = async (index, direction) => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-    if (targetIndex < 0 || targetIndex >= products.length) return
-    
-    const newProducts = [...products]
-    ;[newProducts[index], newProducts[targetIndex]] = [newProducts[targetIndex], newProducts[index]]
-    
-    try {
-      const updates = newProducts.map((prod, idx) => 
-        supabase.from('products').update({ order: idx }).eq('id', prod.id)
-      )
-      
-      await Promise.all(updates)
-      setProducts(newProducts)
-    } catch (error) {
-      alert('Errore nel riordinamento: ' + error.message)
-    }
+  const toggleMenu = (productId) => {
+    setOpenMenuId(openMenuId === productId ? null : productId)
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
+    <div style={{ 
+      marginTop: '20px',
+      padding: '20px',
+      background: '#FFF3E0',
+      border: '2px solid #000000',
+      borderRadius: '8px',
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
         alignItems: 'center',
-        marginBottom: '15px'
+        marginBottom: '20px'
       }}>
-        <h4 style={{
+        <h3 style={{ 
           margin: 0,
-          fontSize: '16px',
+          fontSize: '18px',
           fontWeight: '700',
           color: '#000000',
           textTransform: 'uppercase',
           letterSpacing: '0.5px'
         }}>
-          🍽️ Prodotti
-        </h4>
-        
-        {!showForm && (
-          <button 
-            onClick={() => setShowForm(true)}
-            style={{
-              padding: '8px 16px',
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#FFFFFF',
-              background: '#FF9800',
-              border: '2px solid #000000',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              boxShadow: '2px 2px 0px #000000',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            + Prodotto
-          </button>
-        )}
+          📦 PRODOTTI
+        </h3>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          style={{
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontWeight: '700',
+            color: '#FFFFFF',
+            background: '#FF9800',
+            border: '2px solid #000000',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            boxShadow: '3px 3px 0px #000000',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseDown={(e) => {
+            e.target.style.transform = 'translate(2px, 2px)'
+            e.target.style.boxShadow = '1px 1px 0px #000000'
+          }}
+          onMouseUp={(e) => {
+            e.target.style.transform = 'translate(0, 0)'
+            e.target.style.boxShadow = '3px 3px 0px #000000'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translate(0, 0)'
+            e.target.style.boxShadow = '3px 3px 0px #000000'
+          }}
+        >
+          {showForm ? '✕ Chiudi' : '+ Prodotto'}
+        </button>
       </div>
 
-      {/* Form Prodotto */}
       {showForm && (
-        <div style={{
-          background: '#FFF3E0',
+        <form onSubmit={handleSubmit} style={{
+          background: '#FFFFFF',
           border: '2px solid #000000',
-          borderRadius: '4px',
-          padding: '20px',
-          marginBottom: '15px',
-          boxShadow: '3px 3px 0px #000000'
+          borderRadius: '8px',
+          padding: '25px',
+          marginBottom: '25px',
+          boxShadow: '4px 4px 0px #000000'
         }}>
           <h4 style={{
             margin: '0 0 20px 0',
             fontSize: '16px',
             fontWeight: '700',
-            color: '#000000'
+            color: '#000000',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
           }}>
             {editingProduct ? '✏️ Modifica Prodotto' : '➕ Nuovo Prodotto'}
           </h4>
 
-          <form onSubmit={handleSubmit}>
-            {/* Nome */}
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '13px',
-                fontWeight: '600',
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#000000',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Nome Prodotto *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Es: Margherita"
+              style={{
+                width: '100%',
+                padding: '12px 15px',
+                fontSize: '16px',
+                border: '2px solid #000000',
+                borderRadius: '4px',
+                background: '#F5F5F5',
                 color: '#000000',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                boxSizing: 'border-box',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => e.target.style.background = '#FFFFFF'}
+              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#000000',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Descrizione
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Descrizione opzionale del prodotto"
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '12px 15px',
+                fontSize: '16px',
+                border: '2px solid #000000',
+                borderRadius: '4px',
+                background: '#F5F5F5',
+                color: '#000000',
+                boxSizing: 'border-box',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto',
+                resize: 'vertical',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => e.target.style.background = '#FFFFFF'}
+              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#000000',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Prezzo (€) *
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              required
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              placeholder="Es: 8.50"
+              style={{
+                width: '100%',
+                padding: '12px 15px',
+                fontSize: '16px',
+                border: '2px solid #000000',
+                borderRadius: '4px',
+                background: '#F5F5F5',
+                color: '#000000',
+                boxSizing: 'border-box',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => e.target.style.background = '#FFFFFF'}
+              onBlur={(e) => e.target.style.background = '#F5F5F5'}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <ImageUpload
+              currentImageUrl={formData.image_url}
+              onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+              folder="products"
+            />
+            
+            <details style={{ marginTop: '10px' }}>
+              <summary style={{ 
+                cursor: 'pointer', 
+                color: '#666', 
+                fontSize: '14px',
+                fontWeight: '600'
               }}>
-                Nome Prodotto *
-              </label>
+                💡 Oppure inserisci URL manualmente
+              </summary>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
+                placeholder="https://esempio.com/prodotto.jpg"
+                value={formData.image_url}
+                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                 style={{
+                  marginTop: '10px',
                   width: '100%',
-                  padding: '10px 12px',
-                  fontSize: '15px',
+                  padding: '12px 15px',
+                  fontSize: '16px',
                   border: '2px solid #000000',
                   borderRadius: '4px',
-                  background: '#FFFFFF',
+                  background: '#F5F5F5',
                   color: '#000000',
                   boxSizing: 'border-box'
                 }}
-                placeholder="Es: Cappuccino"
               />
-            </div>
+            </details>
+          </div>
 
-            {/* Descrizione */}
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '13px',
-                fontWeight: '600',
-                color: '#000000',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Descrizione
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  fontSize: '15px',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  background: '#FFFFFF',
-                  color: '#000000',
-                  boxSizing: 'border-box',
-                  minHeight: '80px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical'
-                }}
-                placeholder="Descrizione del prodotto..."
-              />
-            </div>
-
-            {/* Prezzo */}
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '13px',
-                fontWeight: '600',
-                color: '#000000',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Prezzo (€) *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                required
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  fontSize: '15px',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  background: '#FFFFFF',
-                  color: '#000000',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Es: 2.50"
-              />
-            </div>
-
-            {/* Immagine */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '6px',
-                fontSize: '13px',
-                fontWeight: '600',
-                color: '#000000',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Immagine Prodotto
-              </label>
-              <ImageUpload
-                currentImageUrl={formData.image_url}
-                onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
-                folder="products"
-              />
-              
-              <details style={{ marginTop: '10px' }}>
-                <summary style={{
-                  cursor: 'pointer',
-                  color: '#666',
-                  fontSize: '13px',
-                  padding: '8px',
-                  background: '#FFFFFF',
-                  border: '1px solid #000000',
-                  borderRadius: '4px',
-                  userSelect: 'none'
-                }}>
-                  💡 Oppure inserisci URL manualmente
-                </summary>
-                <input
-                  type="text"
-                  placeholder="https://esempio.com/prodotto.jpg"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  style={{
-                    marginTop: '8px',
-                    width: '100%',
-                    padding: '10px 12px',
-                    fontSize: '13px',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
-                    background: '#FFFFFF',
-                    color: '#000000',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </details>
-            </div>
-
-            {/* Bottoni */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                type="submit" 
-                disabled={loading}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  color: '#FFFFFF',
-                  background: loading ? '#CCCCCC' : '#4CAF50',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  boxShadow: loading ? 'none' : '2px 2px 0px #000000'
-                }}
-              >
-                {loading ? '⏳ Salvando...' : (editingProduct ? '✓ Aggiorna' : '+ Crea')}
-              </button>
-
-              <button 
-                type="button"
-                onClick={handleCancel}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  color: '#000000',
-                  background: '#FFFFFF',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  boxShadow: '2px 2px 0px #000000'
-                }}
-              >
-                ✕ Annulla
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Lista Prodotti */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {products.map((product, index) => (
-          <div 
-            key={product.id} 
-            style={{
-              background: '#FFFFFF',
-              border: '2px solid #000000',
-              borderRadius: '4px',
-              padding: '15px',
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'center',
-              boxShadow: '2px 2px 0px #000000'
-            }}
-          >
-            {/* Frecce Riordinamento */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <button
-                onClick={() => moveProduct(index, 'up')}
-                disabled={index === 0}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  padding: '0',
-                  fontSize: '14px',
-                  background: index === 0 ? '#E0E0E0' : '#000000',
-                  color: index === 0 ? '#999' : '#FFFFFF',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: index === 0 ? 'not-allowed' : 'pointer',
-                  fontWeight: '700'
-                }}
-                title="Sposta su"
-              >
-                ▲
-              </button>
-              <button
-                onClick={() => moveProduct(index, 'down')}
-                disabled={index === products.length - 1}
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  padding: '0',
-                  fontSize: '14px',
-                  background: index === products.length - 1 ? '#E0E0E0' : '#000000',
-                  color: index === products.length - 1 ? '#999' : '#FFFFFF',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
-                  fontWeight: '700'
-                }}
-                title="Sposta giù"
-              >
-                ▼
-              </button>
-            </div>
-
-            {/* Immagine */}
-            {product.image_url && (
-              <img 
-                src={product.image_url} 
-                alt={product.name} 
-                style={{
-                  width: '70px',
-                  height: '70px',
-                  objectFit: 'cover',
-                  borderRadius: '4px',
-                  border: '2px solid #000000'
-                }} 
-              />
-            )}
-            
-            {/* Info Prodotto */}
-            <div style={{ flex: 1 }}>
-              <h4 style={{
-                margin: '0 0 4px 0',
-                fontSize: '15px',
-                fontWeight: '700',
-                color: '#000000'
-              }}>
-                {product.name}
-              </h4>
-              {product.description && (
-                <p style={{
-                  margin: '0 0 4px 0',
-                  fontSize: '13px',
-                  color: '#666',
-                  lineHeight: '1.4'
-                }}>
-                  {product.description}
-                </p>
-              )}
-              <p style={{
-                margin: '0',
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                flex: 1,
+                padding: '14px',
                 fontSize: '16px',
                 fontWeight: '700',
-                color: '#4CAF50'
-              }}>
-                € {product.price.toFixed(2)}
-              </p>
-            </div>
-            
-            {/* Bottoni Azione */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <button 
-                onClick={() => handleEdit(product)}
-                style={{
-                  padding: '8px 14px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#FFFFFF',
-                  background: '#2196F3',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px',
-                  boxShadow: '1px 1px 0px #000000'
-                }}
-              >
-                ✏️ Modifica
-              </button>
-              <button 
-                onClick={() => handleDelete(product.id)}
-                style={{
-                  padding: '8px 14px',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#FFFFFF',
-                  background: '#f44336',
-                  border: '2px solid #000000',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.3px',
-                  boxShadow: '1px 1px 0px #000000'
-                }}
-              >
-                🗑️ Elimina
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+                color: '#FFFFFF',
+                background: loading ? '#999999' : '#4CAF50',
+                border: '2px solid #000000',
+                borderRadius: '4px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                boxShadow: '3px 3px 0px #000000',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseDown={(e) => {
+                if (!loading) {
+                  e.target.style.transform = 'translate(2px, 2px)'
+                  e.target.style.boxShadow = '1px 1px 0px #000000'
+                }
+              }}
+              onMouseUp={(e) => {
+                if (!loading) {
+                  e.target.style.transform = 'translate(0, 0)'
+                  e.target.style.boxShadow = '3px 3px 0px #000000'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.target.style.transform = 'translate(0, 0)'
+                  e.target.style.boxShadow = '3px 3px 0px #000000'
+                }
+              }}
+            >
+              {loading ? 'Salvataggio...' : (editingProduct ? '💾 Aggiorna' : '✅ Crea')}
+            </button>
 
-      {/* Empty State */}
-      {products.length === 0 && !showForm && (
+            {editingProduct && (
+              <button
+                type="button"
+                onClick={resetForm}
+                style={{
+                  padding: '14px 24px',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  color: '#000000',
+                  background: '#FFFFFF',
+                  border: '2px solid #000000',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  boxShadow: '3px 3px 0px #000000',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseDown={(e) => {
+                  e.target.style.transform = 'translate(2px, 2px)'
+                  e.target.style.boxShadow = '1px 1px 0px #000000'
+                }}
+                onMouseUp={(e) => {
+                  e.target.style.transform = 'translate(0, 0)'
+                  e.target.style.boxShadow = '3px 3px 0px #000000'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translate(0, 0)'
+                  e.target.style.boxShadow = '3px 3px 0px #000000'
+                }}
+              >
+                Annulla
+              </button>
+            )}
+          </div>
+        </form>
+      )}
+
+      {products.length === 0 ? (
         <div style={{
+          padding: '40px',
           textAlign: 'center',
-          padding: '30px 20px',
-          background: '#F5F5F5',
-          border: '2px dashed #CCCCCC',
-          borderRadius: '4px'
+          border: '2px dashed #000000',
+          borderRadius: '8px',
+          background: '#FFFFFF',
+          color: '#666666'
         }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: '#666'
+          <p style={{ 
+            margin: 0, 
+            fontSize: '16px',
+            fontWeight: '600'
           }}>
-            🍽️ Nessun prodotto in questa categoria.<br />
-            <span style={{ fontSize: '13px' }}>Clicca su "+ Prodotto" per aggiungerne uno!</span>
+            📦 Nessun prodotto ancora.
           </p>
+          <p style={{ 
+            margin: '10px 0 0 0', 
+            fontSize: '14px'
+          }}>
+            Clicca su "+ Prodotto" per iniziare!
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {products.map((product, index) => (
+            <div
+              key={product.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '15px',
+                padding: '15px',
+                background: '#FFFFFF',
+                border: '2px solid #000000',
+                borderRadius: '8px',
+                boxShadow: '3px 3px 0px #000000',
+                position: 'relative'
+              }}
+            >
+              {/* Frecce riordinamento */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                gap: '5px'
+              }}>
+                <button
+                  onClick={() => moveProduct(product.id, 'up')}
+                  disabled={index === 0}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '16px',
+                    background: index === 0 ? '#F5F5F5' : '#FFFFFF',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    cursor: index === 0 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: index === 0 ? 0.5 : 1
+                  }}
+                >
+                  ▲
+                </button>
+                <button
+                  onClick={() => moveProduct(product.id, 'down')}
+                  disabled={index === products.length - 1}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    fontSize: '16px',
+                    background: index === products.length - 1 ? '#F5F5F5' : '#FFFFFF',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: index === products.length - 1 ? 0.5 : 1
+                  }}
+                >
+                  ▼
+                </button>
+              </div>
+
+              {/* Immagine prodotto */}
+              {product.image_url && (
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  style={{
+                    width: '70px',
+                    height: '70px',
+                    objectFit: 'cover',
+                    border: '2px solid #000000',
+                    borderRadius: '4px'
+                  }}
+                />
+              )}
+
+              {/* Info prodotto */}
+              <div style={{ flex: 1 }}>
+                <h4 style={{
+                  margin: '0 0 5px 0',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  color: '#000000'
+                }}>
+                  {product.name}
+                </h4>
+                {product.description && (
+                  <p style={{
+                    margin: '0 0 5px 0',
+                    fontSize: '14px',
+                    color: '#666666',
+                    lineHeight: '1.4'
+                  }}>
+                    {product.description}
+                  </p>
+                )}
+                <p style={{
+                  margin: 0,
+                  fontSize: '18px',
+                  fontWeight: '700',
+                  color: '#4CAF50'
+                }}>
+                  € {product.price.toFixed(2)}
+                </p>
+              </div>
+
+              {/* Menu a tre puntini */}
+              <div style={{ position: 'relative' }} ref={openMenuId === product.id ? menuRef : null}>
+                <button
+                  onClick={() => toggleMenu(product.id)}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    background: '#FFFFFF',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '2px 2px 0px #000000'
+                  }}
+                >
+                  ⋮
+                </button>
+
+                {/* Dropdown menu */}
+                {openMenuId === product.id && (
+                  <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '45px',
+                    background: '#FFFFFF',
+                    border: '2px solid #000000',
+                    borderRadius: '4px',
+                    boxShadow: '4px 4px 0px #000000',
+                    minWidth: '160px',
+                    zIndex: 1000
+                  }}>
+                    <button
+                      onClick={() => handleEdit(product)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#000000',
+                        background: '#FFFFFF',
+                        border: 'none',
+                        borderBottom: '2px solid #000000',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'background 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#E3F2FD'}
+                      onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+                    >
+                      <span>✏️</span>
+                      <span>Modifica</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDelete(product.id)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#f44336',
+                        background: '#FFFFFF',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        borderRadius: '0 0 2px 2px',
+                        transition: 'background 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#FFEBEE'}
+                      onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+                    >
+                      <span>🗑️</span>
+                      <span>Elimina</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
