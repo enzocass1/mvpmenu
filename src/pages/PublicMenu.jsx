@@ -358,7 +358,7 @@ function PublicMenu() {
   </div>
 
   {/* Mappa Google Maps */}
-  <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+  <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none' }}>
     <iframe
       src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
       width="100%"
@@ -531,7 +531,7 @@ const styles = {
     overflow: 'hidden',
     border: 'none',
     padding: 0,
-    boxShadow: '0 30px 80px rgba(0,0,0,0.25), 0 10px 30px rgba(0,0,0,0.15)',
+    boxShadow: 'none',
     transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
     transformStyle: 'preserve-3d',
     backgroundColor: '#f5f5f5',
@@ -650,7 +650,7 @@ const styles = {
     borderRadius: '12px',
     overflow: 'hidden',
     backgroundColor: '#ffffff',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+    boxShadow: 'none',
   },
   
   productButton: {
@@ -806,7 +806,7 @@ infoText: {
     padding: '12px',
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
     borderTop: '1px solid #e0e0e0',
-    boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
+    boxShadow: 'none',
     zIndex: 1000,
     backdropFilter: 'blur(10px)',
   },
@@ -825,7 +825,7 @@ infoText: {
     fontWeight: '600',
     fontSize: 'clamp(13px, 3.5vw, 15px)',
     transition: 'all 0.3s ease',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    boxShadow: 'none',
   },
 
   stickyButtonRight: {
@@ -842,7 +842,7 @@ infoText: {
     fontWeight: '600',
     fontSize: 'clamp(13px, 3.5vw, 15px)',
     transition: 'all 0.3s ease',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    boxShadow: 'none',
   },
 
   stickyButtonText: {
