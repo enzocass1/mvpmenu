@@ -11,6 +11,7 @@ function PublicMenu() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [expandedProducts, setExpandedProducts] = useState({})
+  const [showQR, setShowQR] = useState(false)
 
   useEffect(() => {
     loadMenu()
@@ -71,16 +72,17 @@ function PublicMenu() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
-        <p style={{ color: 'white' }}>Caricamento menu...</p>
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={styles.loadingText}>Caricamento menu...</p>
       </div>
     )
   }
 
   if (!restaurant) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
-        <p style={{ color: 'white' }}>Ristorante non trovato</p>
+      <div style={styles.loadingContainer}>
+        <p style={styles.loadingText}>Ristorante non trovato</p>
       </div>
     )
   }
@@ -91,77 +93,71 @@ function PublicMenu() {
     const categoryProducts = products[selectedCategory] || []
 
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#000' }}>
-        <div style={{ padding: '16px', borderBottom: '1px solid #333' }}>
+      <div style={styles.container}>
+        {/* Header Sticky */}
+        <div style={styles.productsHeader}>
           <button 
             onClick={() => setSelectedCategory(null)}
-            style={{ 
-              color: 'white', 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer',
-              padding: '8px',
-              fontSize: '14px'
-            }}
+            style={styles.backButton}
           >
-            ← Torna alle categorie
+            <span style={{ fontSize: '20px' }}>←</span>
+            <span style={{ marginLeft: '8px' }}>Categorie</span>
           </button>
-          <h1 style={{ color: 'white', fontSize: '24px', margin: '12px 0' }}>
+          <h1 style={styles.categoryTitle}>
             {categoryData?.name}
           </h1>
+          <p style={styles.productCount}>
+            {categoryProducts.length} {categoryProducts.length === 1 ? 'prodotto' : 'prodotti'}
+          </p>
         </div>
 
-        <div style={{ padding: '16px' }}>
-          {categoryProducts.map((product) => (
-            <div key={product.id} style={{ 
-              marginBottom: '12px', 
-              border: '1px solid #333', 
-              borderRadius: '8px' 
-            }}>
-              <button
-                onClick={() => toggleProduct(product.id)}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  background: '#111',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'white'
-                }}
-              >
-                <span>{product.name}</span>
-                <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                  € {product.price.toFixed(2)}
-                </span>
-              </button>
-              
-              {expandedProducts[product.id] && (
-                <div style={{ padding: '12px', backgroundColor: '#1a1a1a' }}>
-                  {product.image_url && (
-                    <img 
-                      src={product.image_url} 
-                      alt={product.name} 
-                      style={{ 
-                        width: '100%', 
-                        maxHeight: '200px', 
-                        objectFit: 'cover', 
-                        borderRadius: '4px',
-                        marginBottom: '12px'
-                      }} 
-                    />
-                  )}
-                  {product.description && (
-                    <p style={{ color: '#ccc', fontSize: '14px', margin: 0 }}>
-                      {product.description}
-                    </p>
-                  )}
-                </div>
-              )}
+        {/* Lista Prodotti */}
+        <div style={styles.productsContainer}>
+          {categoryProducts.length === 0 ? (
+            <div style={styles.emptyState}>
+              <span style={{ fontSize: '48px', marginBottom: '16px' }}>🍽️</span>
+              <p style={{ color: '#999', fontSize: '16px' }}>
+                Nessun prodotto in questa categoria
+              </p>
             </div>
-          ))}
+          ) : (
+            categoryProducts.map((product) => (
+              <div key={product.id} style={styles.productCard}>
+                <button
+                  onClick={() => toggleProduct(product.id)}
+                  style={styles.productButton}
+                >
+                  <div style={styles.productHeader}>
+                    <span style={styles.productName}>{product.name}</span>
+                    <span style={styles.productPrice}>
+                      €{product.price.toFixed(2)}
+                    </span>
+                  </div>
+                  <span style={styles.expandIcon}>
+                    {expandedProducts[product.id] ? '▲' : '▼'}
+                  </span>
+                </button>
+                
+                {expandedProducts[product.id] && (
+                  <div style={styles.productDetails}>
+                    {product.image_url && (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name} 
+                        style={styles.productImage}
+                        loading="lazy"
+                      />
+                    )}
+                    {product.description && (
+                      <p style={styles.productDescription}>
+                        {product.description}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     )
@@ -169,70 +165,50 @@ function PublicMenu() {
 
   // Vista Home
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000' }}>
+    <div style={styles.container}>
       {/* Header */}
-      <div style={{ 
-        padding: '32px 16px', 
-        textAlign: 'center', 
-        borderBottom: '1px solid #333'
-      }}>
+      <header style={styles.header}>
         {restaurant.logo_url && (
           <img 
             src={restaurant.logo_url} 
             alt={restaurant.name} 
-            style={{ height: '60px', marginBottom: '16px' }} 
+            style={styles.logo}
+            loading="eager"
           />
         )}
-        <h1 style={{ 
-          color: 'white', 
-          fontSize: '32px', 
-          margin: '0 0 16px 0'
-        }}>
+        <h1 style={styles.restaurantName}>
           {restaurant.name}
         </h1>
-      </div>
+        <p style={styles.subtitle}>
+          Scorri per esplorare le categorie
+        </p>
+      </header>
 
-      {/* Categorie */}
-      <div style={{ padding: '40px 20px' }}>
-        <div style={{ position: 'relative', maxWidth: '400px', margin: '0 auto' }}>
+      {/* Carousel Categorie */}
+      <section style={styles.carouselSection}>
+        <div style={styles.carouselContainer}>
+          {/* Frecce Navigazione */}
           {categories.length > 1 && (
             <>
-              <button onClick={prevSlide} style={{ 
-                position: 'absolute', 
-                left: '10px', 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                zIndex: 10,
-                background: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer'
-              }}>
-                ←
+              <button 
+                onClick={prevSlide} 
+                style={{...styles.navButton, ...styles.navButtonLeft}}
+                aria-label="Categoria precedente"
+              >
+                <span style={{ fontSize: '24px' }}>←</span>
               </button>
-              <button onClick={nextSlide} style={{ 
-                position: 'absolute', 
-                right: '10px', 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                zIndex: 10,
-                background: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
-                cursor: 'pointer'
-              }}>
-                →
+              <button 
+                onClick={nextSlide} 
+                style={{...styles.navButton, ...styles.navButtonRight}}
+                aria-label="Categoria successiva"
+              >
+                <span style={{ fontSize: '24px' }}>→</span>
               </button>
             </>
           )}
 
-          <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* Card Categoria */}
+          <div style={styles.carouselWrapper}>
             {categories.map((category, index) => {
               if (index !== currentIndex) return null
               
@@ -240,73 +216,489 @@ function PublicMenu() {
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  style={{ 
-                    width: '90%',
-                    maxWidth: '320px',
-                    height: '350px',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    padding: 0
-                  }}
+                  style={styles.categoryCard}
+                  aria-label={`Visualizza ${category.name}`}
                 >
                   <img 
-                    src={category.image_url || 'https://via.placeholder.com/400'} 
+                    src={category.image_url || 'https://via.placeholder.com/400x500/333/fff?text=Nessuna+Immagine'} 
                     alt={category.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={styles.categoryImage}
+                    loading="lazy"
                   />
-                  <div style={{ 
-                    position: 'absolute', 
-                    bottom: 0, 
-                    left: 0, 
-                    right: 0,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
-                    padding: '20px',
-                    color: 'white'
-                  }}>
-                    <h2 style={{ margin: 0, fontSize: '24px' }}>{category.name}</h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
-                      {products[category.id]?.length || 0} prodotti
+                  <div style={styles.categoryOverlay}>
+                    <h2 style={styles.categoryName}>{category.name}</h2>
+                    <p style={styles.categoryProductCount}>
+                      {products[category.id]?.length || 0} {(products[category.id]?.length || 0) === 1 ? 'prodotto' : 'prodotti'}
                     </p>
                   </div>
                 </button>
               )
             })}
           </div>
-        </div>
-      </div>
 
-      {/* Info */}
-      <div style={{ backgroundColor: 'white', padding: '40px 20px' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h3 style={{ marginBottom: '24px' }}>Informazioni</h3>
+          {/* Indicatori */}
+          {categories.length > 1 && (
+            <div style={styles.indicators}>
+              {categories.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  style={{
+                    ...styles.indicator,
+                    ...(index === currentIndex ? styles.indicatorActive : {})
+                  }}
+                  aria-label={`Vai alla categoria ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Informazioni */}
+      <section style={styles.infoSection}>
+        <div style={styles.infoContainer}>
+          <h2 style={styles.infoTitle}>📍 Dove Siamo</h2>
           
-          <div style={{ marginBottom: '16px' }}>
-            <strong>📍 Indirizzo:</strong>
-            <p style={{ margin: '4px 0' }}>{restaurant.address}</p>
+          <div style={styles.infoCard}>
+            <div style={styles.infoItem}>
+              <span style={styles.infoIcon}>📍</span>
+              <div>
+                <strong style={styles.infoLabel}>Indirizzo</strong>
+                <p style={styles.infoText}>{restaurant.address}</p>
+              </div>
+            </div>
+
+            <div style={styles.infoItem}>
+              <span style={styles.infoIcon}>📞</span>
+              <div>
+                <strong style={styles.infoLabel}>Telefono</strong>
+                <a 
+                  href={`tel:${restaurant.phone}`}
+                  style={styles.phoneLink}
+                >
+                  {restaurant.phone}
+                </a>
+              </div>
+            </div>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <strong>📞 Telefono:</strong>
-            <p style={{ margin: '4px 0' }}>{restaurant.phone}</p>
-          </div>
+          {/* Pulsante Condividi */}
+          <button
+            onClick={() => setShowQR(!showQR)}
+            style={styles.shareButton}
+          >
+            {showQR ? '✕ Chiudi QR Code' : '📱 Condividi Menu'}
+          </button>
+
+          {showQR && (
+            <div style={styles.qrContainer}>
+              <p style={styles.qrText}>Scansiona per condividere</p>
+              <div style={styles.qrPlaceholder}>
+                [QR CODE]
+              </div>
+              <p style={styles.urlText}>
+                {window.location.href}
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      </section>
 
       {/* Footer */}
-      <div style={{ 
-        backgroundColor: '#111', 
-        padding: '24px', 
-        textAlign: 'center'
-      }}>
-        <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
+      <footer style={styles.footer}>
+        <p style={styles.footerText}>
           © 2025 {restaurant.name}
         </p>
-      </div>
+        <p style={styles.footerPowered}>
+          Powered by <strong>MVPMenu</strong>
+        </p>
+      </footer>
     </div>
   )
+}
+
+// Stili Responsive
+const styles = {
+  // Layout Base
+  container: {
+    minHeight: '100vh',
+    backgroundColor: '#000',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  },
+
+  // Loading
+  loadingContainer: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000',
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #333',
+    borderTop: '4px solid #4CAF50',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    marginBottom: '16px',
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: '16px',
+  },
+
+  // Header Home
+  header: {
+    padding: '40px 20px',
+    textAlign: 'center',
+    borderBottom: '1px solid #222',
+  },
+  logo: {
+    height: '60px',
+    maxWidth: '100%',
+    objectFit: 'contain',
+    marginBottom: '20px',
+  },
+  restaurantName: {
+    color: 'white',
+    fontSize: 'clamp(24px, 6vw, 40px)',
+    fontWeight: '300',
+    letterSpacing: '2px',
+    margin: '0 0 12px 0',
+    textTransform: 'uppercase',
+  },
+  subtitle: {
+    color: '#999',
+    fontSize: 'clamp(12px, 3vw, 14px)',
+    margin: 0,
+  },
+
+  // Carousel
+  carouselSection: {
+    padding: '40px 20px',
+  },
+  carouselContainer: {
+    position: 'relative',
+    maxWidth: '500px',
+    margin: '0 auto',
+  },
+  carouselWrapper: {
+    height: 'clamp(350px, 70vw, 450px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryCard: {
+    width: '90%',
+    maxWidth: '350px',
+    height: '100%',
+    borderRadius: '20px',
+    overflow: 'hidden',
+    border: 'none',
+    cursor: 'pointer',
+    position: 'relative',
+    padding: 0,
+    transition: 'transform 0.2s ease',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  categoryOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%)',
+    padding: '30px 20px',
+    color: 'white',
+  },
+  categoryName: {
+    margin: 0,
+    fontSize: 'clamp(20px, 5vw, 28px)',
+    fontWeight: 'bold',
+    letterSpacing: '1px',
+  },
+  categoryProductCount: {
+    margin: '8px 0 0 0',
+    fontSize: 'clamp(12px, 3vw, 14px)',
+    opacity: 0.9,
+  },
+
+  // Bottoni Navigazione
+  navButton: {
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    zIndex: 10,
+    background: 'rgba(76, 175, 80, 0.9)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '50%',
+    width: 'clamp(40px, 10vw, 50px)',
+    height: 'clamp(40px, 10vw, 50px)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+  },
+  navButtonLeft: {
+    left: 'clamp(5px, 2vw, 10px)',
+  },
+  navButtonRight: {
+    right: 'clamp(5px, 2vw, 10px)',
+  },
+
+  // Indicatori
+  indicators: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '8px',
+    marginTop: '20px',
+  },
+  indicator: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    border: 'none',
+    background: '#333',
+    cursor: 'pointer',
+    padding: 0,
+    transition: 'all 0.2s ease',
+  },
+  indicatorActive: {
+    background: '#4CAF50',
+    width: '24px',
+    borderRadius: '5px',
+  },
+
+  // Vista Prodotti
+  productsHeader: {
+    padding: '20px',
+    borderBottom: '1px solid #222',
+    position: 'sticky',
+    top: 0,
+    backgroundColor: '#000',
+    zIndex: 100,
+  },
+  backButton: {
+    display: 'flex',
+    alignItems: 'center',
+    color: '#4CAF50',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '8px 0',
+    fontSize: 'clamp(14px, 3.5vw, 16px)',
+    fontWeight: '500',
+    marginBottom: '12px',
+  },
+  categoryTitle: {
+    color: 'white',
+    fontSize: 'clamp(24px, 6vw, 32px)',
+    margin: '0 0 8px 0',
+    fontWeight: 'bold',
+  },
+  productCount: {
+    color: '#999',
+    fontSize: 'clamp(12px, 3vw, 14px)',
+    margin: 0,
+  },
+
+  // Lista Prodotti
+  productsContainer: {
+    padding: '16px',
+    maxWidth: '800px',
+    margin: '0 auto',
+  },
+  productCard: {
+    marginBottom: '12px',
+    border: '1px solid #222',
+    borderRadius: '12px',
+    overflow: 'hidden',
+    backgroundColor: '#111',
+    transition: 'border-color 0.2s ease',
+  },
+  productButton: {
+    width: '100%',
+    padding: '16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: 'white',
+    gap: '12px',
+  },
+  productHeader: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  productName: {
+    fontSize: 'clamp(14px, 4vw, 16px)',
+    fontWeight: '500',
+    textAlign: 'left',
+  },
+  productPrice: {
+    color: '#4CAF50',
+    fontWeight: 'bold',
+    fontSize: 'clamp(14px, 4vw, 16px)',
+    whiteSpace: 'nowrap',
+  },
+  expandIcon: {
+    fontSize: '12px',
+    color: '#666',
+  },
+  productDetails: {
+    padding: '0 16px 16px 16px',
+    backgroundColor: '#0a0a0a',
+    animation: 'slideDown 0.3s ease',
+  },
+  productImage: {
+    width: '100%',
+    maxHeight: '250px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    marginBottom: '12px',
+  },
+  productDescription: {
+    color: '#ccc',
+    fontSize: 'clamp(13px, 3.5vw, 15px)',
+    margin: 0,
+    lineHeight: '1.6',
+  },
+
+  // Empty State
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+    textAlign: 'center',
+  },
+
+  // Info Section
+  infoSection: {
+    backgroundColor: 'white',
+    padding: '40px 20px',
+  },
+  infoContainer: {
+    maxWidth: '600px',
+    margin: '0 auto',
+  },
+  infoTitle: {
+    fontSize: 'clamp(20px, 5vw, 24px)',
+    marginBottom: '24px',
+    fontWeight: 'bold',
+  },
+  infoCard: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: '12px',
+    padding: '20px',
+    marginBottom: '24px',
+  },
+  infoItem: {
+    display: 'flex',
+    gap: '16px',
+    marginBottom: '20px',
+  },
+  infoIcon: {
+    fontSize: '24px',
+    flexShrink: 0,
+  },
+  infoLabel: {
+    display: 'block',
+    fontSize: 'clamp(12px, 3vw, 14px)',
+    color: '#666',
+    marginBottom: '4px',
+  },
+  infoText: {
+    margin: 0,
+    fontSize: 'clamp(14px, 3.5vw, 16px)',
+    lineHeight: '1.5',
+  },
+  phoneLink: {
+    color: '#4CAF50',
+    textDecoration: 'none',
+    fontSize: 'clamp(14px, 3.5vw, 16px)',
+    fontWeight: '500',
+  },
+
+  // Share Button
+  shareButton: {
+    width: '100%',
+    padding: '16px',
+    background: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    cursor: 'pointer',
+    fontSize: 'clamp(14px, 3.5vw, 16px)',
+    fontWeight: 'bold',
+    transition: 'background 0.2s ease',
+  },
+
+  // QR Code
+  qrContainer: {
+    marginTop: '24px',
+    padding: '24px',
+    backgroundColor: '#f5f5f5',
+    borderRadius: '12px',
+    textAlign: 'center',
+  },
+  qrText: {
+    fontSize: 'clamp(13px, 3vw, 14px)',
+    color: '#666',
+    marginBottom: '16px',
+  },
+  qrPlaceholder: {
+    width: '200px',
+    height: '200px',
+    margin: '0 auto 16px',
+    backgroundColor: '#ddd',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '16px',
+    color: '#999',
+  },
+  urlText: {
+    fontSize: 'clamp(11px, 2.5vw, 12px)',
+    color: '#999',
+    wordBreak: 'break-all',
+  },
+
+  // Footer
+  footer: {
+    backgroundColor: '#0a0a0a',
+    padding: '32px 20px',
+    textAlign: 'center',
+    borderTop: '1px solid #222',
+  },
+  footerText: {
+    color: '#666',
+    margin: '0 0 8px 0',
+    fontSize: 'clamp(12px, 3vw, 14px)',
+  },
+  footerPowered: {
+    color: '#444',
+    margin: 0,
+    fontSize: 'clamp(11px, 2.5vw, 12px)',
+  },
 }
 
 export default PublicMenu
