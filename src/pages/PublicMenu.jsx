@@ -11,6 +11,7 @@ function PublicMenu() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [expandedProducts, setExpandedProducts] = useState({})
+  const [openingHours, setOpeningHours] = useState([])
   
   // Drag state
   const [isDragging, setIsDragging] = useState(false)
@@ -62,6 +63,14 @@ function PublicMenu() {
           productsMap[category.id] = productsData || []
         }
         setProducts(productsMap)
+        // Carica orari di apertura
+const { data: hoursData } = await supabase
+  .from('opening_hours')
+  .select('*')
+  .eq('restaurant_id', restaurantData.id)
+  .order('order', { ascending: true })
+
+setOpeningHours(hoursData || [])
       }
     } catch (error) {
       console.error('Errore:', error)
@@ -111,6 +120,32 @@ function PublicMenu() {
       [productId]: !prev[productId]
     }))
   }
+  const formatOpeningHours = () => {
+  if (openingHours.length === 0) {
+    return <div style={styles.infoText}>Orari non disponibili</div>
+  }
+
+  return openingHours.map((hour, index) => {
+    // Costruisci stringa giorni
+    let dayString = hour.day_start
+    if (hour.day_end && hour.day_end !== hour.day_start) {
+      dayString += `-${hour.day_end}`
+    }
+
+    // Costruisci stringa orari
+    let timeString = `${hour.time_start_1}-${hour.time_end_1}`
+    if (hour.time_start_2 && hour.time_end_2) {
+      timeString += `, ${hour.time_start_2}-${hour.time_end_2}`
+    }
+
+    return (
+      <div key={index} style={{ marginBottom: '8px' }}>
+        <span style={{ fontWeight: '600', color: '#000' }}>{dayString}:</span>{' '}
+        <span style={styles.infoText}>{timeString}</span>
+      </div>
+    )
+  })
+}
 
   if (loading) {
     return (
@@ -330,14 +365,13 @@ function PublicMenu() {
         <div style={styles.infoCard}>
   {/* ORARI - NUOVO */}
   <div style={styles.infoItem}>
-    <div style={{ flex: 1 }}>
-      <div style={styles.infoLabel}>Orari di Apertura</div>
-      <div style={styles.infoText}>
-        {/* TODO: Caricare orari dal database */}
-        Lun-Ven: 12:00-15:00, 19:00-23:00
-      </div>
+  <div style={{ flex: 1 }}>
+    <div style={styles.infoLabel}>Orari di Apertura</div>
+    <div style={{ marginTop: '8px' }}>
+      {formatOpeningHours()}
     </div>
   </div>
+</div>
 
   {/* INDIRIZZO */}
   <div style={styles.infoItem}>
