@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import ProductManager from './ProductManager'
-import ImageUpload from './ImageUpload'  // ← AGGIUNGI QUESTA RIGA
+import ImageUpload from './ImageUpload'
 
 function CategoryManager({ restaurantId }) {
   const [categories, setCategories] = useState([])
@@ -127,29 +127,47 @@ function CategoryManager({ restaurantId }) {
         <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
           <h3>{editingCategory ? 'Modifica Categoria' : 'Nuova Categoria'}</h3>
           <form onSubmit={handleSubmit}>
+            {/* CAMPO NOME */}
             <div style={{ marginBottom: '15px' }}>
-  <ImageUpload
-    currentImageUrl={formData.image_url}
-    onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
-    folder="categories"
-  />
-  
-  <details style={{ marginTop: '10px' }}>
-    <summary style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}>
-      💡 Oppure inserisci URL manualmente
-    </summary>
-    <input
-      type="text"
-      placeholder="https://esempio.com/categoria.jpg"
-      value={formData.image_url}
-      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-      style={{ marginTop: '10px', width: '100%', padding: '8px' }}
-    />
-  </details>
-</div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Nome Categoria *
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                style={{ width: '100%', padding: '10px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '4px' }}
+                placeholder="Es: Antipasti, Primi, Dolci..."
+              />
+            </div>
 
-         
+            {/* IMMAGINE CATEGORIA */}
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                Immagine Categoria
+              </label>
+              <ImageUpload
+                currentImageUrl={formData.image_url}
+                onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+                folder="categories"
+              />
+              
+              <details style={{ marginTop: '10px' }}>
+                <summary style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}>
+                  💡 Oppure inserisci URL manualmente
+                </summary>
+                <input
+                  type="text"
+                  placeholder="https://esempio.com/categoria.jpg"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  style={{ marginTop: '10px', width: '100%', padding: '8px' }}
+                />
+              </details>
+            </div>
 
+            {/* BOTTONI */}
             <div style={{ display: 'flex', gap: '10px' }}>
               <button 
                 type="submit" 
