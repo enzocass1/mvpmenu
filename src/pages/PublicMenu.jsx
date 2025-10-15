@@ -290,27 +290,24 @@ function PublicMenu() {
               })}
             </div>
 
-            {/* Frecce stilizzate */}
-            {categories.length > 1 && (
-              <>
-                <button 
-                  onClick={prevSlide} 
-                  style={{...styles.navButton, left: '20px'}}
-                  aria-label="Categoria precedente"
-                >
-                  ‹
-                </button>
-                <button 
-                  onClick={nextSlide} 
-                  style={{...styles.navButton, right: '20px'}}
-                  aria-label="Categoria successiva"
-                >
-                  ›
-                </button>
-              </>
-            )}
-
             
+
+            {/* Indicatori */}
+            {categories.length > 1 && (
+              <div style={styles.indicators}>
+                {categories.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentIndex(index)}
+                    style={{
+                      ...styles.indicator,
+                      ...(index === currentIndex ? styles.indicatorActive : {})
+                    }}
+                    aria-label={`Vai alla categoria ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
