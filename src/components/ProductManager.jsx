@@ -7,6 +7,7 @@ function ProductManager({ category }) {
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [openProductId, setOpenProductId] = useState(null) // Per gestire quale prodotto è aperto
   
   const [formData, setFormData] = useState({
     name: '',
@@ -90,6 +91,7 @@ function ProductManager({ category }) {
       image_url: product.image_url || '',
     })
     setShowForm(true)
+    setOpenProductId(null)
   }
 
   const handleDelete = async (productId) => {
@@ -105,6 +107,7 @@ function ProductManager({ category }) {
       
       alert('Prodotto eliminato!')
       await loadProducts()
+      setOpenProductId(null)
     } catch (error) {
       console.error('Error deleting product:', error)
       alert('Errore durante l\'eliminazione')
@@ -153,6 +156,10 @@ function ProductManager({ category }) {
       price: '',
       image_url: '',
     })
+  }
+
+  const toggleProduct = (productId) => {
+    setOpenProductId(openProductId === productId ? null : productId)
   }
 
   return (
@@ -475,217 +482,312 @@ function ProductManager({ category }) {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {products.map((product, index) => (
             <div
               key={product.id}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '50px 80px 1fr',
-                gap: '12px',
-                alignItems: 'start',
-                padding: '15px',
                 background: '#FFFFFF',
                 border: '2px solid #000000',
                 borderRadius: '8px',
                 boxShadow: '3px 3px 0px #000000',
-                minHeight: '100px'
+                overflow: 'hidden'
               }}
             >
-              {/* Colonna 1: Bottoni verticali (Modifica + Frecce) */}
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                gap: '6px'
-              }}>
-                {/* Bottone Modifica */}
-                <button
-                  onClick={() => handleEdit(product)}
-                  style={{
-                    width: '42px',
-                    height: '42px',
+              {/* Header toggle (sempre visibile) */}
+              <button
+                onClick={() => toggleProduct(product.id)}
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#FFFFFF',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#F5F5F5'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  <span style={{ 
                     fontSize: '20px',
-                    background: '#2196F3',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '2px 2px 0px #000000',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseDown={(e) => {
-                    e.target.style.transform = 'translate(1px, 1px)'
-                    e.target.style.boxShadow = '1px 1px 0px #000000'
-                  }}
-                  onMouseUp={(e) => {
-                    e.target.style.transform = 'translate(0, 0)'
-                    e.target.style.boxShadow = '2px 2px 0px #000000'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translate(0, 0)'
-                    e.target.style.boxShadow = '2px 2px 0px #000000'
-                  }}
-                  title="Modifica prodotto"
-                >
-                  ✏️
-                </button>
-
-                {/* Freccia SU */}
-                <button
-                  onClick={() => moveProduct(product.id, 'up')}
-                  disabled={index === 0}
-                  style={{
-                    width: '42px',
-                    height: '38px',
-                    fontSize: '18px',
                     fontWeight: '700',
-                    background: index === 0 ? '#F5F5F5' : '#FFFFFF',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
-                    cursor: index === 0 ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: index === 0 ? 0.4 : 1,
-                    transition: 'all 0.2s ease'
-                  }}
-                  title="Sposta su"
-                >
-                  ▲
-                </button>
-
-                {/* Freccia GIÙ */}
-                <button
-                  onClick={() => moveProduct(product.id, 'down')}
-                  disabled={index === products.length - 1}
-                  style={{
-                    width: '42px',
-                    height: '38px',
-                    fontSize: '18px',
-                    fontWeight: '700',
-                    background: index === products.length - 1 ? '#F5F5F5' : '#FFFFFF',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
-                    cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: index === products.length - 1 ? 0.4 : 1,
-                    transition: 'all 0.2s ease'
-                  }}
-                  title="Sposta giù"
-                >
-                  ▼
-                </button>
-              </div>
-
-              {/* Colonna 2: Immagine prodotto */}
-              <div style={{ 
-                width: '80px', 
-                height: '80px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid #000000',
-                borderRadius: '4px',
-                overflow: 'hidden',
-                background: product.image_url ? 'transparent' : '#F5F5F5',
-                flexShrink: 0
-              }}>
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover'
-                    }}
-                  />
-                ) : (
-                  <span style={{ fontSize: '28px' }}>🍽️</span>
-                )}
-              </div>
-
-              {/* Colonna 3: Info prodotto + Elimina */}
-              <div style={{ 
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                minWidth: 0
-              }}>
-                {/* Nome */}
-                <h4 style={{
-                  margin: 0,
-                  fontSize: '17px',
-                  fontWeight: '700',
-                  color: '#000000',
-                  lineHeight: '1.2',
-                  wordBreak: 'break-word'
-                }}>
-                  {product.name}
-                </h4>
-
-                {/* Descrizione */}
-                {product.description && (
-                  <p style={{
-                    margin: 0,
-                    fontSize: '14px',
-                    color: '#666666',
-                    lineHeight: '1.3',
-                    wordBreak: 'break-word'
+                    transition: 'transform 0.3s ease',
+                    transform: openProductId === product.id ? 'rotate(90deg)' : 'rotate(0deg)'
                   }}>
-                    {product.description}
-                  </p>
-                )}
-
-                {/* Prezzo */}
-                <p style={{
-                  margin: 0,
-                  fontSize: '20px',
+                    ▶
+                  </span>
+                  <span style={{ 
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    color: '#000000'
+                  }}>
+                    {product.name}
+                  </span>
+                </div>
+                <span style={{ 
+                  fontSize: '18px',
                   fontWeight: '700',
                   color: '#4CAF50'
                 }}>
                   € {product.price.toFixed(2)}
-                </p>
+                </span>
+              </button>
 
-                {/* Bottone Elimina */}
-                <button
-                  onClick={() => handleDelete(product.id)}
-                  style={{
-                    marginTop: '8px',
-                    padding: '10px 16px',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    color: '#FFFFFF',
-                    background: '#f44336',
-                    border: '2px solid #000000',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    boxShadow: '2px 2px 0px #000000',
-                    transition: 'all 0.2s ease',
-                    alignSelf: 'flex-start'
-                  }}
-                  onMouseDown={(e) => {
-                    e.target.style.transform = 'translate(1px, 1px)'
-                    e.target.style.boxShadow = '1px 1px 0px #000000'
-                  }}
-                  onMouseUp={(e) => {
-                    e.target.style.transform = 'translate(0, 0)'
-                    e.target.style.boxShadow = '2px 2px 0px #000000'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translate(0, 0)'
-                    e.target.style.boxShadow = '2px 2px 0px #000000'
-                  }}
-                >
-                  🗑️ Elimina
-                </button>
-              </div>
+              {/* Contenuto dettagliato (visibile solo quando aperto) */}
+              {openProductId === product.id && (
+                <div style={{
+                  padding: '20px',
+                  borderTop: '2px solid #000000',
+                  background: '#FAFAFA'
+                }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '100px 1fr',
+                    gap: '20px',
+                    alignItems: 'start'
+                  }}>
+                    {/* Colonna sinistra: Bottoni azioni */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      gap: '8px'
+                    }}>
+                      {/* Modifica */}
+                      <button
+                        onClick={() => handleEdit(product)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 8px',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          color: '#FFFFFF',
+                          background: '#2196F3',
+                          border: '2px solid #000000',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          boxShadow: '2px 2px 0px #000000',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                        onMouseDown={(e) => {
+                          e.target.style.transform = 'translate(1px, 1px)'
+                          e.target.style.boxShadow = '1px 1px 0px #000000'
+                        }}
+                        onMouseUp={(e) => {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }}
+                      >
+                        <span>✏️</span>
+                        <span>Modifica</span>
+                      </button>
+
+                      {/* Elimina */}
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        style={{
+                          width: '100%',
+                          padding: '12px 8px',
+                          fontSize: '13px',
+                          fontWeight: '700',
+                          color: '#FFFFFF',
+                          background: '#f44336',
+                          border: '2px solid #000000',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          boxShadow: '2px 2px 0px #000000',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                        onMouseDown={(e) => {
+                          e.target.style.transform = 'translate(1px, 1px)'
+                          e.target.style.boxShadow = '1px 1px 0px #000000'
+                        }}
+                        onMouseUp={(e) => {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.transform = 'translate(0, 0)'
+                          e.target.style.boxShadow = '2px 2px 0px #000000'
+                        }}
+                      >
+                        <span>🗑️</span>
+                        <span>Elimina</span>
+                      </button>
+
+                      {/* Freccia SU */}
+                      <button
+                        onClick={() => moveProduct(product.id, 'up')}
+                        disabled={index === 0}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          background: index === 0 ? '#E0E0E0' : '#FFFFFF',
+                          border: '2px solid #000000',
+                          borderRadius: '4px',
+                          cursor: index === 0 ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: index === 0 ? 0.5 : 1,
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        ▲
+                      </button>
+
+                      {/* Freccia GIÙ */}
+                      <button
+                        onClick={() => moveProduct(product.id, 'down')}
+                        disabled={index === products.length - 1}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          background: index === products.length - 1 ? '#E0E0E0' : '#FFFFFF',
+                          border: '2px solid #000000',
+                          borderRadius: '4px',
+                          cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: index === products.length - 1 ? 0.5 : 1,
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        ▼
+                      </button>
+                    </div>
+
+                    {/* Colonna destra: Dettagli prodotto */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      gap: '15px'
+                    }}>
+                      {/* Immagine */}
+                      <div style={{ 
+                        width: '100%',
+                        maxWidth: '200px',
+                        height: '150px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid #000000',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        background: product.image_url ? 'transparent' : '#F5F5F5'
+                      }}>
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: '48px' }}>🍽️</span>
+                        )}
+                      </div>
+
+                      {/* Titolo */}
+                      <div>
+                        <h4 style={{
+                          margin: '0 0 5px 0',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#666666',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Titolo
+                        </h4>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: '#000000',
+                          lineHeight: '1.3'
+                        }}>
+                          {product.name}
+                        </p>
+                      </div>
+
+                      {/* Descrizione */}
+                      {product.description && (
+                        <div>
+                          <h4 style={{
+                            margin: '0 0 5px 0',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#666666',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            Descrizione
+                          </h4>
+                          <p style={{
+                            margin: 0,
+                            fontSize: '15px',
+                            color: '#000000',
+                            lineHeight: '1.5'
+                          }}>
+                            {product.description}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Prezzo */}
+                      <div>
+                        <h4 style={{
+                          margin: '0 0 5px 0',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          color: '#666666',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Prezzo
+                        </h4>
+                        <p style={{
+                          margin: 0,
+                          fontSize: '24px',
+                          fontWeight: '700',
+                          color: '#4CAF50'
+                        }}>
+                          € {product.price.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
