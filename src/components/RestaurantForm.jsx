@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import ImageUpload from './ImageUpload'
 
 function RestaurantForm({ restaurant, onSave }) {
   const [loading, setLoading] = useState(false)
+  const [scriptLoaded, setScriptLoaded] = useState(false)
+  const addressInputRef = useRef(null)
+  const autocompleteRef = useRef(null)
+  
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -23,6 +27,46 @@ function RestaurantForm({ restaurant, onSave }) {
       })
     }
   }, [restaurant])
+
+  // Carica lo script di Google Maps
+  useEffect(() => {
+    if (window.google && window.google.maps) {
+      setScriptLoaded(true)
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&language=it`
+    script.async = true
+    script.defer = true
+    script.onload = () => setScriptLoaded(true)
+    document.head.appendChild(script)
+
+    return () => {
+      // Cleanup se necessario
+    }
+  }, [])
+
+  // Inizializza l'autocomplete quando lo script è caricato
+  useEffect(() => {
+    if (scriptLoaded && addressInputRef.current && !autocompleteRef.current) {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(
+        addressInputRef.current,
+        {
+          componentRestrictions: { country: 'it' },
+          fields: ['formatted_address', 'geometry', 'name'],
+          types: ['address']
+        }
+      )
+
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace()
+        if (place.formatted_address) {
+          setFormData(prev => ({ ...prev, address: place.formatted_address }))
+        }
+      })
+    }
+  }, [scriptLoaded])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -73,99 +117,313 @@ function RestaurantForm({ restaurant, onSave }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <h2>{restaurant ? 'Modifica Ristorante' : 'Crea il tuo Ristorante'}</h2>
+    <div style={{
+      maxWidth: '800px',
+      margin: '0 auto',
+      padding: '20px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    }}>
+      <form onSubmit={handleSubmit} style={{
+        background: '#FFFFFF',
+        border: '2px solid #000000',
+        borderRadius: '8px',
+        padding: '30px',
+        boxShadow: '4px 4px 0px #000000'
+      }}>
+        <h2 style={{
+          margin: '0 0 30px 0',
+          fontSize: '28px',
+          fontWeight: '700',
+          color: '#000000',
+          borderBottom: '3px solid #000000',
+          paddingBottom: '15px'
+        }}>
+          {restaurant ? 'Modifica Ristorante' : 'Crea il tuo Ristorante'}
+        </h2>
 
-      <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'block', marginBottom: '5px' }}>Nome Attività *</label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
-          style={{ width: '100%', padding: '8px' }}
-          placeholder="Es: Ristorante Da Mario"
-        />
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'block', marginBottom: '5px' }}>Logo Ristorante</label>
-        <ImageUpload
-          currentImageUrl={formData.logo_url}
-          onImageUploaded={(url) => setFormData({ ...formData, logo_url: url })}
-          folder="logos"
-        />
-        
-        <details style={{ marginTop: '10px' }}>
-          <summary style={{ cursor: 'pointer', color: '#666', fontSize: '14px' }}>
-            💡 Oppure inserisci URL manualmente
-          </summary>
+        {/* Nome Attività */}
+        <div style={{ marginBottom: '25px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#000000',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Nome Attività *
+          </label>
           <input
             type="text"
-            placeholder="https://esempio.com/logo.jpg"
-            value={formData.logo_url}
-            onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-            style={{ marginTop: '10px', width: '100%', padding: '8px' }}
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+            style={{
+              width: '100%',
+              padding: '12px 15px',
+              fontSize: '16px',
+              border: '2px solid #000000',
+              borderRadius: '4px',
+              background: '#F5F5F5',
+              color: '#000000',
+              boxSizing: 'border-box',
+              transition: 'all 0.2s ease'
+            }}
+            placeholder="Es: Ristorante Da Mario"
+            onFocus={(e) => e.target.style.background = '#FFFFFF'}
+            onBlur={(e) => e.target.style.background = '#F5F5F5'}
           />
-        </details>
-      </div>
+        </div>
 
-      <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'block', marginBottom: '5px' }}>Indirizzo *</label>
-        <input
-          type="text"
-          value={formData.address}
-          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-          required
-          style={{ width: '100%', padding: '8px' }}
-          placeholder="Es: Via Roma 123, Milano"
-        />
-      </div>
+        {/* Logo Ristorante */}
+        <div style={{ marginBottom: '25px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#000000',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Logo Ristorante
+          </label>
+          <ImageUpload
+            currentImageUrl={formData.logo_url}
+            onImageUploaded={(url) => setFormData({ ...formData, logo_url: url })}
+            folder="logos"
+          />
+          
+          <details style={{ marginTop: '15px' }}>
+            <summary style={{
+              cursor: 'pointer',
+              color: '#666',
+              fontSize: '14px',
+              padding: '10px',
+              background: '#F5F5F5',
+              border: '1px solid #000000',
+              borderRadius: '4px',
+              userSelect: 'none'
+            }}>
+              💡 Oppure inserisci URL manualmente
+            </summary>
+            <input
+              type="text"
+              placeholder="https://esempio.com/logo.jpg"
+              value={formData.logo_url}
+              onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+              style={{
+                marginTop: '10px',
+                width: '100%',
+                padding: '12px 15px',
+                fontSize: '14px',
+                border: '2px solid #000000',
+                borderRadius: '4px',
+                background: '#F5F5F5',
+                color: '#000000',
+                boxSizing: 'border-box'
+              }}
+            />
+          </details>
+        </div>
 
-      <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'block', marginBottom: '5px' }}>Telefono *</label>
-        <input
-          type="tel"
-          value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          required
-          style={{ width: '100%', padding: '8px' }}
-          placeholder="Es: +39 02 1234567"
-        />
-      </div>
+        {/* Indirizzo con Google Autocomplete */}
+        <div style={{ marginBottom: '25px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#000000',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Indirizzo * 🗺️
+          </label>
+          <input
+            ref={addressInputRef}
+            type="text"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            required
+            style={{
+              width: '100%',
+              padding: '12px 15px',
+              fontSize: '16px',
+              border: '2px solid #000000',
+              borderRadius: '4px',
+              background: '#F5F5F5',
+              color: '#000000',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Inizia a digitare l'indirizzo..."
+            onFocus={(e) => e.target.style.background = '#FFFFFF'}
+            onBlur={(e) => e.target.style.background = '#F5F5F5'}
+          />
+          <small style={{
+            display: 'block',
+            marginTop: '5px',
+            color: '#666',
+            fontSize: '12px'
+          }}>
+            💡 Inizia a digitare e seleziona dalla lista
+          </small>
+        </div>
 
-      <div style={{ marginBottom: '15px' }}>
-        <label style={{ display: 'block', marginBottom: '5px' }}>Sottodominio *</label>
-        <input
-          type="text"
-          value={formData.subdomain}
-          onChange={(e) => setFormData({ ...formData, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-          required
-          style={{ width: '100%', padding: '8px' }}
-          placeholder="es: damario"
-        />
-        <small style={{ color: '#666' }}>
-          Il tuo menu sarà disponibile su: {formData.subdomain || 'tuoristorante'}.mvpmenu.com
-        </small>
-      </div>
+        {/* Telefono */}
+        <div style={{ marginBottom: '25px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#000000',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Telefono *
+          </label>
+          <input
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            required
+            style={{
+              width: '100%',
+              padding: '12px 15px',
+              fontSize: '16px',
+              border: '2px solid #000000',
+              borderRadius: '4px',
+              background: '#F5F5F5',
+              color: '#000000',
+              boxSizing: 'border-box'
+            }}
+            placeholder="Es: +39 02 1234567"
+            onFocus={(e) => e.target.style.background = '#FFFFFF'}
+            onBlur={(e) => e.target.style.background = '#F5F5F5'}
+          />
+        </div>
 
-      <button 
-        type="submit" 
-        disabled={loading}
-        style={{ 
-          width: '100%', 
-          padding: '12px', 
-          background: '#4CAF50', 
-          color: 'white', 
-          border: 'none',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontSize: '16px',
-          borderRadius: '4px'
-        }}
-      >
-        {loading ? 'Salvando...' : (restaurant ? 'Aggiorna' : 'Crea Ristorante')}
-      </button>
-    </form>
+        {/* Sottodominio */}
+        <div style={{ marginBottom: '30px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#000000',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Sottodominio *
+          </label>
+          <input
+            type="text"
+            value={formData.subdomain}
+            onChange={(e) => setFormData({ 
+              ...formData, 
+              subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') 
+            })}
+            required
+            style={{
+              width: '100%',
+              padding: '12px 15px',
+              fontSize: '16px',
+              border: '2px solid #000000',
+              borderRadius: '4px',
+              background: '#F5F5F5',
+              color: '#000000',
+              boxSizing: 'border-box'
+            }}
+            placeholder="es: damario"
+            onFocus={(e) => e.target.style.background = '#FFFFFF'}
+            onBlur={(e) => e.target.style.background = '#F5F5F5'}
+          />
+          <small style={{
+            display: 'block',
+            marginTop: '8px',
+            color: '#666',
+            fontSize: '13px',
+            padding: '8px',
+            background: '#F5F5F5',
+            border: '1px solid #E0E0E0',
+            borderRadius: '4px'
+          }}>
+            🌐 Il tuo menu sarà disponibile su: <strong>{formData.subdomain || 'tuoristorante'}.mvpmenu.com</strong>
+          </small>
+        </div>
+
+        {/* Bottone Submit */}
+        <button 
+          type="submit" 
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '15px',
+            fontSize: '16px',
+            fontWeight: '700',
+            color: '#FFFFFF',
+            background: loading ? '#CCCCCC' : '#4CAF50',
+            border: '2px solid #000000',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            boxShadow: loading ? 'none' : '3px 3px 0px #000000',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseDown={(e) => {
+            if (!loading) {
+              e.currentTarget.style.transform = 'translateY(2px)'
+              e.currentTarget.style.boxShadow = '1px 1px 0px #000000'
+            }
+          }}
+          onMouseUp={(e) => {
+            if (!loading) {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '3px 3px 0px #000000'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '3px 3px 0px #000000'
+            }
+          }}
+        >
+          {loading ? '⏳ Salvando...' : (restaurant ? '✓ Aggiorna Ristorante' : '+ Crea Ristorante')}
+        </button>
+      </form>
+
+      {/* CSS per personalizzare dropdown Google */}
+      <style>{`
+        .pac-container {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          border: 2px solid #000000 !important;
+          border-radius: 4px;
+          box-shadow: 4px 4px 0px #000000 !important;
+          margin-top: 5px;
+          z-index: 10000;
+        }
+        .pac-item {
+          padding: 10px 15px;
+          font-size: 14px;
+          border-top: 1px solid #E0E0E0;
+          cursor: pointer;
+        }
+        .pac-item:hover {
+          background: #F5F5F5;
+        }
+        .pac-item-query {
+          font-weight: 600;
+          color: #000000;
+        }
+        .pac-icon {
+          margin-top: 5px;
+        }
+      `}</style>
+    </div>
   )
 }
 
