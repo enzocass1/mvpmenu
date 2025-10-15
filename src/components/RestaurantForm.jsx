@@ -368,7 +368,9 @@ function RestaurantForm({ restaurant, onSave }) {
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             required
-            autoComplete="off"
+            autoComplete="new-password"
+            name="address-field"
+            id="address-autocomplete-input"
             style={{
               width: '100%',
               padding: '12px 15px',
@@ -565,6 +567,26 @@ function RestaurantForm({ restaurant, onSave }) {
 
       {/* CSS DEFINITIVO - Blocca completamente le icone di Google Places */}
       <style>{`
+        /* Disabilita autocomplete del browser */
+        input[name="address-field"]:-webkit-autofill,
+        input[name="address-field"]:-webkit-autofill:hover,
+        input[name="address-field"]:-webkit-autofill:focus,
+        input[name="address-field"]:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #F5F5F5 inset !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+        
+        /* Nasconde i suggerimenti del browser Chrome */
+        input[name="address-field"]::-webkit-contacts-auto-fill-button,
+        input[name="address-field"]::-webkit-credentials-auto-fill-button {
+          visibility: hidden;
+          display: none !important;
+          pointer-events: none;
+          height: 0;
+          width: 0;
+          margin: 0;
+        }
+        
         /* BLOCCO TOTALE ICONE - Nessuna icona verrà mai mostrata */
         .pac-icon,
         .pac-icon-marker,
