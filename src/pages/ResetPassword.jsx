@@ -21,13 +21,21 @@ function ResetPassword() {
       // Cerca i parametri dopo ? o dopo il secondo #
       let params = null
       
-      // Caso 1: #/reset-password?access_token=... (CORRETTO)
-      if (fullHash.includes('?')) {
+      // Caso 1: #/reset-password?access_token=... (CORRETTO - senza doppio hash)
+      if (fullHash.includes('?') && !fullHash.includes('?#')) {
+        console.log('📍 Caso 1: Query string normale')
         const queryString = fullHash.split('?')[1]
         params = new URLSearchParams(queryString)
       } 
-      // Caso 2: #/reset-password#access_token=... (fallback per vecchi link)
+      // Caso 2: #/reset-password?#access_token=... (DOPPIO HASH - da fixare)
+      else if (fullHash.includes('?#')) {
+        console.log('📍 Caso 2: Doppio hash rilevato (?#)')
+        const tokenString = fullHash.split('?#')[1]
+        params = new URLSearchParams(tokenString)
+      }
+      // Caso 3: #/reset-password#access_token=... (fallback per vecchi link)
       else if (fullHash.split('#').length > 2) {
+        console.log('📍 Caso 3: Secondo hash senza ?')
         const tokenString = fullHash.split('#')[2]
         params = new URLSearchParams(tokenString)
       }
@@ -39,6 +47,7 @@ function ResetPassword() {
         
         console.log('Token type:', type)
         console.log('Access token found:', token ? 'YES' : 'NO')
+        console.log('Refresh token found:', refreshToken ? 'YES' : 'NO')
         
         if (type === 'recovery' && token && refreshToken) {
           console.log('✅ Valid recovery token found!')
@@ -59,10 +68,14 @@ function ResetPassword() {
           })
         } else {
           console.error('❌ Invalid or missing recovery parameters')
+          console.error('  Type:', type)
+          console.error('  Token:', token ? 'Present' : 'Missing')
+          console.error('  Refresh:', refreshToken ? 'Present' : 'Missing')
           setMessage({ text: '❌ Token mancante o non valido. Usa il link dall\'email.', type: 'error' })
         }
       } else {
         console.error('❌ No parameters found in URL')
+        console.error('Full hash was:', fullHash)
         setMessage({ text: '❌ Token mancante. Usa il link dall\'email.', type: 'error' })
       }
     }
@@ -108,6 +121,8 @@ function ResetPassword() {
     setMessage({ text: '', type: '' })
 
     try {
+      console.log('🔄 Aggiornamento password...')
+      
       // Aggiorna la password (la sessione è già impostata)
       const { error } = await supabase.auth.updateUser({
         password: password
@@ -115,6 +130,7 @@ function ResetPassword() {
 
       if (error) throw error
 
+      console.log('✅ Password aggiornata!')
       setMessage({ text: '✅ Password aggiornata con successo!', type: 'success' })
       
       // Reindirizza al login dopo 2 secondi
