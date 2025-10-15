@@ -558,14 +558,14 @@ const styles = {
   },
   
   indicators: {
-    position: 'absolute',
-    bottom: '30px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    gap: '10px',
-    zIndex: 15,
-  },
+  position: 'absolute',
+  bottom: '20px',  // ← Era 30px, ora 20px (più spazio sopra)
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'flex',
+  gap: '10px',
+  zIndex: 15,
+},
   
   indicator: {
     width: '10px',
