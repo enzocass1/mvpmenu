@@ -162,7 +162,6 @@ function PublicMenu() {
           <div style={styles.productsList}>
             {categoryProducts.length === 0 ? (
               <div style={styles.emptyState}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🍽️</div>
                 <p style={{ color: '#666', fontSize: '16px' }}>
                   Nessun prodotto in questa categoria
                 </p>
@@ -203,6 +202,25 @@ function PublicMenu() {
                 </div>
               ))
             )}
+          </div>
+
+          {/* Bottoni Sticky */}
+          <div style={styles.stickyButtons}>
+            <a 
+              href={`tel:${restaurant.phone}`}
+              style={styles.stickyButtonLeft}
+            >
+              <span style={styles.stickyButtonText}>Ordina da Casa</span>
+            </a>
+            
+            <a 
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.stickyButtonRight}
+            >
+              <span style={styles.stickyButtonText}>Vieni a Trovarci</span>
+            </a>
           </div>
         </div>
       </>
@@ -290,8 +308,6 @@ function PublicMenu() {
               })}
             </div>
 
-            
-
             {/* Indicatori */}
             {categories.length > 1 && (
               <div style={styles.indicators}>
@@ -314,40 +330,38 @@ function PublicMenu() {
         {/* Info */}
         <div style={styles.infoSection}>
           <div style={styles.infoContainer}>
-            <h2 style={styles.infoTitle}>📍 Dove Siamo</h2>
+            <h2 style={styles.infoTitle}>Dove Siamo</h2>
             
             <div style={styles.infoCard}>
-  <div style={styles.infoItem}>
-    <span style={{ fontSize: '24px' }}>📍</span>
-    <div style={{ flex: 1 }}>
-      <div style={styles.infoLabel}>Indirizzo</div>
-      <div style={styles.infoText}>{restaurant.address}</div>
-    </div>
-  </div>
+              <div style={styles.infoItem}>
+                <div style={{ flex: 1 }}>
+                  <div style={styles.infoLabel}>Indirizzo</div>
+                  <div style={styles.infoText}>{restaurant.address}</div>
+                </div>
+              </div>
 
-  <div style={styles.infoItem}>
-    <span style={{ fontSize: '24px' }}>📞</span>
-    <div style={{ flex: 1 }}>
-      <div style={styles.infoLabel}>Telefono</div>
-      <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
-        {restaurant.phone}
-      </a>
-    </div>
-  </div>
+              <div style={styles.infoItem}>
+                <div style={{ flex: 1 }}>
+                  <div style={styles.infoLabel}>Telefono</div>
+                  <a href={`tel:${restaurant.phone}`} style={styles.phoneLink}>
+                    {restaurant.phone}
+                  </a>
+                </div>
+              </div>
 
-  {/* Mappa Google Maps - NUOVO */}
-  <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-    <iframe
-      src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
-      width="100%"
-      height="100%"
-      style={{ border: 0 }}
-      allowFullScreen=""
-      loading="lazy"
-      referrerPolicy="no-referrer-when-downgrade"
-    />
-  </div>
-</div>
+              {/* Mappa Google Maps */}
+              <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <iframe
+                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -355,6 +369,25 @@ function PublicMenu() {
         <div style={styles.footer}>
           <p style={styles.footerText}>© 2025 {restaurant.name}</p>
           <p style={styles.footerPowered}>Powered by MVPMenu</p>
+        </div>
+
+        {/* Bottoni Sticky */}
+        <div style={styles.stickyButtons}>
+          <a 
+            href={`tel:${restaurant.phone}`}
+            style={styles.stickyButtonLeft}
+          >
+            <span style={styles.stickyButtonText}>Ordina da Casa</span>
+          </a>
+          
+          <a 
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.stickyButtonRight}
+          >
+            <span style={styles.stickyButtonText}>Vieni a Trovarci</span>
+          </a>
         </div>
       </div>
     </>
@@ -398,6 +431,7 @@ const styles = {
     backgroundColor: '#ffffff',
     overflowX: 'hidden',
     position: 'relative',
+    paddingBottom: '80px',
   },
   
   loadingContainer: {
@@ -491,7 +525,7 @@ const styles = {
     overflow: 'hidden',
     border: 'none',
     padding: 0,
-    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+    boxShadow: '0 30px 80px rgba(0,0,0,0.25), 0 10px 30px rgba(0,0,0,0.15)',
     transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
     transformStyle: 'preserve-3d',
     backgroundColor: '#f5f5f5',
@@ -530,37 +564,15 @@ const styles = {
     opacity: 0.95,
   },
   
-  // Frecce stilizzate
-  navButton: {
-    position: 'absolute',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    zIndex: 20,
-    background: 'rgba(0, 0, 0, 0.3)',
-    color: 'white',
-    border: '2px solid white',
-    borderRadius: '50%',
-    width: '56px',
-    height: '56px',
-    fontSize: '32px',
-    fontWeight: '300',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.3s ease',
-    backdropFilter: 'blur(4px)',
-  },
-  
   indicators: {
-  position: 'absolute',
-  bottom: '20px',  // ← Era 30px, ora 20px (più spazio sopra)
-  left: '50%',
-  transform: 'translateX(-50%)',
-  display: 'flex',
-  gap: '10px',
-  zIndex: 15,
-},
+    position: 'absolute',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    gap: '10px',
+    zIndex: 15,
+  },
   
   indicator: {
     width: '10px',
@@ -775,6 +787,60 @@ const styles = {
     color: '#999',
     margin: 0,
     fontSize: '12px',
+  },
+
+  // Bottoni Sticky
+  stickyButtons: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    display: 'flex',
+    gap: '12px',
+    padding: '12px',
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderTop: '1px solid #e0e0e0',
+    boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
+    zIndex: 1000,
+    backdropFilter: 'blur(10px)',
+  },
+
+  stickyButtonLeft: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '16px',
+    backgroundColor: '#000',
+    color: '#fff',
+    textDecoration: 'none',
+    borderRadius: '12px',
+    fontWeight: '600',
+    fontSize: 'clamp(13px, 3.5vw, 15px)',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
+
+  stickyButtonRight: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '16px',
+    backgroundColor: '#000',
+    color: '#fff',
+    textDecoration: 'none',
+    borderRadius: '12px',
+    fontWeight: '600',
+    fontSize: 'clamp(13px, 3.5vw, 15px)',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
+
+  stickyButtonText: {
+    whiteSpace: 'nowrap',
   },
 }
 
