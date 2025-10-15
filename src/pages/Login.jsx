@@ -47,10 +47,10 @@ function Login() {
     setMessage({ text: '', type: '' })
 
     try {
-      // Usa l'URL corrente (funziona sia in locale che in produzione)
+      // ✅ MODIFICA: Aggiungi ? alla fine per usare query params invece di hash
       const resetUrl = window.location.origin.includes('localhost') 
-        ? 'http://localhost:5173/#/reset-password'
-        : 'https://mvpmenu.vercel.app/#/reset-password'
+        ? 'http://localhost:5173/#/reset-password?'
+        : 'https://mvpmenu.vercel.app/#/reset-password?'
       
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: resetUrl

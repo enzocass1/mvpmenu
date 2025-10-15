@@ -11,35 +11,74 @@ function ResetPassword() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Log dell'URL completo per debug
     console.log('Full URL:', window.location.href)
     console.log('Hash:', window.location.hash)
     
-    // Intercetta l'evento di auth change di Supabase
+    // Estrai i parametri dall'URL
+    const extractTokenFromUrl = () => {
+      const fullHash = window.location.hash
+      
+      // Cerca i parametri dopo ? o dopo il secondo #
+      let params = null
+      
+      // Caso 1: #/reset-password?access_token=... (CORRETTO)
+      if (fullHash.includes('?')) {
+        const queryString = fullHash.split('?')[1]
+        params = new URLSearchParams(queryString)
+      } 
+      // Caso 2: #/reset-password#access_token=... (fallback per vecchi link)
+      else if (fullHash.split('#').length > 2) {
+        const tokenString = fullHash.split('#')[2]
+        params = new URLSearchParams(tokenString)
+      }
+      
+      if (params) {
+        const token = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        const type = params.get('type')
+        
+        console.log('Token type:', type)
+        console.log('Access token found:', token ? 'YES' : 'NO')
+        
+        if (type === 'recovery' && token && refreshToken) {
+          console.log('✅ Valid recovery token found!')
+          
+          // Imposta la sessione manualmente
+          supabase.auth.setSession({
+            access_token: token,
+            refresh_token: refreshToken
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error('Error setting session:', error)
+              setMessage({ text: '❌ Token non valido o scaduto', type: 'error' })
+            } else {
+              console.log('✅ Session set successfully!')
+              setAccessToken(token)
+              setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
+            }
+          })
+        } else {
+          console.error('❌ Invalid or missing recovery parameters')
+          setMessage({ text: '❌ Token mancante o non valido. Usa il link dall\'email.', type: 'error' })
+        }
+      } else {
+        console.error('❌ No parameters found in URL')
+        setMessage({ text: '❌ Token mancante. Usa il link dall\'email.', type: 'error' })
+      }
+    }
+    
+    // Listener per l'evento di auth (backup)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event)
-      console.log('Session:', session ? 'Present' : 'None')
-      
-      if (event === 'PASSWORD_RECOVERY') {
-        console.log('✅ Password recovery event detected!')
-        if (session) {
-          setAccessToken(session.access_token)
-          setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
-        }
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        console.log('✅ PASSWORD_RECOVERY event detected')
+        setAccessToken(session.access_token)
+        setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
       }
     })
     
-    // Prova anche a estrarre manualmente dal hash
-    const fullHash = window.location.hash
-    const tokenMatch = fullHash.match(/access_token=([^&]+)/)
-    const typeMatch = fullHash.match(/type=([^&]+)/)
-    
-    if (tokenMatch && typeMatch && typeMatch[1] === 'recovery') {
-      const token = tokenMatch[1]
-      console.log('✅ Token found in URL:', token.substring(0, 20) + '...')
-      setAccessToken(token)
-      setMessage({ text: '✅ Token valido! Inserisci la nuova password.', type: 'success' })
-    }
+    // Esegui l'estrazione
+    extractTokenFromUrl()
     
     // Cleanup
     return () => {
@@ -69,11 +108,10 @@ function ResetPassword() {
     setMessage({ text: '', type: '' })
 
     try {
-      // Usa l'API direttamente con il token
-      const { data, error } = await supabase.auth.updateUser(
-        { password: password },
-        { accessToken }
-      )
+      // Aggiorna la password (la sessione è già impostata)
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      })
 
       if (error) throw error
 
