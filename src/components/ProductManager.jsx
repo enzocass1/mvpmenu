@@ -116,6 +116,47 @@ function ProductManager({ category }) {
     setFormData({ name: '', description: '', price: '', image_url: '' })
   }
 
+  // NUOVA FUNZIONE: Sposta prodotto su
+  const moveUp = async (index) => {
+    if (index === 0) return
+    
+    const newProducts = [...products]
+    const temp = newProducts[index]
+    newProducts[index] = newProducts[index - 1]
+    newProducts[index - 1] = temp
+    
+    await updateOrder(newProducts)
+  }
+
+  // NUOVA FUNZIONE: Sposta prodotto giù
+  const moveDown = async (index) => {
+    if (index === products.length - 1) return
+    
+    const newProducts = [...products]
+    const temp = newProducts[index]
+    newProducts[index] = newProducts[index + 1]
+    newProducts[index + 1] = temp
+    
+    await updateOrder(newProducts)
+  }
+
+  // NUOVA FUNZIONE: Aggiorna ordine nel database
+  const updateOrder = async (newProducts) => {
+    try {
+      const updates = newProducts.map((prod, idx) => 
+        supabase
+          .from('products')
+          .update({ order: idx })
+          .eq('id', prod.id)
+      )
+      
+      await Promise.all(updates)
+      loadProducts()
+    } catch (error) {
+      alert('Errore nel riordinamento: ' + error.message)
+    }
+  }
+
   return (
     <div style={{ marginTop: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
@@ -211,16 +252,59 @@ function ProductManager({ category }) {
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {products.map((product) => (
-          <div key={product.id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', background: 'white', display: 'flex', gap: '15px' }}>
+        {products.map((product, index) => (
+          <div key={product.id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', background: 'white', display: 'flex', gap: '15px', alignItems: 'center' }}>
+            {/* FRECCE RIORDINAMENTO */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <button
+                onClick={() => moveUp(index)}
+                disabled={index === 0}
+                style={{
+                  padding: '4px 8px',
+                  background: index === 0 ? '#ccc' : '#FF9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: index === 0 ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+                title="Sposta su"
+              >
+                ▲
+              </button>
+              <button
+                onClick={() => moveDown(index)}
+                disabled={index === products.length - 1}
+                style={{
+                  padding: '4px 8px',
+                  background: index === products.length - 1 ? '#ccc' : '#FF9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: index === products.length - 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+                title="Sposta giù"
+              >
+                ▼
+              </button>
+            </div>
+
+            {/* IMMAGINE */}
             {product.image_url && (
               <img src={product.image_url} alt={product.name} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }} />
             )}
+            
+            {/* INFO PRODOTTO */}
             <div style={{ flex: 1 }}>
               <h4 style={{ margin: '0 0 5px 0' }}>{product.name}</h4>
               {product.description && <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#666' }}>{product.description}</p>}
               <p style={{ margin: '0', fontWeight: 'bold', color: '#4CAF50' }}>€ {product.price.toFixed(2)}</p>
             </div>
+            
+            {/* BOTTONI AZIONE */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               <button 
                 onClick={() => handleEdit(product)}
