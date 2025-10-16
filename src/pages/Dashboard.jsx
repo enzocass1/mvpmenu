@@ -386,15 +386,11 @@ function Dashboard({ session }) {
     console.log('🔵 handleManageSubscription chiamata')
     console.log('Restaurant data:', {
       id: restaurant?.id,
+      user_email: session?.user?.email,
       stripe_customer_id: restaurant?.stripe_customer_id,
-      subscription_status: restaurant?.subscription_status
+      subscription_status: restaurant?.subscription_status,
+      subscription_tier: restaurant?.subscription_tier
     })
-
-    if (!restaurant?.stripe_customer_id) {
-      console.error('❌ Nessun stripe_customer_id trovato')
-      showToast('Nessun abbonamento attivo da gestire', 'warning')
-      return
-    }
 
     setLoadingPortal(true)
     console.log('🟡 Chiamata API in corso...')
@@ -403,9 +399,11 @@ function Dashboard({ session }) {
       const apiUrl = `${window.location.origin}/api/create-customer-portal`
       console.log('📍 API URL:', apiUrl)
       
-      const requestBody = {
-        customerId: restaurant.stripe_customer_id
-      }
+      // Prepara il body con customerId se disponibile, altrimenti usa email
+      const requestBody = restaurant?.stripe_customer_id 
+        ? { customerId: restaurant.stripe_customer_id }
+        : { email: session?.user?.email }
+      
       console.log('📦 Request body:', requestBody)
 
       const response = await fetch(apiUrl, {
@@ -433,7 +431,7 @@ function Dashboard({ session }) {
     } catch (error) {
       console.error('❌ Errore completo:', error)
       console.error('Stack trace:', error.stack)
-      showToast(`Errore: ${error.message}`, 'error')
+      showToast(`Impossibile aprire il portale di gestione: ${error.message}`, 'error')
       setLoadingPortal(false)
     }
   }
