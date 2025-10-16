@@ -10,8 +10,9 @@ function Checkout() {
     // Verifica che l'utente sia loggato
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('👤 User check:', user)
+      
       if (!user) {
-        // Se non loggato, reindirizza al login
         window.location.href = '/#/login'
       } else {
         setUser(user)
@@ -25,38 +26,56 @@ function Checkout() {
       setLoading(true)
       setError(null)
 
-      // Crea la sessione di checkout
+      const payload = {
+        priceId: import.meta.env.VITE_STRIPE_PRICE_ID,
+        userId: user.id,
+        userEmail: user.email
+      }
+
+      // 🔍 LOG DI DEBUG
+      console.log('🔑 VITE_STRIPE_PRICE_ID:', import.meta.env.VITE_STRIPE_PRICE_ID)
+      console.log('📦 Payload completo:', payload)
+      console.log('🌐 Environment variables:', import.meta.env)
+
+      // Chiamata API
+      console.log('🚀 Inizio chiamata API...')
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          priceId: import.meta.env.VITE_STRIPE_PRICE_ID,
-          userId: user.id,
-          userEmail: user.email
-        })
+        body: JSON.stringify(payload)
       })
 
-      const session = await response.json()
+      console.log('📡 Response status:', response.status)
+      console.log('📡 Response OK?:', response.ok)
 
-      if (session.error) {
-        setError(session.error)
+      const data = await response.json()
+      console.log('📥 Response data:', data)
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Errore nella richiesta')
+      }
+
+      if (data.error) {
+        setError(data.error)
         setLoading(false)
         return
       }
 
-      // Redirect diretto alla URL di Stripe
-      if (session.url) {
-        window.location.href = session.url
+      if (data.url) {
+        console.log('✅ Redirect a Stripe:', data.url)
+        window.location.href = data.url
       } else {
+        console.error('❌ Nessuna URL nella risposta')
         setError('Errore nella creazione della sessione di pagamento')
         setLoading(false)
       }
     } catch (err) {
-      setError('Si è verificato un errore. Riprova più tardi.')
+      console.error('❌ Errore completo:', err)
+      console.error('❌ Errore message:', err.message)
+      setError(err.message || 'Si è verificato un errore. Riprova più tardi.')
       setLoading(false)
-      console.error('Errore checkout:', err)
     }
   }
 
@@ -162,102 +181,33 @@ function Checkout() {
             padding: 0,
             margin: '0 0 30px 0'
           }}>
-            <li style={{
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              paddingLeft: '24px',
-              position: 'relative',
-              fontWeight: '600'
-            }}>
-              <span style={{
-                position: 'absolute',
-                left: 0
-              }}>✓</span>
-              Categorie illimitate
-            </li>
-            <li style={{
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              paddingLeft: '24px',
-              position: 'relative',
-              fontWeight: '600'
-            }}>
-              <span style={{
-                position: 'absolute',
-                left: 0
-              }}>✓</span>
-              Prodotti illimitati
-            </li>
-            <li style={{
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              paddingLeft: '24px',
-              position: 'relative'
-            }}>
-              <span style={{
-                position: 'absolute',
-                left: 0
-              }}>✓</span>
-              Caricamento immagini
-            </li>
-            <li style={{
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              paddingLeft: '24px',
-              position: 'relative'
-            }}>
-              <span style={{
-                position: 'absolute',
-                left: 0
-              }}>✓</span>
-              Link condivisibile
-            </li>
-            <li style={{
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              paddingLeft: '24px',
-              position: 'relative',
-              fontWeight: '600'
-            }}>
-              <span style={{
-                position: 'absolute',
-                left: 0
-              }}>✓</span>
-              Scaricamento QR Code
-            </li>
-            <li style={{
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              paddingLeft: '24px',
-              position: 'relative',
-              fontWeight: '600'
-            }}>
-              <span style={{
-                position: 'absolute',
-                left: 0
-              }}>✓</span>
-              Scaricamento backup
-            </li>
-            <li style={{
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              paddingLeft: '24px',
-              position: 'relative',
-              fontWeight: '600'
-            }}>
-              <span style={{
-                position: 'absolute',
-                left: 0
-              }}>✓</span>
-              Assistenza prioritaria
-            </li>
+            {[
+              { text: 'Categorie illimitate', bold: true },
+              { text: 'Prodotti illimitati', bold: true },
+              { text: 'Caricamento immagini', bold: false },
+              { text: 'Link condivisibile', bold: false },
+              { text: 'Scaricamento QR Code', bold: true },
+              { text: 'Scaricamento backup', bold: true },
+              { text: 'Assistenza prioritaria', bold: true }
+            ].map((feature, index) => (
+              <li
+                key={index}
+                style={{
+                  fontSize: '14px',
+                  color: '#666',
+                  marginBottom: '12px',
+                  paddingLeft: '24px',
+                  position: 'relative',
+                  fontWeight: feature.bold ? '600' : 'normal'
+                }}
+              >
+                <span style={{
+                  position: 'absolute',
+                  left: 0
+                }}>✓</span>
+                {feature.text}
+              </li>
+            ))}
           </ul>
 
           {/* Checkout Button */}
@@ -336,12 +286,13 @@ function Checkout() {
           marginTop: '30px'
         }}>
           <a
-            href="/#/dashboard"
+            href="#/dashboard"
             style={{
               fontSize: '14px',
               fontWeight: '400',
               color: '#666',
-              textDecoration: 'none'
+              textDecoration: 'none',
+              cursor: 'pointer'
             }}
           >
             ← Torna alla dashboard
