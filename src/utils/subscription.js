@@ -11,6 +11,9 @@ const LIMITS = {
   }
 }
 
+// Export per compatibilità con componenti esistenti
+export const FREE_LIMITS = LIMITS.free
+
 /**
  * Verifica se l'utente ha accesso premium VALIDO
  * Solo 'active' e 'trialing' danno accesso completo
