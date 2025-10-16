@@ -52,8 +52,8 @@ function PublicMenu() {
           .order('order', { ascending: true })
 
         // Applica limiti Free/Premium sulle categorie
-        const { isPremium } = checkPremiumAccess(restaurantData)
-        const visibleCategories = isPremium ? categoriesData : (categoriesData || []).slice(0, 3)
+        const { hasValidAccess } = checkPremiumAccess(restaurantData)
+const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || []).slice(0, 3)
         setCategories(visibleCategories || [])
 
         const productsMap = {}
@@ -66,7 +66,7 @@ function PublicMenu() {
             .order('order', { ascending: true })
 
           // Applica limiti Free/Premium sui prodotti
-          const visibleProducts = isPremium ? productsData : (productsData || []).slice(0, 3)
+          const visibleProducts = hasValidAccess ? productsData : (productsData || []).slice(0, 3)
           productsMap[category.id] = visibleProducts || []
         }
         setProducts(productsMap)
