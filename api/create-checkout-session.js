@@ -1,11 +1,13 @@
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2024-11-20.acacia', // ← AGGIUNGI QUESTO!
+})
 
 export default async function handler(req, res) {
-  // Log per debug
   console.log('🔍 API chiamata!')
   console.log('🔑 STRIPE_SECRET_KEY presente?', !!process.env.STRIPE_SECRET_KEY)
+  console.log('🔑 Prima parte chiave:', process.env.STRIPE_SECRET_KEY?.substring(0, 7)) // ← Verifica che inizi con sk_test_
   console.log('📊 Body ricevuto:', req.body)
   
   // Abilita CORS
@@ -38,7 +40,6 @@ export default async function handler(req, res) {
 
     console.log('🚀 Creazione sessione Stripe...')
 
-    // Crea la sessione di checkout Stripe
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -63,13 +64,22 @@ export default async function handler(req, res) {
     })
 
     console.log('✅ Sessione creata:', session.id)
-res.status(200).json({ 
-  sessionId: session.id,
-  url: session.url  // ← AGGIUNGI QUESTO
-})  } catch (error) {
+    
+    return res.status(200).json({ 
+      sessionId: session.id,
+      url: session.url
+    })
+    
+  } catch (error) {
     console.error('❌ Errore Stripe completo:', error)
     console.error('❌ Errore message:', error.message)
     console.error('❌ Errore type:', error.type)
-    res.status(500).json({ error: error.message })
+    console.error('❌ Errore code:', error.code)
+    
+    return res.status(500).json({ 
+      error: error.message,
+      type: error.type,
+      code: error.code
+    })
   }
 }
