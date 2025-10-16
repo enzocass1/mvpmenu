@@ -71,6 +71,7 @@ function Landing() {
               Prezzi
             </button>
             
+            <a
               href="/#/login"
               style={{
                 padding: '10px 20px',
@@ -133,6 +134,7 @@ function Landing() {
           flexWrap: 'wrap'
         }}>
           
+          <a
             href="/#/login?mode=signup"
             style={{
               padding: '16px 40px',
@@ -457,7 +459,7 @@ function Landing() {
                 </li>
               </ul>
 
-              
+              <a
                 href="/#/login?mode=signup"
                 style={{
                   width: '100%',
@@ -642,7 +644,7 @@ function Landing() {
                 </li>
               </ul>
 
-              
+              <a
                 href="/#/login?mode=signup"
                 style={{
                   width: '100%',
@@ -697,7 +699,7 @@ function Landing() {
             display: 'flex',
             gap: '20px'
           }}>
-            
+            <a
               href="mailto:enzocassese91@gmail.com"
               style={{
                 color: '#999',
@@ -708,7 +710,7 @@ function Landing() {
             >
               Contatti
             </a>
-            
+            <a
               href="/#/login"
               style={{
                 color: '#999',
