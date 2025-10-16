@@ -1,220 +1,233 @@
 // src/utils/subscription.js
 
-/**
- * Limiti piano FREE
- */
-export const FREE_LIMITS = {
-  CATEGORIES: 3,
-  PRODUCTS_PER_CATEGORY: 3
+const LIMITS = {
+  free: {
+    categories: 3,
+    itemsPerCategory: 3
+  },
+  premium: {
+    categories: Infinity,
+    itemsPerCategory: Infinity
+  }
 }
 
 /**
- * Verifica se il ristorante ha accesso Premium
+ * Verifica se l'utente ha accesso premium VALIDO
+ * Solo 'active' e 'trialing' danno accesso completo
  */
 export function checkPremiumAccess(restaurant) {
-  // 1. Override manuale ha priorità assoluta
-  if (restaurant?.is_manual_premium === true) {
+  if (!restaurant) {
     return {
-      isPremium: true,
-      reason: 'manual_override',
-      source: restaurant.manual_premium_reason || 'Admin granted'
+      isPremium: false,
+      isActive: false,
+      hasValidAccess: false,
+      reason: 'no_restaurant'
     }
   }
-  
-  // 2. Controllo subscription Stripe (SOLO active e past_due)
-  if (restaurant?.subscription_tier === 'premium') {
-    const status = restaurant.subscription_status
-    
-    // SOLO questi 2 status danno accesso Premium
-    const validStatuses = ['active', 'past_due']
-    
-    if (validStatuses.includes(status)) {
-      return {
-        isPremium: true,
-        reason: 'stripe_subscription',
-        source: `Stripe payment (${status})`
-      }
-    }
-  }
-  
-  // 3. Default: Free
+
+  const isPremiumTier = restaurant.subscription_tier === 'premium'
+  const validStatuses = ['active', 'trialing']
+  const isActiveStatus = validStatuses.includes(restaurant.subscription_status)
+  const hasValidAccess = isPremiumTier && isActiveStatus
+
   return {
-    isPremium: false,
-    reason: 'free_tier',
-    source: 'No active subscription'
+    isPremium: isPremiumTier,
+    isActive: isActiveStatus,
+    hasValidAccess: hasValidAccess,
+    status: restaurant.subscription_status,
+    reason: !hasValidAccess && isPremiumTier 
+      ? `status_${restaurant.subscription_status || 'missing'}` 
+      : 'ok'
   }
 }
 
 /**
- * Verifica se è possibile scaricare il QR Code
+ * Ottiene i limiti EFFETTIVI basandosi sullo status reale
+ * past_due, expired, canceled = limiti FREE
+ */
+export function getEffectiveLimits(restaurant) {
+  const access = checkPremiumAccess(restaurant)
+  
+  // Solo se ha accesso VALIDO restituisce limiti premium
+  if (access.hasValidAccess) {
+    return {
+      categories: LIMITS.premium.categories,
+      itemsPerCategory: LIMITS.premium.itemsPerCategory,
+      plan: 'premium'
+    }
+  }
+  
+  // Altrimenti sempre limiti free (anche per past_due, expired, etc)
+  return {
+    categories: LIMITS.free.categories,
+    itemsPerCategory: LIMITS.free.itemsPerCategory,
+    plan: 'free'
+  }
+}
+
+/**
+ * Verifica se può scaricare il QR Code
+ * Solo con accesso premium VALIDO
  */
 export function canDownloadQRCode(restaurant) {
-  const { isPremium } = checkPremiumAccess(restaurant)
-  return isPremium
+  const access = checkPremiumAccess(restaurant)
+  return access.hasValidAccess
 }
 
 /**
- * Verifica se è possibile esportare backup
+ * Verifica se può esportare backup
+ * Solo con accesso premium VALIDO
  */
 export function canExportBackup(restaurant) {
-  const { isPremium } = checkPremiumAccess(restaurant)
-  return isPremium
+  const access = checkPremiumAccess(restaurant)
+  return access.hasValidAccess
 }
 
 /**
- * Verifica se è possibile aggiungere un nuovo item (categoria o prodotto)
- */
-export function canAddItem(restaurant, currentCount, itemType) {
-  const { isPremium } = checkPremiumAccess(restaurant)
-  
-  if (isPremium) return true
-  
-  const limit = itemType === 'category' 
-    ? FREE_LIMITS.CATEGORIES 
-    : FREE_LIMITS.PRODUCTS_PER_CATEGORY
-    
-  return currentCount < limit
-}
-
-/**
- * Verifica se è possibile aggiungere una nuova categoria
- */
-export function canAddCategory(restaurant, currentCategoryCount) {
-  return canAddItem(restaurant, currentCategoryCount, 'category')
-}
-
-/**
- * Verifica se è possibile aggiungere un nuovo prodotto
- */
-export function canAddProduct(restaurant, currentProductCount) {
-  return canAddItem(restaurant, currentProductCount, 'product')
-}
-
-/**
- * Verifica se un item è visibile in base ai limiti Free/Premium
- */
-export function isItemVisible(restaurant, itemIndex, itemType) {
-  const { isPremium } = checkPremiumAccess(restaurant)
-  
-  if (isPremium) return true
-  
-  const limit = itemType === 'category' 
-    ? FREE_LIMITS.CATEGORIES 
-    : FREE_LIMITS.PRODUCTS_PER_CATEGORY
-    
-  return itemIndex < limit
-}
-
-/**
- * Verifica se una categoria è visibile
- */
-export function isCategoryVisible(restaurant, categoryIndex) {
-  return isItemVisible(restaurant, categoryIndex, 'category')
-}
-
-/**
- * Verifica se un prodotto è visibile
- */
-export function isProductVisible(restaurant, productIndex) {
-  return isItemVisible(restaurant, productIndex, 'product')
-}
-
-/**
- * Conta quanti elementi sono nascosti per il piano free
- */
-export function getHiddenCounts(restaurant, totalCategories, totalProducts) {
-  const { isPremium } = checkPremiumAccess(restaurant)
-  
-  if (isPremium) {
-    return {
-      hiddenCategories: 0,
-      hiddenProducts: 0,
-      hasHidden: false
-    }
-  }
-  
-  const hiddenCategories = Math.max(0, totalCategories - FREE_LIMITS.CATEGORIES)
-  const hiddenProducts = Math.max(0, totalProducts - FREE_LIMITS.PRODUCTS_PER_CATEGORY)
-  
-  return {
-    hiddenCategories,
-    hiddenProducts,
-    hasHidden: hiddenCategories > 0 || hiddenProducts > 0
-  }
-}
-
-/**
- * Ottiene info sul piano corrente
+ * Ottiene informazioni sul piano (per UI)
  */
 export function getPlanInfo(restaurant) {
-  const { isPremium, reason, source } = checkPremiumAccess(restaurant)
-  
+  if (!restaurant) {
+    return {
+      name: 'Free',
+      maxCategories: LIMITS.free.categories,
+      maxItemsPerCategory: LIMITS.free.itemsPerCategory,
+      features: ['Fino a 3 categorie', 'Fino a 3 prodotti per categoria']
+    }
+  }
+
+  const access = checkPremiumAccess(restaurant)
+  const limits = getEffectiveLimits(restaurant)
+
+  if (access.hasValidAccess) {
+    return {
+      name: 'Premium',
+      maxCategories: limits.categories,
+      maxItemsPerCategory: limits.itemsPerCategory,
+      features: [
+        'Categorie illimitate',
+        'Prodotti illimitati',
+        'Download QR Code',
+        'Backup del menu',
+        'Supporto prioritario'
+      ]
+    }
+  }
+
   return {
-    isPremium,
-    planName: isPremium ? 'Premium' : 'Free',
-    reason,
-    source,
-    limits: isPremium ? null : FREE_LIMITS
+    name: 'Free',
+    maxCategories: limits.categories,
+    maxItemsPerCategory: limits.itemsPerCategory,
+    features: ['Fino a 3 categorie', 'Fino a 3 prodotti per categoria']
   }
 }
 
 /**
  * Verifica lo stato di salute dell'abbonamento
- * Restituisce alert se ci sono problemi con il pagamento o rinnovo
+ * Restituisce alert da mostrare all'utente
  */
 export function getSubscriptionHealth(restaurant) {
-  const { isPremium } = checkPremiumAccess(restaurant)
-  
-  if (!isPremium || !restaurant?.subscription_status) {
-    return {
-      isHealthy: true,
-      severity: null,
-      message: null,
-      actionRequired: false,
-      action: null
-    }
-  }
-  
+  if (!restaurant) return null
+
+  const isPremiumTier = restaurant.subscription_tier === 'premium'
+  if (!isPremiumTier) return null
+
   const status = restaurant.subscription_status
-  const updatedAt = restaurant.updated_at ? new Date(restaurant.updated_at) : null
-  const now = new Date()
-  
-  // Calcola giorni dalla data di aggiornamento
-  let daysSinceUpdate = null
-  if (updatedAt) {
-    const diffTime = now - updatedAt
-    daysSinceUpdate = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+  // Premium attivo o in trial = tutto ok
+  if (status === 'active' || status === 'trialing') {
+    return null
   }
-  
-  // 1. CRITICAL: Pagamento fallito o cancellato
+
+  // Past due = richiede aggiornamento pagamento
   if (status === 'past_due') {
     return {
-      isHealthy: false,
       severity: 'warning',
-      message: 'Il pagamento del tuo abbonamento è in sospeso. Aggiorna il metodo di pagamento per evitare l\'interruzione del servizio.',
       actionRequired: true,
-      action: 'update_payment'
+      action: 'update_payment',
+      message: 'Il pagamento del tuo abbonamento è in sospeso. Aggiorna il metodo di pagamento per evitare l\'interruzione del servizio.'
     }
   }
-  
-  // 2. WARNING: Abbonamento in scadenza (ultimi 3 giorni)
-  if (status === 'active' && daysSinceUpdate !== null && daysSinceUpdate >= 27) {
-    const daysRemaining = 30 - daysSinceUpdate
+
+  // Incomplete = pagamento incompleto
+  if (status === 'incomplete' || status === 'incomplete_expired') {
     return {
-      isHealthy: true,
-      severity: 'info',
-      message: `Il tuo abbonamento Premium si rinnoverà tra ${daysRemaining} giorni.`,
-      actionRequired: false,
-      action: null
+      severity: 'warning',
+      actionRequired: true,
+      action: 'update_payment',
+      message: 'Il pagamento dell\'abbonamento non è stato completato. Completa il pagamento per attivare il piano Premium.'
     }
   }
-  
-  // 3. Tutto OK
-  return {
-    isHealthy: true,
-    severity: null,
-    message: null,
-    actionRequired: false,
-    action: null
+
+  // Canceled = abbonamento cancellato
+  if (status === 'canceled') {
+    return {
+      severity: 'info',
+      actionRequired: true,
+      action: 'reactivate',
+      message: 'Il tuo abbonamento Premium è stato cancellato. Puoi riattivarlo in qualsiasi momento.'
+    }
   }
+
+  // Expired = scaduto (per abbonamenti manuali)
+  if (status === 'expired') {
+    return {
+      severity: 'warning',
+      actionRequired: true,
+      action: 'renew',
+      message: 'Il tuo abbonamento Premium è scaduto. Rinnova per continuare ad utilizzare tutte le funzionalità.'
+    }
+  }
+
+  // Unpaid = non pagato
+  if (status === 'unpaid') {
+    return {
+      severity: 'warning',
+      actionRequired: true,
+      action: 'update_payment',
+      message: 'L\'abbonamento non è stato pagato. Aggiorna il metodo di pagamento per continuare.'
+    }
+  }
+
+  return null
+}
+
+/**
+ * Verifica se può creare una nuova categoria
+ */
+export function canCreateCategory(restaurant, currentCount) {
+  const limits = getEffectiveLimits(restaurant)
+  return currentCount < limits.categories
+}
+
+/**
+ * Verifica se può creare un nuovo prodotto in una categoria
+ */
+export function canCreateItem(restaurant, currentCount) {
+  const limits = getEffectiveLimits(restaurant)
+  return currentCount < limits.itemsPerCategory
+}
+
+/**
+ * Ottiene il messaggio di limite raggiunto
+ */
+export function getLimitMessage(type, restaurant) {
+  const limits = getEffectiveLimits(restaurant)
+  const access = checkPremiumAccess(restaurant)
+
+  if (type === 'category') {
+    if (access.hasValidAccess) {
+      return 'Nessun limite sulle categorie'
+    }
+    return `Hai raggiunto il limite di ${limits.categories} categorie. Passa a Premium per avere categorie illimitate.`
+  }
+
+  if (type === 'item') {
+    if (access.hasValidAccess) {
+      return 'Nessun limite sui prodotti'
+    }
+    return `Hai raggiunto il limite di ${limits.itemsPerCategory} prodotti per categoria. Passa a Premium per avere prodotti illimitati.`
+  }
+
+  return ''
 }
