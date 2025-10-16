@@ -342,7 +342,7 @@ function Checkout() {
           textAlign: 'center',
           marginTop: '30px'
         }}>
-          <a
+          
             href="/#/dashboard"
             style={{
               fontSize: '14px',
