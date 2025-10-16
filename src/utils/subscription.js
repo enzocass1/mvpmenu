@@ -77,6 +77,20 @@ export function canAddItem(restaurant, currentCount, itemType) {
 }
 
 /**
+ * Verifica se è possibile aggiungere una nuova categoria
+ */
+export function canAddCategory(restaurant, currentCategoryCount) {
+  return canAddItem(restaurant, currentCategoryCount, 'category')
+}
+
+/**
+ * Verifica se è possibile aggiungere un nuovo prodotto
+ */
+export function canAddProduct(restaurant, currentProductCount) {
+  return canAddItem(restaurant, currentProductCount, 'product')
+}
+
+/**
  * Verifica se un item è visibile in base ai limiti Free/Premium
  */
 export function isItemVisible(restaurant, itemIndex, itemType) {
@@ -89,6 +103,44 @@ export function isItemVisible(restaurant, itemIndex, itemType) {
     : FREE_LIMITS.PRODUCTS_PER_CATEGORY
     
   return itemIndex < limit
+}
+
+/**
+ * Verifica se una categoria è visibile
+ */
+export function isCategoryVisible(restaurant, categoryIndex) {
+  return isItemVisible(restaurant, categoryIndex, 'category')
+}
+
+/**
+ * Verifica se un prodotto è visibile
+ */
+export function isProductVisible(restaurant, productIndex) {
+  return isItemVisible(restaurant, productIndex, 'product')
+}
+
+/**
+ * Conta quanti elementi sono nascosti per il piano free
+ */
+export function getHiddenCounts(restaurant, totalCategories, totalProducts) {
+  const { isPremium } = checkPremiumAccess(restaurant)
+  
+  if (isPremium) {
+    return {
+      hiddenCategories: 0,
+      hiddenProducts: 0,
+      hasHidden: false
+    }
+  }
+  
+  const hiddenCategories = Math.max(0, totalCategories - FREE_LIMITS.CATEGORIES)
+  const hiddenProducts = Math.max(0, totalProducts - FREE_LIMITS.PRODUCTS_PER_CATEGORY)
+  
+  return {
+    hiddenCategories,
+    hiddenProducts,
+    hasHidden: hiddenCategories > 0 || hiddenProducts > 0
+  }
 }
 
 /**
