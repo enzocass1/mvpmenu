@@ -4,7 +4,7 @@ import ImageUpload from './ImageUpload'
 import { 
   checkPremiumAccess, 
   canAddItem, 
-  isItemVisible,
+  isProductVisible,
   FREE_LIMITS 
 } from '../utils/subscription'
 
@@ -228,10 +228,11 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
     }
   }
 
-  const { isPremium } = restaurant ? checkPremiumAccess(restaurant) : { isPremium: false }
+  // Usa hasValidAccess invece di isPremium per controllare l'accesso alle feature premium
+  const { hasValidAccess } = restaurant ? checkPremiumAccess(restaurant) : { hasValidAccess: false }
   const canAddNewItem = restaurant ? canAddItem(restaurant, products.length) : false
   
-  const hiddenProductsCount = !isPremium && products.length > FREE_LIMITS.MAX_ITEMS_PER_CATEGORY 
+  const hiddenProductsCount = !hasValidAccess && products.length > FREE_LIMITS.MAX_ITEMS_PER_CATEGORY 
     ? products.length - FREE_LIMITS.MAX_ITEMS_PER_CATEGORY 
     : 0
 
@@ -240,8 +241,8 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
       {restaurant && (
         <div style={{
           padding: '16px',
-          background: isPremium ? '#E8F5E9' : '#FFF3E0',
-          border: `1px solid ${isPremium ? '#C8E6C9' : '#FFE0B2'}`,
+          background: hasValidAccess ? '#E8F5E9' : '#FFF3E0',
+          border: `1px solid ${hasValidAccess ? '#C8E6C9' : '#FFE0B2'}`,
           borderRadius: '8px',
           marginBottom: '20px'
         }}>
@@ -259,10 +260,10 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
                 color: '#000000',
                 marginBottom: '4px'
               }}>
-                Prodotti: <strong>{products.length}</strong>{!isPremium && ` / ${FREE_LIMITS.MAX_ITEMS_PER_CATEGORY}`}
-                {isPremium && ' (Illimitati)'}
+                Prodotti: <strong>{products.length}</strong>{!hasValidAccess && ` / ${FREE_LIMITS.MAX_ITEMS_PER_CATEGORY}`}
+                {hasValidAccess && ' (Illimitati)'}
               </div>
-              {!isPremium && products.length >= FREE_LIMITS.MAX_ITEMS_PER_CATEGORY && (
+              {!hasValidAccess && products.length >= FREE_LIMITS.MAX_ITEMS_PER_CATEGORY && (
                 <div style={{
                   fontSize: '13px',
                   color: '#f44336',
@@ -536,7 +537,8 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {products.map((product, index) => {
-            const isVisible = restaurant ? isItemVisible(restaurant, index) : true
+            // Usa la firma corretta: isProductVisible(product, productIndex, restaurant)
+            const isVisible = restaurant ? isProductVisible(product, index, restaurant) : true
             
             return (
               <div
@@ -845,7 +847,6 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
                       </div>
                     </div>
 
-                    {/* Sezione info prodotto - SENZA H5 */}
                     <div style={{ 
                       textAlign: 'center',
                       paddingTop: '10px'
