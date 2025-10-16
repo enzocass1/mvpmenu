@@ -1,7 +1,6 @@
-// api/create-checkout-session.js
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Abilita CORS
   res.setHeader('Access-Control-Allow-Credentials', true)
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -23,6 +22,10 @@ export default async function handler(req, res) {
   try {
     const { priceId, userId, userEmail } = req.body
 
+    if (!priceId || !userId || !userEmail) {
+      return res.status(400).json({ error: 'Missing required fields' })
+    }
+
     // Crea la sessione di checkout Stripe
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -33,9 +36,10 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/#/dashboard?success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/#/checkout?canceled=true`,
+      success_url: `${process.env.FRONTEND_URL || 'https://mvpmenu20.vercel.app'}/#/dashboard?success=true`,
+      cancel_url: `${process.env.FRONTEND_URL || 'https://mvpmenu20.vercel.app'}/#/checkout?canceled=true`,
       customer_email: userEmail,
+      client_reference_id: userId,
       metadata: {
         userId: userId,
       },
