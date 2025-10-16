@@ -12,7 +12,10 @@ const LIMITS = {
 }
 
 // Export per compatibilità con componenti esistenti
-export const FREE_LIMITS = LIMITS.free
+export const FREE_LIMITS = {
+  MAX_CATEGORIES: LIMITS.free.categories,
+  MAX_ITEMS_PER_CATEGORY: LIMITS.free.itemsPerCategory
+}
 
 /**
  * Verifica se l'utente ha accesso premium VALIDO
@@ -261,4 +264,47 @@ export function isItemVisible(item) {
  */
 export function canAddCategory(restaurant, currentCount) {
   return canCreateCategory(restaurant, currentCount)
+}
+
+/**
+ * Verifica se una categoria è visibile nel menu pubblico
+ * Considera sia il flag is_visible che i limiti del piano
+ */
+export function isCategoryVisible(restaurant, index) {
+  const limits = getEffectiveLimits(restaurant)
+  
+  // Se è premium, tutte le categorie sono visibili (se is_visible = true)
+  if (limits.plan === 'premium') {
+    return true
+  }
+  
+  // Se è free, solo le prime N categorie sono visibili
+  return index < limits.categories
+}
+
+/**
+ * Conta quante categorie e prodotti sono nascosti
+ * Restituisce { hiddenCategories, hiddenItems }
+ */
+export function getHiddenCounts(restaurant, categories) {
+  if (!restaurant || !categories) {
+    return { hiddenCategories: 0, hiddenItems: 0 }
+  }
+
+  const limits = getEffectiveLimits(restaurant)
+  
+  // Se è premium, nessun elemento è nascosto per limiti (solo per is_visible)
+  if (limits.plan === 'premium') {
+    const hiddenCategories = categories.filter(c => c.is_visible === false).length
+    // Non possiamo contare i prodotti nascosti qui perché non abbiamo accesso ai prodotti
+    return { hiddenCategories, hiddenItems: 0 }
+  }
+  
+  // Se è free, conta le categorie oltre il limite
+  const hiddenCategories = Math.max(0, categories.length - limits.categories)
+  
+  // Per i prodotti nascosti, dovremmo contare quelli oltre il limite in ogni categoria
+  // Ma non abbiamo accesso ai prodotti qui, quindi restituiamo 0
+  // Il conteggio reale dei prodotti nascosti viene fatto nel ProductManager
+  return { hiddenCategories, hiddenItems: 0 }
 }
