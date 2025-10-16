@@ -70,7 +70,7 @@ function Landing() {
             >
               Prezzi
             </button>
-            <a
+            
               href="/#/login"
               style={{
                 padding: '10px 20px',
@@ -132,8 +132,8 @@ function Landing() {
           justifyContent: 'center',
           flexWrap: 'wrap'
         }}>
-          <a
-            href="/#/login"
+          
+            href="/#/login?mode=signup"
             style={{
               padding: '16px 40px',
               fontSize: '16px',
@@ -414,7 +414,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  ✓ Fino a 3 prodotti visibili per categoria
+                  Fino a 3 prodotti visibili per categoria
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -457,8 +457,8 @@ function Landing() {
                 </li>
               </ul>
 
-              <a
-                href="/#/login"
+              
+                href="/#/login?mode=signup"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -573,7 +573,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  <strong>✓ Prodotti illimitati visibili ai tuoi clienti</strong>
+                  <strong>Prodotti illimitati visibili ai tuoi clienti</strong>
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -642,8 +642,8 @@ function Landing() {
                 </li>
               </ul>
 
-              <a
-                href="/#/login"
+              
+                href="/#/login?mode=signup"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -697,7 +697,7 @@ function Landing() {
             display: 'flex',
             gap: '20px'
           }}>
-            <a
+            
               href="mailto:enzocassese91@gmail.com"
               style={{
                 color: '#999',
@@ -708,7 +708,7 @@ function Landing() {
             >
               Contatti
             </a>
-            <a
+            
               href="/#/login"
               style={{
                 color: '#999',

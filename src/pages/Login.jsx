@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
 function Login() {
@@ -9,6 +9,14 @@ function Login() {
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [message, setMessage] = useState({ text: '', type: '' })
+
+  // Leggi parametro URL per mostrare signup o login
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1])
+    if (params.get('mode') === 'signup') {
+      setIsSignUp(true)
+    }
+  }, [])
 
   const handleEmailAuth = async (e) => {
     e.preventDefault()
@@ -51,7 +59,17 @@ function Login() {
       }
     } catch (error) {
       console.error('🔴 Catch error:', error)
-      setMessage({ text: error.message, type: 'error' })
+      
+      // Gestisci errore email già esistente
+      if (error.message.includes('already registered') || 
+          error.message.includes('User already registered')) {
+        setMessage({ 
+          text: 'Questa email è già registrata. Prova ad accedere o usa un\'altra email.', 
+          type: 'error' 
+        })
+      } else {
+        setMessage({ text: error.message, type: 'error' })
+      }
     } finally {
       setLoading(false)
     }
