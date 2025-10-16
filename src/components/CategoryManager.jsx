@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import ProductManager from './ProductManager'
+import ImageUpload from './ImageUpload'
 import { 
   checkPremiumAccess, 
   canAddCategory, 
@@ -19,6 +20,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    image_url: '',
   })
 
   useEffect(() => {
@@ -56,6 +58,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
           .update({
             name: formData.name,
             description: formData.description,
+            image_url: formData.image_url,
           })
           .eq('id', editingCategory.id)
 
@@ -71,6 +74,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
               restaurant_id: restaurantId,
               name: formData.name,
               description: formData.description,
+              image_url: formData.image_url,
               order: maxOrder + 1,
               is_visible: true,
             }
@@ -95,6 +99,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
     setFormData({
       name: category.name,
       description: category.description || '',
+      image_url: category.image_url || '',
     })
     setShowForm(true)
     setOpenCategoryId(null)
@@ -201,6 +206,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
     setFormData({
       name: '',
       description: '',
+      image_url: '',
     })
   }
 
@@ -392,6 +398,23 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
               }}
               onFocus={(e) => e.target.style.borderColor = '#000000'}
               onBlur={(e) => e.target.style.borderColor = '#E0E0E0'}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '8px',
+              fontSize: '13px',
+              fontWeight: '400',
+              color: '#666'
+            }}>
+              Immagine Categoria
+            </label>
+            <ImageUpload
+              currentImageUrl={formData.image_url}
+              onImageUploaded={(url) => setFormData({ ...formData, image_url: url })}
+              folder="categories"
             />
           </div>
 
@@ -590,6 +613,38 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
                         alignItems: 'center',
                         gap: '12px'
                       }}>
+                        <div style={{ 
+                          width: '150px',
+                          height: '150px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px solid #E0E0E0',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          background: category.image_url ? 'transparent' : '#F5F5F5'
+                        }}>
+                          {category.image_url ? (
+                            <img
+                              src={category.image_url}
+                              alt={category.name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            <span style={{ 
+                              fontSize: '12px',
+                              color: '#999999',
+                              fontWeight: '500'
+                            }}>
+                              Nessuna immagine
+                            </span>
+                          )}
+                        </div>
+
                         <div style={{
                           display: 'flex',
                           gap: '8px',
