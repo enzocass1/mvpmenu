@@ -175,9 +175,9 @@ function SubscriptionAlert({ health, onManageSubscription }) {
     switch (health.severity) {
       case 'warning':
         return {
-          background: '#FFF3E0',
-          border: '1px solid #FFE0B2',
-          iconColor: '#FF9800',
+          background: '#FFF9C4',
+          border: '1px solid #FFF176',
+          iconColor: '#F57C00',
           icon: '⚠️'
         }
       case 'info':
@@ -233,7 +233,7 @@ function SubscriptionAlert({ health, onManageSubscription }) {
           </p>
         </div>
 
-        {health.action === 'update_payment' && (
+        {(health.action === 'update_payment' || health.action === 'renew') && (
           <button
             onClick={onManageSubscription}
             style={{
@@ -252,7 +252,7 @@ function SubscriptionAlert({ health, onManageSubscription }) {
             onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
             onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
           >
-            Aggiorna Pagamento
+            {health.action === 'update_payment' ? 'Aggiorna Pagamento' : 'Gestisci Abbonamento'}
           </button>
         )}
       </div>
@@ -620,11 +620,11 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
 
   const canDownloadQR = restaurant ? canDownloadQRCode(restaurant) : false
   const canExport = restaurant ? canExportBackup(restaurant) : false
-  const { isPremium } = restaurant ? checkPremiumAccess(restaurant) : { isPremium: false }
+  const { hasValidAccess } = restaurant ? checkPremiumAccess(restaurant) : { hasValidAccess: false }
   const subscriptionHealth = restaurant ? getSubscriptionHealth(restaurant) : null
   
-  // Mostra badge "Premium" solo se subscription_status è "active"
-  const showPremiumBadge = isPremium && restaurant?.subscription_status === 'active'
+  // Mostra badge "Premium" solo se ha accesso valido (active o trialing)
+  const showPremiumBadge = hasValidAccess
 
   return (
     <div style={{ 
@@ -964,27 +964,31 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         </CollapsibleSection>
 
         {restaurant && (
-          <CollapsibleSection
-            title="Menu"
-            isOpen={openSections.categories}
-            onToggle={() => toggleSection('categories')}
-          >
-            <CategoryManager 
-              restaurantId={restaurant.id} 
-              onUpgradeClick={handleUpgradeClick}
-            />
-          </CollapsibleSection>
-        )}
+  <CollapsibleSection
+    title="Menu"
+    isOpen={openSections.categories}
+    onToggle={() => toggleSection('categories')}
+  >
+    <CategoryManager 
+      restaurantId={restaurant.id}
+      restaurant={restaurant}  // ⬅️ AGGIUNGI QUESTA RIGA
+      onUpgradeClick={handleUpgradeClick}
+    />
+  </CollapsibleSection>
+)}
 
         {restaurant && (
-          <CollapsibleSection
-            title="Orari di Apertura"
-            isOpen={openSections.hours}
-            onToggle={() => toggleSection('hours')}
-          >
-            <OpeningHoursManager restaurantId={restaurant.id} />
-          </CollapsibleSection>
-        )}
+  <CollapsibleSection
+    title="Orari di Apertura"
+    isOpen={openSections.hours}
+    onToggle={() => toggleSection('hours')}
+  >
+    <OpeningHoursManager 
+      restaurantId={restaurant.id}
+      restaurant={restaurant}  // ⬅️ AGGIUNGI ANCHE QUI SE NECESSARIO
+    />
+  </CollapsibleSection>
+)}
 
         {restaurant && (
           <CollapsibleSection
@@ -1512,7 +1516,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
 
               <button
                 type="button"
-                onClick={() => setShowFeedbackModal(false)}
+                onClick={() => setFeedbackModal(false)}
                 style={{
                   width: '100%',
                   padding: '14px',
