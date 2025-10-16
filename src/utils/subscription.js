@@ -234,3 +234,31 @@ export function getLimitMessage(type, restaurant) {
 
   return ''
 }
+
+// ============================================
+// FUNZIONI DI COMPATIBILITÀ CON VECCHI NOMI
+// ============================================
+
+/**
+ * @deprecated Usa canCreateItem invece
+ * Mantenuto per compatibilità con componenti esistenti
+ */
+export function canAddItem(restaurant, currentCount) {
+  return canCreateItem(restaurant, currentCount)
+}
+
+/**
+ * Verifica se un item deve essere visibile (non nascosto)
+ * Usato per filtrare items nascosti
+ */
+export function isItemVisible(item) {
+  return !item.is_hidden
+}
+
+/**
+ * Verifica se può aggiungere una categoria
+ * @deprecated Usa canCreateCategory invece
+ */
+export function canAddCategory(restaurant, currentCount) {
+  return canCreateCategory(restaurant, currentCount)
+}
