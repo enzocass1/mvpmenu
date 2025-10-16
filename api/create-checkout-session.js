@@ -1,6 +1,13 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+import Stripe from 'stripe'
 
-module.exports = async (req, res) => {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+
+export default async function handler(req, res) {
+  // Log per debug
+  console.log('🔍 API chiamata!')
+  console.log('🔑 STRIPE_SECRET_KEY presente?', !!process.env.STRIPE_SECRET_KEY)
+  console.log('📊 Body ricevuto:', req.body)
+  
   // Abilita CORS
   res.setHeader('Access-Control-Allow-Credentials', true)
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -22,9 +29,14 @@ module.exports = async (req, res) => {
   try {
     const { priceId, userId, userEmail } = req.body
 
+    console.log('📝 Parametri:', { priceId, userId, userEmail })
+
     if (!priceId || !userId || !userEmail) {
+      console.log('❌ Parametri mancanti!')
       return res.status(400).json({ error: 'Missing required fields' })
     }
+
+    console.log('🚀 Creazione sessione Stripe...')
 
     // Crea la sessione di checkout Stripe
     const session = await stripe.checkout.sessions.create({
@@ -50,9 +62,12 @@ module.exports = async (req, res) => {
       },
     })
 
+    console.log('✅ Sessione creata:', session.id)
     res.status(200).json({ sessionId: session.id })
   } catch (error) {
-    console.error('Errore Stripe:', error)
+    console.error('❌ Errore Stripe completo:', error)
+    console.error('❌ Errore message:', error.message)
+    console.error('❌ Errore type:', error.type)
     res.status(500).json({ error: error.message })
   }
 }
