@@ -643,7 +643,7 @@ function Landing() {
               </ul>
 
               <a
-                href="/checkout"
+                href="/#/login"
                 style={{
                   width: '100%',
                   padding: '12px',
