@@ -166,6 +166,8 @@ function Dashboard({ session }) {
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
+  const [loadingPortal, setLoadingPortal] = useState(false)
   const [supportForm, setSupportForm] = useState({
     email: session?.user?.email || '',
     phone: '',
@@ -256,6 +258,60 @@ function Dashboard({ session }) {
   const validatePhoneNumber = (phone) => {
     const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/
     return phoneRegex.test(phone.replace(/\s/g, ''))
+  }
+
+  // Calcola la prossima data di rinnovo (30 giorni dalla subscription)
+  const getNextRenewalDate = () => {
+    if (!restaurant?.updated_at || restaurant.subscription_tier !== 'premium') return null
+    
+    const subscriptionDate = new Date(restaurant.updated_at)
+    const nextRenewal = new Date(subscriptionDate)
+    nextRenewal.setDate(nextRenewal.getDate() + 30)
+    
+    return nextRenewal.toLocaleDateString('it-IT', { 
+      day: '2-digit', 
+      month: 'long', 
+      year: 'numeric' 
+    })
+  }
+
+  // Gestione Customer Portal Stripe
+  const handleManageSubscription = async () => {
+    if (!restaurant?.stripe_customer_id) {
+      showToast('Nessun abbonamento attivo da gestire', 'warning')
+      return
+    }
+
+    setLoadingPortal(true)
+
+    try {
+      const response = await fetch('/api/create-customer-portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerId: restaurant.stripe_customer_id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Errore nella richiesta')
+      }
+
+      if (data.url) {
+        // Reindirizza al Customer Portal di Stripe
+        window.location.href = data.url
+      } else {
+        throw new Error('URL del portal non ricevuto')
+      }
+    } catch (error) {
+      console.error('Errore apertura portal:', error)
+      showToast('Impossibile aprire la gestione abbonamento', 'error')
+      setLoadingPortal(false)
+    }
   }
 
   const handleQRCodeClick = async () => {
@@ -468,20 +524,50 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               </h1>
               {restaurant && (() => {
                 const planInfo = getPlanInfo(restaurant)
+                const nextRenewal = getNextRenewalDate()
+                
                 return (
-                  <div style={{
-                    display: 'inline-block',
-                    marginTop: '8px',
-                    padding: '4px 12px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    color: '#FFFFFF',
-                    background: planInfo.planColor,
-                    borderRadius: '4px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px'
-                  }}>
-                    {planInfo.isPremium ? 'Premium' : 'Free'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                    <div
+                      style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#FFFFFF',
+                        background: planInfo.planColor,
+                        borderRadius: '4px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}
+                    >
+                      {planInfo.isPremium ? 'Premium' : 'Free'}
+                    </div>
+                    
+                    {planInfo.isPremium && nextRenewal && (
+                      <button
+                        onClick={() => setShowSubscriptionModal(true)}
+                        aria-label="Gestisci abbonamento"
+                        style={{
+                          padding: '4px 12px',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          color: '#FFFFFF',
+                          background: '#2E7D32',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          outline: 'none',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.3px'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#1B5E20'}
+                        onMouseLeave={(e) => e.target.style.background = '#2E7D32'}
+                      >
+                        ℹ️ Info
+                      </button>
+                    )}
                   </div>
                 )
               })()}
@@ -671,9 +757,9 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                   padding: '10px 20px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  color: canDownloadQR ? '#FFFFFF' : '#000000',
-                  background: canDownloadQR ? '#000000' : '#FF9800',
-                  border: `1px solid ${canDownloadQR ? '#000000' : '#FF9800'}`,
+                  color: canDownloadQR ? '#000000' : '#000000',
+                  background: canDownloadQR ? '#FFFFFF' : '#FF9800',
+                  border: canDownloadQR ? '1px solid #000000' : '1px solid #FF9800',
                   borderRadius: '6px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
@@ -681,20 +767,20 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 }}
                 onMouseEnter={(e) => {
                   if (canDownloadQR) {
-                    e.target.style.background = '#333333'
+                    e.target.style.background = '#F5F5F5'
                   } else {
                     e.target.style.background = '#F57C00'
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (canDownloadQR) {
-                    e.target.style.background = '#000000'
+                    e.target.style.background = '#FFFFFF'
                   } else {
                     e.target.style.background = '#FF9800'
                   }
                 }}
               >
-                {canDownloadQR ? 'Scarica QR Code' : 'Passa a Premium'}
+                {canDownloadQR ? 'Scarica QR Code' : '🔒 Passa a Premium per QR Code'}
               </button>
             </div>
           </CollapsibleSection>
@@ -863,6 +949,165 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         onClose={() => setShowUpgradeModal(false)} 
       />
 
+      {/* Modal Gestione Abbonamento */}
+      {showSubscriptionModal && restaurant && (() => {
+        const nextRenewal = getNextRenewalDate()
+        
+        return (
+          <div 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowSubscriptionModal(false)
+              }
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscription-modal-title"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+          >
+            <div style={{
+              background: '#FFFFFF',
+              borderRadius: '8px',
+              padding: '30px',
+              maxWidth: '500px',
+              width: '100%',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '25px'
+              }}>
+                <h2 id="subscription-modal-title" style={{
+                  margin: 0,
+                  fontSize: '20px',
+                  fontWeight: '400',
+                  color: '#000000'
+                }}>
+                  Il Tuo Abbonamento
+                </h2>
+                <button
+                  onClick={() => setShowSubscriptionModal(false)}
+                  aria-label="Chiudi finestra abbonamento"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    padding: '0',
+                    color: '#999',
+                    fontWeight: '300'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{
+                padding: '20px',
+                background: '#E8F5E9',
+                border: '1px solid #C8E6C9',
+                borderRadius: '8px',
+                marginBottom: '20px'
+              }}>
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#2E7D32',
+                  marginBottom: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  ✓ Piano Premium Attivo
+                </div>
+                
+                <div style={{
+                  fontSize: '13px',
+                  color: '#666',
+                  lineHeight: '1.6'
+                }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong>Prossimo rinnovo:</strong> {nextRenewal}
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong>Importo:</strong> €30,00/mese
+                  </div>
+                  <div>
+                    <strong>Rinnovo automatico:</strong> Sì
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                padding: '16px',
+                background: '#FFF3E0',
+                border: '1px solid #FFE0B2',
+                borderRadius: '8px',
+                marginBottom: '25px'
+              }}>
+                <div style={{
+                  fontSize: '13px',
+                  color: '#666',
+                  lineHeight: '1.6'
+                }}>
+                  <strong style={{ color: '#000' }}>💡 Nota:</strong> Il tuo abbonamento si rinnova automaticamente ogni mese. Puoi modificare il metodo di pagamento o cancellare l'abbonamento in qualsiasi momento tramite il portale di gestione Stripe.
+                </div>
+              </div>
+
+              <button
+                onClick={handleManageSubscription}
+                disabled={loadingPortal}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: loadingPortal ? '#999' : '#000000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: loadingPortal ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loadingPortal) e.target.style.background = '#333333'
+                }}
+                onMouseLeave={(e) => {
+                  if (!loadingPortal) e.target.style.background = '#000000'
+                }}
+              >
+                {loadingPortal ? 'Apertura...' : '⚙️ Gestisci Abbonamento su Stripe'}
+              </button>
+
+              <p style={{
+                margin: '12px 0 0 0',
+                fontSize: '12px',
+                color: '#999',
+                textAlign: 'center',
+                lineHeight: '1.5'
+              }}>
+                Sarai reindirizzato a Stripe per gestire il tuo abbonamento, modificare la carta di credito o cancellare.
+              </p>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Modal Assistenza */}
       {showSupportModal && (
         <div 
           onClick={(e) => {
@@ -1141,6 +1386,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         </div>
       )}
 
+      {/* Modal Suggerimenti */}
       {showFeedbackModal && (
         <div 
           onClick={(e) => {
