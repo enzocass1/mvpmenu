@@ -383,38 +383,57 @@ function Dashboard({ session }) {
   }
 
   const handleManageSubscription = async () => {
+    console.log('🔵 handleManageSubscription chiamata')
+    console.log('Restaurant data:', {
+      id: restaurant?.id,
+      stripe_customer_id: restaurant?.stripe_customer_id,
+      subscription_status: restaurant?.subscription_status
+    })
+
     if (!restaurant?.stripe_customer_id) {
+      console.error('❌ Nessun stripe_customer_id trovato')
       showToast('Nessun abbonamento attivo da gestire', 'warning')
       return
     }
 
     setLoadingPortal(true)
+    console.log('🟡 Chiamata API in corso...')
 
     try {
-      const response = await fetch('/api/create-customer-portal', {
+      const apiUrl = `${window.location.origin}/api/create-customer-portal`
+      console.log('📍 API URL:', apiUrl)
+      
+      const requestBody = {
+        customerId: restaurant.stripe_customer_id
+      }
+      console.log('📦 Request body:', requestBody)
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          customerId: restaurant.stripe_customer_id
-        })
+        body: JSON.stringify(requestBody)
       })
 
+      console.log('📬 Response status:', response.status)
       const data = await response.json()
+      console.log('📬 Response data:', data)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Errore nella richiesta')
+        throw new Error(data.error || `Errore HTTP ${response.status}`)
       }
 
       if (data.url) {
+        console.log('✅ Reindirizzamento a:', data.url)
         window.location.href = data.url
       } else {
-        throw new Error('URL del portal non ricevuto')
+        throw new Error('URL del portal non ricevuto nella risposta')
       }
     } catch (error) {
-      console.error('Errore apertura portal:', error)
-      showToast('Impossibile aprire la gestione abbonamento', 'error')
+      console.error('❌ Errore completo:', error)
+      console.error('Stack trace:', error.stack)
+      showToast(`Errore: ${error.message}`, 'error')
       setLoadingPortal(false)
     }
   }
@@ -605,6 +624,9 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
   const canExport = restaurant ? canExportBackup(restaurant) : false
   const { isPremium } = restaurant ? checkPremiumAccess(restaurant) : { isPremium: false }
   const subscriptionHealth = restaurant ? getSubscriptionHealth(restaurant) : null
+  
+  // Mostra badge "Premium" solo se subscription_status è "active"
+  const showPremiumBadge = isPremium && restaurant?.subscription_status === 'active'
 
   return (
     <div style={{ 
@@ -641,7 +663,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               }}>
                 {session.user.email}
               </span>
-              {isPremium && (
+              {showPremiumBadge && (
                 <div
                   style={{
                     display: 'inline-block',
@@ -703,7 +725,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                     zIndex: 999,
                     overflow: 'hidden'
                   }}>
-                    {isPremium && (
+                    {showPremiumBadge && (
                       <>
                         <button
                           onClick={() => handleMenuItemClick(() => setShowSubscriptionModal(true))}
