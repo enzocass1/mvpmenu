@@ -553,130 +553,8 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               )}
             </div>
             
-            {/* Desktop Menu */}
-            <div className="desktop-menu" style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: '8px'
-            }}>
-              {isPremium && (
-                <>
-                  <div
-                    style={{
-                      padding: '10px 20px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#000000',
-                      background: '#FF9800',
-                      border: '1px solid #FF9800',
-                      borderRadius: '6px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                      textAlign: 'center',
-                      minWidth: '120px'
-                    }}
-                  >
-                    Premium
-                  </div>
-
-                  <button
-                    onClick={() => setShowSubscriptionModal(true)}
-                    aria-label="Gestisci abbonamento"
-                    style={{
-                      padding: '10px 20px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#000000',
-                      background: '#FFFFFF',
-                      border: '1px solid #000000',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      outline: 'none',
-                      minWidth: '120px'
-                    }}
-                    onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
-                    onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
-                  >
-                    Abbonamento
-                  </button>
-                </>
-              )}
-
-              <button 
-                onClick={handleLogout}
-                aria-label="Esci dall'account"
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#000000',
-                  background: '#FFFFFF',
-                  border: '1px solid #000000',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  outline: 'none',
-                  minWidth: '120px'
-                }}
-                onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
-                onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
-              >
-                Logout
-              </button>
-
-              <div style={{
-                display: 'flex',
-                gap: '8px',
-                marginTop: '12px'
-              }}>
-                <button 
-                  onClick={() => setShowFeedbackModal(true)}
-                  aria-label="Lascia un suggerimento"
-                  style={{
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#FFFFFF',
-                    background: '#2E7D32',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    outline: 'none'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#1B5E20'}
-                  onMouseLeave={(e) => e.target.style.background = '#2E7D32'}
-                >
-                  Suggerisci
-                </button>
-
-                <button 
-                  onClick={() => setShowSupportModal(true)}
-                  aria-label="Apri form assistenza"
-                  style={{
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#FFFFFF',
-                    background: '#000000',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    outline: 'none'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#333333'}
-                  onMouseLeave={(e) => e.target.style.background = '#000000'}
-                >
-                  Assistenza
-                </button>
-              </div>
-            </div>
-
-            {/* Mobile Hamburger Menu */}
-            <div className="mobile-menu" style={{ position: 'relative' }}>
+            {/* Menu Hamburger sempre visibile */}
+            <div style={{ position: 'relative' }}>
               <button
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
                 aria-label="Menu"
@@ -714,7 +592,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                     background: '#FFFFFF',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     borderRadius: '8px',
-                    minWidth: '180px',
+                    minWidth: '220px',
                     zIndex: 999,
                     overflow: 'hidden'
                   }}>
@@ -740,7 +618,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                         >
                           Abbonamento
                         </button>
-                        <div style={{ height: '1px', background: '#000000' }} />
+                        <div style={{ height: '1px', background: '#E0E0E0' }} />
                       </>
                     )}
 
@@ -762,10 +640,10 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                       onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
                       onMouseLeave={(e) => e.target.style.background = 'transparent'}
                     >
-                      Suggerisci
+                      Migliora il servizio
                     </button>
 
-                    <div style={{ height: '1px', background: '#000000' }} />
+                    <div style={{ height: '1px', background: '#E0E0E0' }} />
 
                     <button
                       onClick={() => handleMenuItemClick(() => setShowSupportModal(true))}
@@ -788,7 +666,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                       Assistenza
                     </button>
 
-                    <div style={{ height: '1px', background: '#000000' }} />
+                    <div style={{ height: '1px', background: '#E0E0E0' }} />
 
                     <button
                       onClick={() => handleMenuItemClick(handleLogout)}
@@ -1266,8 +1144,522 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         )
       })()}
 
-      {/* Modal Assistenza - mantieni invariato */}
-      {/* Modal Suggerimenti - mantieni invariato */}
+      {/* Modal Assistenza */}
+      {showSupportModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowSupportModal(false)
+              setFormErrors({})
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="support-modal-title"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            overflowY: 'auto'
+          }}
+        >
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '550px',
+            width: '100%',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '25px'
+            }}>
+              <h2 id="support-modal-title" style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: '400',
+                color: '#000000'
+              }}>
+                Assistenza
+              </h2>
+              <button
+                onClick={() => {
+                  setShowSupportModal(false)
+                  setFormErrors({})
+                }}
+                aria-label="Chiudi finestra assistenza"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '0',
+                  color: '#999',
+                  fontWeight: '300'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{
+              margin: '0 0 25px 0',
+              fontSize: '14px',
+              color: '#666',
+              lineHeight: '1.6'
+            }}>
+              Hai riscontrato un problema o hai bisogno di aiuto? Compila il form qui sotto e ti risponderemo al più presto.
+            </p>
+
+            <form onSubmit={handleSendSupport}>
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="support-email" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
+                }}>
+                  Email
+                </label>
+                <input
+                  id="support-email"
+                  type="email"
+                  value={supportForm.email}
+                  disabled
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#F5F5F5',
+                    color: '#999',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="support-phone" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
+                }}>
+                  Telefono <span style={{ color: '#f44336' }}>*</span>
+                </label>
+                <input
+                  id="support-phone"
+                  type="tel"
+                  value={supportForm.phone}
+                  onChange={(e) => {
+                    setSupportForm({ ...supportForm, phone: e.target.value })
+                    if (formErrors.phone) {
+                      setFormErrors({ ...formErrors, phone: null })
+                    }
+                  }}
+                  placeholder="+39 123 456 7890"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: formErrors.phone ? '1px solid #f44336' : '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    outline: 'none'
+                  }}
+                />
+                {formErrors.phone && (
+                  <span style={{
+                    display: 'block',
+                    marginTop: '6px',
+                    fontSize: '13px',
+                    color: '#f44336'
+                  }}>
+                    {formErrors.phone}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ marginBottom: '25px' }}>
+                <label htmlFor="support-message" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
+                }}>
+                  Descrivi il problema <span style={{ color: '#f44336' }}>*</span>
+                </label>
+                <textarea
+                  id="support-message"
+                  value={supportForm.message}
+                  onChange={(e) => {
+                    setSupportForm({ ...supportForm, message: e.target.value })
+                    if (formErrors.message) {
+                      setFormErrors({ ...formErrors, message: null })
+                    }
+                  }}
+                  placeholder="Spiega nel dettaglio il problema che stai riscontrando..."
+                  rows={6}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: formErrors.message ? '1px solid #f44336' : '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                {formErrors.message && (
+                  <span style={{
+                    display: 'block',
+                    marginTop: '6px',
+                    fontSize: '13px',
+                    color: '#f44336'
+                  }}>
+                    {formErrors.message}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={sendingSupport}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: sendingSupport ? '#999' : '#000000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: sendingSupport ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!sendingSupport) e.target.style.background = '#333333'
+                }}
+                onMouseLeave={(e) => {
+                  if (!sendingSupport) e.target.style.background = '#000000'
+                }}
+              >
+                {sendingSupport ? 'Invio in corso...' : 'Invia Richiesta'}
+              </button>
+
+              <p style={{
+                margin: '12px 0 0 0',
+                fontSize: '12px',
+                color: '#999',
+                textAlign: 'center',
+                lineHeight: '1.5'
+              }}>
+                Si aprirà il tuo client email con il messaggio precompilato. Completa e invia.
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Migliora il servizio */}
+      {showFeedbackModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowFeedbackModal(false)
+              setFeedbackErrors({})
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="feedback-modal-title"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px',
+            overflowY: 'auto'
+          }}
+        >
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: '8px',
+            padding: '30px',
+            maxWidth: '550px',
+            width: '100%',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '25px'
+            }}>
+              <h2 id="feedback-modal-title" style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: '400',
+                color: '#000000'
+              }}>
+                Migliora il servizio
+              </h2>
+              <button
+                onClick={() => {
+                  setShowFeedbackModal(false)
+                  setFeedbackErrors({})
+                }}
+                aria-label="Chiudi finestra suggerimenti"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '0',
+                  color: '#999',
+                  fontWeight: '300'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{
+              margin: '0 0 25px 0',
+              fontSize: '14px',
+              color: '#666',
+              lineHeight: '1.6'
+            }}>
+              Hai un'idea per migliorare MVPMenu? Condividi il tuo suggerimento con noi. Il tuo feedback è prezioso!
+            </p>
+
+            <form onSubmit={handleSendFeedback}>
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="feedback-email" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
+                }}>
+                  Email
+                </label>
+                <input
+                  id="feedback-email"
+                  type="email"
+                  value={feedbackForm.email}
+                  disabled
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#F5F5F5',
+                    color: '#999',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="feedback-phone" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
+                }}>
+                  Telefono <span style={{ color: '#f44336' }}>*</span>
+                </label>
+                <input
+                  id="feedback-phone"
+                  type="tel"
+                  value={feedbackForm.phone}
+                  onChange={(e) => {
+                    setFeedbackForm({ ...feedbackForm, phone: e.target.value })
+                    if (feedbackErrors.phone) {
+                      setFeedbackErrors({ ...feedbackErrors, phone: null })
+                    }
+                  }}
+                  placeholder="+39 123 456 7890"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: feedbackErrors.phone ? '1px solid #f44336' : '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    outline: 'none'
+                  }}
+                />
+                {feedbackErrors.phone && (
+                  <span style={{
+                    display: 'block',
+                    marginTop: '6px',
+                    fontSize: '13px',
+                    color: '#f44336'
+                  }}>
+                    {feedbackErrors.phone}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label htmlFor="feedback-category" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
+                }}>
+                  Categoria
+                </label>
+                <select
+                  id="feedback-category"
+                  value={feedbackForm.category}
+                  onChange={(e) => setFeedbackForm({ ...feedbackForm, category: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="Nuova Funzionalità">Nuova Funzionalità</option>
+                  <option value="Miglioramento UI/UX">Miglioramento UI/UX</option>
+                  <option value="Performance">Performance</option>
+                  <option value="Bug Report">Bug Report</option>
+                  <option value="Altro">Altro</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '25px' }}>
+                <label htmlFor="feedback-message" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#000000'
+                }}>
+                  Il tuo suggerimento <span style={{ color: '#f44336' }}>*</span>
+                </label>
+                <textarea
+                  id="feedback-message"
+                  value={feedbackForm.message}
+                  onChange={(e) => {
+                    setFeedbackForm({ ...feedbackForm, message: e.target.value })
+                    if (feedbackErrors.message) {
+                      setFeedbackErrors({ ...feedbackErrors, message: null })
+                    }
+                  }}
+                  placeholder="Descrivi la tua idea o il miglioramento che vorresti vedere..."
+                  rows={6}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: feedbackErrors.message ? '1px solid #f44336' : '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                {feedbackErrors.message && (
+                  <span style={{
+                    display: 'block',
+                    marginTop: '6px',
+                    fontSize: '13px',
+                    color: '#f44336'
+                  }}>
+                    {feedbackErrors.message}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={sendingFeedback}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: sendingFeedback ? '#999' : '#2E7D32',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: sendingFeedback ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!sendingFeedback) e.target.style.background = '#1B5E20'
+                }}
+                onMouseLeave={(e) => {
+                  if (!sendingFeedback) e.target.style.background = '#2E7D32'
+                }}
+              >
+                {sendingFeedback ? 'Invio in corso...' : 'Invia Suggerimento'}
+              </button>
+
+              <p style={{
+                margin: '12px 0 0 0',
+                fontSize: '12px',
+                color: '#999',
+                textAlign: 'center',
+                lineHeight: '1.5'
+              }}>
+                Si aprirà il tuo client email con il messaggio precompilato. Completa e invia.
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <Toast
@@ -1303,19 +1695,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           outline-offset: 2px;
         }
 
-        .mobile-menu {
-          display: none;
-        }
-
         @media (max-width: 768px) {
-          .desktop-menu {
-            display: none !important;
-          }
-          
-          .mobile-menu {
-            display: block;
-          }
-
           h1 {
             font-size: 20px !important;
           }
