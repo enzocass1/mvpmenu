@@ -167,6 +167,7 @@ function Dashboard({ session }) {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [loadingPortal, setLoadingPortal] = useState(false)
   const [supportForm, setSupportForm] = useState({
     email: session?.user?.email || '',
@@ -260,7 +261,6 @@ function Dashboard({ session }) {
     return phoneRegex.test(phone.replace(/\s/g, ''))
   }
 
-  // Calcola la prossima data di rinnovo (30 giorni dalla subscription)
   const getNextRenewalDate = () => {
     if (!restaurant?.updated_at || restaurant.subscription_tier !== 'premium') return null
     
@@ -275,7 +275,6 @@ function Dashboard({ session }) {
     })
   }
 
-  // Gestione Customer Portal Stripe
   const handleManageSubscription = async () => {
     if (!restaurant?.stripe_customer_id) {
       showToast('Nessun abbonamento attivo da gestire', 'warning')
@@ -302,7 +301,6 @@ function Dashboard({ session }) {
       }
 
       if (data.url) {
-        // Reindirizza al Customer Portal di Stripe
         window.location.href = data.url
       } else {
         throw new Error('URL del portal non ricevuto')
@@ -479,6 +477,11 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
       .catch(() => showToast('Impossibile copiare il link', 'error'))
   }
 
+  const handleMenuItemClick = (action) => {
+    setShowMobileMenu(false)
+    action()
+  }
+
   if (loading) {
     return (
       <div style={{ 
@@ -511,10 +514,9 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
-            flexWrap: 'wrap',
             gap: '15px'
           }}>
-            <div>
+            <div style={{ flex: 1 }}>
               <h1 style={{
                 color: '#000000',
                 margin: 0,
@@ -531,61 +533,77 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               }}>
                 {session.user.email}
               </span>
-            </div>
-            
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-end',
-              gap: '8px'
-            }}>
-              {/* Badge Premium */}
               {isPremium && (
                 <div
                   style={{
-                    padding: '10px 20px',
-                    fontSize: '14px',
+                    display: 'inline-block',
+                    marginTop: '6px',
+                    padding: '3px 8px',
+                    fontSize: '10px',
                     fontWeight: '500',
                     color: '#000000',
                     background: '#FF9800',
-                    border: '1px solid #FF9800',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    textAlign: 'center',
-                    minWidth: '120px'
+                    letterSpacing: '0.3px'
                   }}
                 >
                   Premium
                 </div>
               )}
-
-              {/* Pulsante Abbonamento */}
+            </div>
+            
+            {/* Desktop Menu */}
+            <div className="desktop-menu" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: '8px'
+            }}>
               {isPremium && (
-                <button
-                  onClick={() => setShowSubscriptionModal(true)}
-                  aria-label="Gestisci abbonamento"
-                  style={{
-                    padding: '10px 20px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#000000',
-                    background: '#FFFFFF',
-                    border: '1px solid #000000',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    outline: 'none',
-                    minWidth: '120px'
-                  }}
-                  onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
-                  onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
-                >
-                  Abbonamento
-                </button>
+                <>
+                  <div
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#000000',
+                      background: '#FF9800',
+                      border: '1px solid #FF9800',
+                      borderRadius: '6px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      textAlign: 'center',
+                      minWidth: '120px'
+                    }}
+                  >
+                    Premium
+                  </div>
+
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    aria-label="Gestisci abbonamento"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#000000',
+                      background: '#FFFFFF',
+                      border: '1px solid #000000',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      outline: 'none',
+                      minWidth: '120px'
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                    onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+                  >
+                    Abbonamento
+                  </button>
+                </>
               )}
 
-              {/* Pulsante Logout */}
               <button 
                 onClick={handleLogout}
                 aria-label="Esci dall'account"
@@ -608,7 +626,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 Logout
               </button>
 
-              {/* Pulsanti Suggerisci e Assistenza sotto */}
               <div style={{
                 display: 'flex',
                 gap: '8px',
@@ -656,6 +673,146 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                   Assistenza
                 </button>
               </div>
+            </div>
+
+            {/* Mobile Hamburger Menu */}
+            <div className="mobile-menu" style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                aria-label="Menu"
+                style={{
+                  padding: '8px',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 12h18M3 6h18M3 18h18" stroke="#000000" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+
+              {showMobileMenu && (
+                <>
+                  <div 
+                    onClick={() => setShowMobileMenu(false)}
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 998
+                    }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '8px',
+                    background: '#FFFFFF',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    borderRadius: '8px',
+                    minWidth: '180px',
+                    zIndex: 999,
+                    overflow: 'hidden'
+                  }}>
+                    {isPremium && (
+                      <>
+                        <button
+                          onClick={() => handleMenuItemClick(() => setShowSubscriptionModal(true))}
+                          style={{
+                            width: '100%',
+                            padding: '14px 20px',
+                            background: 'transparent',
+                            border: 'none',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                            color: '#000000',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            transition: 'background 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                          onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        >
+                          Abbonamento
+                        </button>
+                        <div style={{ height: '1px', background: '#000000' }} />
+                      </>
+                    )}
+
+                    <button
+                      onClick={() => handleMenuItemClick(() => setShowFeedbackModal(true))}
+                      style={{
+                        width: '100%',
+                        padding: '14px 20px',
+                        background: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '400',
+                        color: '#000000',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition: 'background 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      Suggerisci
+                    </button>
+
+                    <div style={{ height: '1px', background: '#000000' }} />
+
+                    <button
+                      onClick={() => handleMenuItemClick(() => setShowSupportModal(true))}
+                      style={{
+                        width: '100%',
+                        padding: '14px 20px',
+                        background: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '400',
+                        color: '#000000',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition: 'background 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      Assistenza
+                    </button>
+
+                    <div style={{ height: '1px', background: '#000000' }} />
+
+                    <button
+                      onClick={() => handleMenuItemClick(handleLogout)}
+                      style={{
+                        width: '100%',
+                        padding: '14px 20px',
+                        background: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '400',
+                        color: '#000000',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        transition: 'background 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                      onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -1109,8 +1266,8 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         )
       })()}
 
-      {/* Gli altri modali rimangono uguali... */}
-      {/* Continua con i modali Assistenza e Suggerimenti come prima */}
+      {/* Modal Assistenza - mantieni invariato */}
+      {/* Modal Suggerimenti - mantieni invariato */}
 
       {toast && (
         <Toast
@@ -1146,19 +1303,21 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           outline-offset: 2px;
         }
 
+        .mobile-menu {
+          display: none;
+        }
+
         @media (max-width: 768px) {
+          .desktop-menu {
+            display: none !important;
+          }
+          
+          .mobile-menu {
+            display: block;
+          }
+
           h1 {
             font-size: 20px !important;
-          }
-          
-          header > div {
-            flex-direction: column;
-            align-items: flex-start !important;
-          }
-          
-          header > div > div {
-            width: 100%;
-            align-items: flex-start !important;
           }
         }
 
