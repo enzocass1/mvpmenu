@@ -1098,6 +1098,423 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         onClose={() => setShowUpgradeModal(false)} 
       />
 
+      {/* MODAL ABBONAMENTO */}
+      {showSubscriptionModal && (
+        <>
+          <div 
+            onClick={() => setShowSubscriptionModal(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 1999,
+              animation: 'fadeIn 0.2s ease'
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            zIndex: 2000,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.3s ease'
+          }}>
+            <h2 style={{ margin: '0 0 20px 0', fontSize: '24px', fontWeight: '500', color: '#000' }}>
+              Il Tuo Abbonamento
+            </h2>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Piano Corrente</div>
+              <div style={{ fontSize: '20px', fontWeight: '600', color: '#000' }}>Premium</div>
+            </div>
+
+            {getNextRenewalDate() && (
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Prossimo Rinnovo</div>
+                <div style={{ fontSize: '16px', color: '#000' }}>{getNextRenewalDate()}</div>
+              </div>
+            )}
+
+            <button
+              onClick={handleManageSubscription}
+              disabled={loadingPortal}
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#FFFFFF',
+                background: loadingPortal ? '#999' : '#000000',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: loadingPortal ? 'not-allowed' : 'pointer',
+                marginBottom: '12px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => !loadingPortal && (e.target.style.background = '#333')}
+              onMouseLeave={(e) => !loadingPortal && (e.target.style.background = '#000')}
+            >
+              {loadingPortal ? 'Apertura in corso...' : 'Gestisci Abbonamento'}
+            </button>
+
+            <button
+              onClick={() => setShowSubscriptionModal(false)}
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '16px',
+                fontWeight: '500',
+                color: '#000',
+                background: '#F5F5F5',
+                border: '1px solid #E0E0E0',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#E0E0E0'}
+              onMouseLeave={(e) => e.target.style.background = '#F5F5F5'}
+            >
+              Chiudi
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* MODAL ASSISTENZA */}
+      {showSupportModal && (
+        <>
+          <div 
+            onClick={() => setShowSupportModal(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 1999,
+              animation: 'fadeIn 0.2s ease'
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            zIndex: 2000,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.3s ease'
+          }}>
+            <h2 style={{ margin: '0 0 20px 0', fontSize: '24px', fontWeight: '500', color: '#000' }}>
+              Assistenza
+            </h2>
+            
+            <form onSubmit={handleSendSupport}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '8px' }}>
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={supportForm.email}
+                  onChange={(e) => setSupportForm({...supportForm, email: e.target.value})}
+                  disabled
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    backgroundColor: '#F5F5F5',
+                    color: '#666'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '8px' }}>
+                  Telefono *
+                </label>
+                <input
+                  type="tel"
+                  value={supportForm.phone}
+                  onChange={(e) => setSupportForm({...supportForm, phone: e.target.value})}
+                  placeholder="+39 123 456 7890"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: `1px solid ${formErrors.phone ? '#f44336' : '#E0E0E0'}`,
+                    borderRadius: '6px'
+                  }}
+                />
+                {formErrors.phone && (
+                  <p style={{ color: '#f44336', fontSize: '12px', margin: '4px 0 0 0' }}>{formErrors.phone}</p>
+                )}
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '8px' }}>
+                  Descrivi il problema *
+                </label>
+                <textarea
+                  value={supportForm.message}
+                  onChange={(e) => setSupportForm({...supportForm, message: e.target.value})}
+                  placeholder="Spiega dettagliatamente il problema riscontrato..."
+                  rows="5"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: `1px solid ${formErrors.message ? '#f44336' : '#E0E0E0'}`,
+                    borderRadius: '6px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical'
+                  }}
+                />
+                {formErrors.message && (
+                  <p style={{ color: '#f44336', fontSize: '12px', margin: '4px 0 0 0' }}>{formErrors.message}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={sendingSupport}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: sendingSupport ? '#999' : '#000000',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: sendingSupport ? 'not-allowed' : 'pointer',
+                  marginBottom: '12px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => !sendingSupport && (e.target.style.background = '#333')}
+                onMouseLeave={(e) => !sendingSupport && (e.target.style.background = '#000')}
+              >
+                {sendingSupport ? 'Invio in corso...' : 'Invia Richiesta'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowSupportModal(false)}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#000',
+                  background: '#F5F5F5',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#E0E0E0'}
+                onMouseLeave={(e) => e.target.style.background = '#F5F5F5'}
+              >
+                Annulla
+              </button>
+            </form>
+          </div>
+        </>
+      )}
+
+      {/* MODAL FEEDBACK */}
+      {showFeedbackModal && (
+        <>
+          <div 
+            onClick={() => setShowFeedbackModal(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 1999,
+              animation: 'fadeIn 0.2s ease'
+            }}
+          />
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflowY: 'auto',
+            zIndex: 2000,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            animation: 'slideUp 0.3s ease'
+          }}>
+            <h2 style={{ margin: '0 0 20px 0', fontSize: '24px', fontWeight: '500', color: '#000' }}>
+              Migliora il Servizio
+            </h2>
+            
+            <form onSubmit={handleSendFeedback}>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '8px' }}>
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={feedbackForm.email}
+                  onChange={(e) => setFeedbackForm({...feedbackForm, email: e.target.value})}
+                  disabled
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    backgroundColor: '#F5F5F5',
+                    color: '#666'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '8px' }}>
+                  Telefono *
+                </label>
+                <input
+                  type="tel"
+                  value={feedbackForm.phone}
+                  onChange={(e) => setFeedbackForm({...feedbackForm, phone: e.target.value})}
+                  placeholder="+39 123 456 7890"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: `1px solid ${feedbackErrors.phone ? '#f44336' : '#E0E0E0'}`,
+                    borderRadius: '6px'
+                  }}
+                />
+                {feedbackErrors.phone && (
+                  <p style={{ color: '#f44336', fontSize: '12px', margin: '4px 0 0 0' }}>{feedbackErrors.phone}</p>
+                )}
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '8px' }}>
+                  Categoria
+                </label>
+                <select
+                  value={feedbackForm.category}
+                  onChange={(e) => setFeedbackForm({...feedbackForm, category: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '6px'
+                  }}
+                >
+                  <option>Nuova Funzionalità</option>
+                  <option>Miglioramento UX</option>
+                  <option>Bug/Problema</option>
+                  <option>Altro</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '8px' }}>
+                  Il tuo suggerimento *
+                </label>
+                <textarea
+                  value={feedbackForm.message}
+                  onChange={(e) => setFeedbackForm({...feedbackForm, message: e.target.value})}
+                  placeholder="Descrivi il tuo suggerimento o idea..."
+                  rows="5"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: `1px solid ${feedbackErrors.message ? '#f44336' : '#E0E0E0'}`,
+                    borderRadius: '6px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical'
+                  }}
+                />
+                {feedbackErrors.message && (
+                  <p style={{ color: '#f44336', fontSize: '12px', margin: '4px 0 0 0' }}>{feedbackErrors.message}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={sendingFeedback}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: sendingFeedback ? '#999' : '#000000',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: sendingFeedback ? 'not-allowed' : 'pointer',
+                  marginBottom: '12px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => !sendingFeedback && (e.target.style.background = '#333')}
+                onMouseLeave={(e) => !sendingFeedback && (e.target.style.background = '#000')}
+              >
+                {sendingFeedback ? 'Invio in corso...' : 'Invia Suggerimento'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowFeedbackModal(false)}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#000',
+                  background: '#F5F5F5',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#E0E0E0'}
+                onMouseLeave={(e) => e.target.style.background = '#F5F5F5'}
+              >
+                Annulla
+              </button>
+            </form>
+          </div>
+        </>
+      )}
+
       {toast && (
         <Toast
           message={toast.message}
@@ -1130,6 +1547,22 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           }
           to {
             transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+          from {
+            transform: translate(-50%, -40%);
+            opacity: 0;
+          }
+          to {
+            transform: translate(-50%, -50%);
             opacity: 1;
           }
         }
