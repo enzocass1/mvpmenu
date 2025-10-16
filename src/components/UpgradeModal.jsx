@@ -3,15 +3,15 @@ function UpgradeModal({ isOpen, onClose }) {
 
   const features = {
     free: [
-      'Max 3 categorie',
-      'Max 3 prodotti per categoria',
+      'Fino a 3 categorie visibili',
+      'Fino a 3 prodotti visibili per categoria',
       'Caricamento immagini',
       'Link condivisibile',
       'Supporto base'
     ],
     premium: [
-      { text: 'Categorie illimitate', bold: true },
-      { text: 'Prodotti illimitati', bold: true },
+      { text: 'Categorie illimitate visibili ai tuoi clienti', bold: true },
+      { text: 'Prodotti illimitati visibili ai tuoi clienti', bold: true },
       { text: 'Caricamento immagini', bold: false },
       { text: 'Link condivisibile', bold: false },
       { text: 'Scaricamento QR Code', bold: true },

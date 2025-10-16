@@ -401,7 +401,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Max 3 categorie
+                  Fino a 3 categorie visibili
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -414,7 +414,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Max 3 prodotti per categoria
+                  ✓ Fino a 3 prodotti visibili per categoria
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -560,7 +560,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  <strong>Categorie illimitate</strong>
+                  <strong>Categorie illimitate visibili ai tuoi clienti</strong>
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -573,7 +573,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  <strong>Prodotti illimitati</strong>
+                  <strong>✓ Prodotti illimitati visibili ai tuoi clienti</strong>
                 </li>
                 <li style={{
                   fontSize: '14px',

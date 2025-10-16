@@ -182,8 +182,8 @@ function Checkout() {
             margin: '0 0 30px 0'
           }}>
             {[
-              { text: 'Categorie illimitate', bold: true },
-              { text: 'Prodotti illimitati', bold: true },
+              { text: 'Categorie illimitate visibili ai tuoi clienti', bold: true },
+              { text: 'Prodotti illimitati visibili ai tuoi clienti', bold: true },
               { text: 'Caricamento immagini', bold: false },
               { text: 'Link condivisibile', bold: false },
               { text: 'Scaricamento QR Code', bold: true },
