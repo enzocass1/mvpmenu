@@ -386,3 +386,5 @@ export function getHiddenCounts(restaurant, categories) {
   // Quindi restituiamo 0 per ora - il conteggio viene fatto nel ProductManager
   return { hiddenCategories, hiddenItems: 0 }
 }
+
+export default CategoryManager
