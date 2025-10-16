@@ -94,6 +94,9 @@ export default async function handler(req, res) {
             stripe_customer_id: customerId,
             stripe_subscription_id: subscriptionId,
             subscription_ends_at: null,
+            is_manual_premium: false,              // ← AGGIUNTO!
+            manual_premium_reason: null,           // ← AGGIUNTO!
+            manual_premium_granted_at: null,       // ← AGGIUNTO!
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId)
@@ -103,7 +106,7 @@ export default async function handler(req, res) {
           throw error
         }
 
-        console.log('✅ Database aggiornato - Premium attivato:', data)
+        console.log('✅ Database aggiornato - Premium attivato via Stripe:', data)
         break
       }
 
