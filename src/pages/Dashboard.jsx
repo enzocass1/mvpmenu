@@ -6,7 +6,13 @@ import OpeningHoursManager from '../components/OpeningHoursManager'
 import MenuImportExport from '../components/MenuImportExport'
 import UpgradeModal from '../components/UpgradeModal'
 import QRCode from 'qrcode'
-import { checkPremiumAccess, canDownloadQRCode, canExportBackup, getPlanInfo } from '../utils/subscription'
+import { 
+  checkPremiumAccess, 
+  canDownloadQRCode, 
+  canExportBackup, 
+  getPlanInfo,
+  getSubscriptionHealth 
+} from '../utils/subscription'
 
 const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || 'enzocassese91@gmail.com'
 
@@ -148,6 +154,121 @@ function CollapsibleSection({ title, isOpen, onToggle, children, ariaLabel }) {
             {children}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function SubscriptionAlert({ health, onManageSubscription }) {
+  if (!health?.actionRequired) return null
+
+  const getBannerStyles = () => {
+    switch (health.severity) {
+      case 'warning':
+        return {
+          background: '#FFF3E0',
+          border: '1px solid #FFE0B2',
+          iconColor: '#FF9800',
+          icon: '⚠️'
+        }
+      case 'info':
+        return {
+          background: '#E3F2FD',
+          border: '1px solid #BBDEFB',
+          iconColor: '#2196F3',
+          icon: 'ℹ️'
+        }
+      default:
+        return {
+          background: '#F5F5F5',
+          border: '1px solid #E0E0E0',
+          iconColor: '#666',
+          icon: '💡'
+        }
+    }
+  }
+
+  const styles = getBannerStyles()
+
+  return (
+    <div style={{
+      padding: '16px 20px',
+      background: styles.background,
+      border: styles.border,
+      borderRadius: '8px',
+      marginBottom: '30px',
+      animation: 'slideDown 0.4s ease'
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '12px',
+        flexWrap: 'wrap'
+      }}>
+        <span style={{
+          fontSize: '20px',
+          lineHeight: '1',
+          flexShrink: 0
+        }}>
+          {styles.icon}
+        </span>
+        
+        <div style={{ flex: 1, minWidth: '200px' }}>
+          <p style={{
+            margin: 0,
+            fontSize: '14px',
+            color: '#000000',
+            lineHeight: '1.6'
+          }}>
+            {health.message}
+          </p>
+        </div>
+
+        {health.action === 'update_payment' && (
+          <button
+            onClick={onManageSubscription}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: '500',
+              color: '#000000',
+              background: '#FFFFFF',
+              border: '1px solid #000000',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              outline: 'none',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+            onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+          >
+            Aggiorna Pagamento
+          </button>
+        )}
+
+        {health.action === 'renew' && (
+          <button
+            onClick={onManageSubscription}
+            style={{
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: '500',
+              color: '#FFFFFF',
+              background: '#000000',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              outline: 'none',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#333333'}
+            onMouseLeave={(e) => e.target.style.background = '#000000'}
+          >
+            Rinnova Ora
+          </button>
+        )}
       </div>
     </div>
   )
@@ -497,6 +618,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
   const canDownloadQR = restaurant ? canDownloadQRCode(restaurant) : false
   const canExport = restaurant ? canExportBackup(restaurant) : false
   const { isPremium } = restaurant ? checkPremiumAccess(restaurant) : { isPremium: false }
+  const subscriptionHealth = restaurant ? getSubscriptionHealth(restaurant) : null
 
   return (
     <div style={{ 
@@ -694,6 +816,12 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
             </div>
           </div>
         </header>
+
+        {/* Banner Avvisi Abbonamento */}
+        <SubscriptionAlert 
+          health={subscriptionHealth} 
+          onManageSubscription={handleManageSubscription}
+        />
 
         {restaurant && (
           <CollapsibleSection
@@ -1682,6 +1810,17 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           }
           to {
             transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideDown {
+          from {
+            transform: translateY(-20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
             opacity: 1;
           }
         }

@@ -17,12 +17,34 @@ export function checkPremiumAccess(restaurant) {
   if (restaurant?.subscription_tier === 'premium') {
     const now = new Date()
     const endsAt = restaurant.subscription_ends_at ? new Date(restaurant.subscription_ends_at) : null
+    const status = restaurant.subscription_status
     
-    if (restaurant.subscription_status === 'active' && (!endsAt || endsAt > now)) {
-      return {
-        isPremium: true,
-        reason: 'stripe_subscription',
-        source: 'Stripe payment'
+    // LOGICA CORRETTA:
+    // - 'active': sempre premium
+    // - 'past_due': premium fino a quando Stripe non cancella (grace period)
+    // - 'canceled': premium fino a subscription_ends_at
+    // - 'unpaid', 'incomplete', 'incomplete_expired': no premium
+    
+    const validStatuses = ['active', 'past_due', 'canceled']
+    
+    if (validStatuses.includes(status)) {
+      // Se c'è una data di scadenza, verifica che non sia passata
+      if (endsAt) {
+        if (endsAt > now) {
+          return {
+            isPremium: true,
+            reason: 'stripe_subscription',
+            source: `Stripe payment (${status})`,
+            expiresAt: endsAt
+          }
+        }
+      } else {
+        // Nessuna data di scadenza = subscription attiva
+        return {
+          isPremium: true,
+          reason: 'stripe_subscription',
+          source: `Stripe payment (${status})`
+        }
       }
     }
   }
@@ -62,11 +84,23 @@ export function canExportBackup(restaurant) {
  * Ottiene informazioni sul piano
  */
 export function getPlanInfo(restaurant) {
-  const { isPremium } = checkPremiumAccess(restaurant)
+  const premiumCheck = checkPremiumAccess(restaurant)
+  const { isPremium } = premiumCheck
+  
+  let statusMessage = ''
+  if (isPremium && restaurant?.subscription_status === 'past_due') {
+    statusMessage = ' (Problema pagamento - Verifica carta)'
+  } else if (isPremium && restaurant?.subscription_status === 'canceled' && restaurant?.subscription_ends_at) {
+    const endsAt = new Date(restaurant.subscription_ends_at)
+    statusMessage = ` (Scade il ${endsAt.toLocaleDateString('it-IT')})`
+  }
+  
   return {
     isPremium,
     planName: isPremium ? 'Premium' : 'Free',
-    planColor: isPremium ? '#2E7D32' : '#666'
+    planColor: isPremium ? '#2E7D32' : '#666',
+    statusMessage,
+    expiresAt: premiumCheck.expiresAt
   }
 }
 
@@ -129,4 +163,55 @@ export function getHiddenCounts(restaurant, categories) {
   })
   
   return { hiddenCategories, hiddenItems }
+}
+
+/**
+ * Verifica lo stato di salute della subscription
+ */
+export function getSubscriptionHealth(restaurant) {
+  const { isPremium } = checkPremiumAccess(restaurant)
+  
+  if (!isPremium) {
+    return {
+      status: 'free',
+      message: 'Piano Free attivo',
+      severity: 'info',
+      actionRequired: false
+    }
+  }
+  
+  const status = restaurant?.subscription_status
+  const endsAt = restaurant?.subscription_ends_at ? new Date(restaurant.subscription_ends_at) : null
+  
+  // Problema di pagamento
+  if (status === 'past_due') {
+    return {
+      status: 'warning',
+      message: 'Il pagamento non è andato a buon fine. Aggiorna il metodo di pagamento per evitare l\'interruzione del servizio.',
+      severity: 'warning',
+      actionRequired: true,
+      action: 'update_payment'
+    }
+  }
+  
+  // Cancellato ma ancora attivo
+  if (status === 'canceled' && endsAt) {
+    const daysLeft = Math.ceil((endsAt - new Date()) / (1000 * 60 * 60 * 24))
+    return {
+      status: 'expiring',
+      message: `L'abbonamento scadrà tra ${daysLeft} giorn${daysLeft === 1 ? 'o' : 'i'}. Rinnova per mantenere l'accesso Premium.`,
+      severity: 'info',
+      actionRequired: true,
+      action: 'renew',
+      daysLeft
+    }
+  }
+  
+  // Tutto ok
+  return {
+    status: 'active',
+    message: 'Abbonamento Premium attivo',
+    severity: 'success',
+    actionRequired: false
+  }
 }
