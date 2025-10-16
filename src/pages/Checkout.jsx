@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react'
-import { loadStripe } from '@stripe/stripe-js'
 import { supabase } from '../supabaseClient'
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
 function Checkout() {
   const [loading, setLoading] = useState(false)
@@ -28,8 +25,6 @@ function Checkout() {
       setLoading(true)
       setError(null)
 
-      const stripe = await stripePromise
-
       // Crea la sessione di checkout
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -51,13 +46,11 @@ function Checkout() {
         return
       }
 
-      // Reindirizza a Stripe Checkout
-      const result = await stripe.redirectToCheckout({
-        sessionId: session.sessionId
-      })
-
-      if (result.error) {
-        setError(result.error.message)
+      // Redirect diretto alla URL di Stripe
+      if (session.url) {
+        window.location.href = session.url
+      } else {
+        setError('Errore nella creazione della sessione di pagamento')
         setLoading(false)
       }
     } catch (err) {
