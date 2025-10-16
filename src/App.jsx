@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Landing from './pages/Landing'
+import Checkout from './pages/Checkout'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -181,6 +182,12 @@ function App() {
       <Route 
         path="/dashboard" 
         element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
+      />
+      
+      {/* Checkout - solo se loggato */}
+      <Route 
+        path="/checkout" 
+        element={session ? <Checkout session={session} /> : <Navigate to="/login" replace />} 
       />
       
       {/* Root redirect */}

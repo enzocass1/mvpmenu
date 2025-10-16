@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { checkPremiumAccess } from '../utils/subscription'
 
 function PublicMenu() {
   const { subdomain } = useParams()
@@ -13,7 +14,6 @@ function PublicMenu() {
   const [expandedProducts, setExpandedProducts] = useState({})
   const [openingHours, setOpeningHours] = useState([])
   
-  // Drag state
   const [isDragging, setIsDragging] = useState(false)
   const [startX, setStartX] = useState(0)
   const [currentTranslate, setCurrentTranslate] = useState(0)
@@ -51,10 +51,13 @@ function PublicMenu() {
           .eq('is_visible', true)
           .order('order', { ascending: true })
 
-        setCategories(categoriesData || [])
+        // Applica limiti Free/Premium sulle categorie
+        const { isPremium } = checkPremiumAccess(restaurantData)
+        const visibleCategories = isPremium ? categoriesData : (categoriesData || []).slice(0, 3)
+        setCategories(visibleCategories || [])
 
         const productsMap = {}
-        for (const category of categoriesData || []) {
+        for (const category of visibleCategories || []) {
           const { data: productsData } = await supabase
             .from('products')
             .select('*')
@@ -62,11 +65,12 @@ function PublicMenu() {
             .eq('is_visible', true)
             .order('order', { ascending: true })
 
-          productsMap[category.id] = productsData || []
+          // Applica limiti Free/Premium sui prodotti
+          const visibleProducts = isPremium ? productsData : (productsData || []).slice(0, 3)
+          productsMap[category.id] = visibleProducts || []
         }
         setProducts(productsMap)
         
-        // Carica orari di apertura
         const { data: hoursData } = await supabase
           .from('opening_hours')
           .select('*')
@@ -90,7 +94,6 @@ function PublicMenu() {
     setCurrentIndex((prev) => (prev - 1 + categories.length) % categories.length)
   }
 
-  // Drag handlers
   const handleDragStart = (e) => {
     setIsDragging(true)
     setStartX(e.type === 'mousedown' ? e.pageX : e.touches[0].clientX)
@@ -107,7 +110,6 @@ function PublicMenu() {
   const handleDragEnd = () => {
     setIsDragging(false)
     
-    // Se drag > 50px, cambia slide
     if (currentTranslate > 50) {
       prevSlide()
     } else if (currentTranslate < -50) {
@@ -130,13 +132,11 @@ function PublicMenu() {
     }
 
     return openingHours.map((hour, index) => {
-      // Costruisci stringa giorni
       let dayString = hour.day_start
       if (hour.day_end && hour.day_end !== hour.day_start) {
         dayString += `-${hour.day_end}`
       }
 
-      // Costruisci stringa orari
       let timeString = `${hour.time_start_1}-${hour.time_end_1}`
       if (hour.time_start_2 && hour.time_end_2) {
         timeString += `, ${hour.time_start_2}-${hour.time_end_2}`
@@ -174,7 +174,6 @@ function PublicMenu() {
     )
   }
 
-  // Vista Prodotti
   if (selectedCategory) {
     const categoryData = categories.find(c => c.id === selectedCategory)
     const categoryProducts = products[selectedCategory] || []
@@ -183,7 +182,6 @@ function PublicMenu() {
       <>
         <style>{globalStyles}</style>
         <div style={styles.pageContainer}>
-          {/* Header */}
           <div style={styles.productsHeader}>
             <button 
               onClick={() => setSelectedCategory(null)}
@@ -197,7 +195,6 @@ function PublicMenu() {
             </p>
           </div>
 
-          {/* Lista Prodotti */}
           <div style={styles.productsList}>
             {categoryProducts.length === 0 ? (
               <div style={styles.emptyState}>
@@ -243,7 +240,6 @@ function PublicMenu() {
             )}
           </div>
 
-          {/* Footer */}
           <footer style={styles.footer}>
             <div style={styles.footerContent}>
               <p style={styles.footerText}>
@@ -261,7 +257,6 @@ function PublicMenu() {
             </div>
           </footer>
 
-          {/* Bottoni Sticky */}
           <div style={styles.stickyButtons}>
             <a 
               href={`tel:${restaurant.phone}`}
@@ -284,12 +279,10 @@ function PublicMenu() {
     )
   }
 
-  // Vista Home
   return (
     <>
       <style>{globalStyles}</style>
       <div style={styles.pageContainer}>
-        {/* Header */}
         <div style={styles.header}>
           {restaurant.logo_url && (
             <img 
@@ -302,7 +295,6 @@ function PublicMenu() {
           <p style={styles.subtitle}>Scorri per esplorare le categorie</p>
         </div>
 
-        {/* Carousel 3D */}
         <div style={styles.carouselSection}>
           <div 
             ref={carouselRef}
@@ -315,17 +307,13 @@ function PublicMenu() {
             onTouchMove={handleDragMove}
             onTouchEnd={handleDragEnd}
           >
-            {/* Cards con effetto 3D */}
             <div style={styles.carouselTrack}>
               {categories.map((category, index) => {
-                // Calcola posizione relativa
                 let position = index - currentIndex
                 
-                // Gestisci wrap-around
                 if (position < -1) position = categories.length + position
                 if (position > categories.length - 2) position = position - categories.length
                 
-                // Solo mostra card: precedente (-1), centrale (0), successiva (1)
                 if (position < -1 || position > 1) return null
                 
                 const isCenter = position === 0
@@ -367,7 +355,6 @@ function PublicMenu() {
               })}
             </div>
 
-            {/* Indicatori */}
             {categories.length > 1 && (
               <div style={styles.indicators}>
                 {categories.map((_, index) => (
@@ -387,7 +374,6 @@ function PublicMenu() {
         </div>
 
         <div style={styles.infoCard}>
-          {/* ORARI */}
           <div style={styles.infoItem}>
             <div style={{ flex: 1 }}>
               <div style={styles.infoLabel}>Orari di Apertura</div>
@@ -397,7 +383,6 @@ function PublicMenu() {
             </div>
           </div>
 
-          {/* INDIRIZZO */}
           <div style={styles.infoItem}>
             <div style={{ flex: 1 }}>
               <div style={styles.infoLabel}>Indirizzo</div>
@@ -405,7 +390,6 @@ function PublicMenu() {
             </div>
           </div>
 
-          {/* TELEFONO */}
           <div style={styles.infoItem}>
             <div style={{ flex: 1 }}>
               <div style={styles.infoLabel}>Telefono</div>
@@ -415,7 +399,6 @@ function PublicMenu() {
             </div>
           </div>
 
-          {/* Mappa Google Maps */}
           <div style={{ marginTop: '24px', width: '100%', height: '300px', borderRadius: '12px', overflow: 'hidden', boxShadow: 'none' }}>
             <iframe
               src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(restaurant.address)}`}
@@ -429,7 +412,6 @@ function PublicMenu() {
           </div>
         </div>
 
-        {/* Footer */}
         <footer style={styles.footer}>
           <div style={styles.footerContent}>
             <p style={styles.footerText}>
@@ -447,7 +429,6 @@ function PublicMenu() {
           </div>
         </footer>
 
-        {/* Bottoni Sticky */}
         <div style={styles.stickyButtons}>
           <a 
             href={`tel:${restaurant.phone}`}
@@ -535,7 +516,6 @@ const styles = {
     fontSize: '16px',
   },
   
-  // Header
   header: {
     width: '100%',
     padding: '30px 5% 20px 5%',
@@ -567,7 +547,6 @@ const styles = {
     fontWeight: '400',
   },
   
-  // Carousel 3D
   carouselSection: {
     width: '100%',
     padding: '0px 0 60px 0',
@@ -667,7 +646,6 @@ const styles = {
     borderRadius: '5px',
   },
   
-  // Products
   productsHeader: {
     width: '100%',
     padding: '20px 5%',
@@ -783,27 +761,6 @@ const styles = {
     textAlign: 'center',
   },
   
-  // Info Section
-  infoSection: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    padding: '60px 5%',
-    borderTop: '1px solid #e0e0e0',
-  },
-  
-  infoContainer: {
-    width: '100%',
-    maxWidth: '600px',
-    margin: '0 auto',
-  },
-  
-  infoTitle: {
-    fontSize: 'clamp(22px, 6vw, 28px)',
-    marginBottom: '24px',
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  
   infoCard: {
     width: '100%',
     padding: '0 20px',
@@ -844,7 +801,6 @@ const styles = {
     paddingBottom: '2px',
   },
   
-  // Footer
   footer: {
     marginTop: '80px',
     padding: '30px 0',
@@ -872,7 +828,6 @@ const styles = {
     cursor: 'pointer',
   },
 
-  // Bottoni Sticky
   stickyButtons: {
     position: 'fixed',
     bottom: 0,

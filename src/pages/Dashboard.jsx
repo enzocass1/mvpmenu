@@ -4,12 +4,12 @@ import RestaurantForm from '../components/RestaurantForm'
 import CategoryManager from '../components/CategoryManager'
 import OpeningHoursManager from '../components/OpeningHoursManager'
 import MenuImportExport from '../components/MenuImportExport'
+import UpgradeModal from '../components/UpgradeModal'
 import QRCode from 'qrcode'
+import { checkPremiumAccess, canDownloadQRCode, canExportBackup, getPlanInfo } from '../utils/subscription'
 
-// Configurazione
 const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || 'enzocassese91@gmail.com'
 
-// Toast Notification Component
 function Toast({ message, type = 'info', onClose }) {
   useEffect(() => {
     const timer = setTimeout(onClose, 4000)
@@ -59,7 +59,6 @@ function Toast({ message, type = 'info', onClose }) {
   )
 }
 
-// Loading Spinner Component
 function LoadingSpinner() {
   return (
     <div style={{
@@ -81,7 +80,6 @@ function LoadingSpinner() {
   )
 }
 
-// Collapsible Section Component
 function CollapsibleSection({ title, isOpen, onToggle, children, ariaLabel }) {
   return (
     <div style={{ marginBottom: '40px' }}>
@@ -167,6 +165,7 @@ function Dashboard({ session }) {
   })
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [supportForm, setSupportForm] = useState({
     email: session?.user?.email || '',
     phone: '',
@@ -220,7 +219,6 @@ function Dashboard({ session }) {
     try {
       showToast('Logout in corso...', 'info')
       
-      // Prova a fare signOut ma non bloccarti se fallisce
       await supabase.auth.signOut().catch(() => {
         console.log('Sessione già invalidata')
       })
@@ -228,7 +226,6 @@ function Dashboard({ session }) {
     } catch (error) {
       console.error('Errore logout:', error)
     } finally {
-      // Esegui sempre queste operazioni
       localStorage.clear()
       sessionStorage.clear()
       
@@ -244,6 +241,11 @@ function Dashboard({ session }) {
     showToast('Informazioni salvate con successo', 'success')
   }
 
+  const handleUpgradeClick = () => {
+    console.log('🚀 Upgrade richiesto dalla Dashboard')
+    setShowUpgradeModal(true)
+  }
+
   const toggleSection = (section) => {
     setOpenSections(prev => ({
       ...prev,
@@ -256,9 +258,14 @@ function Dashboard({ session }) {
     return phoneRegex.test(phone.replace(/\s/g, ''))
   }
 
-  const downloadQRCode = async () => {
+  const handleQRCodeClick = async () => {
     if (!restaurant) {
       showToast('Nessun ristorante trovato', 'warning')
+      return
+    }
+    
+    if (!canDownloadQRCode(restaurant)) {
+      setShowUpgradeModal(true)
       return
     }
     
@@ -428,6 +435,9 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
     )
   }
 
+  const canDownloadQR = restaurant ? canDownloadQRCode(restaurant) : false
+  const canExport = restaurant ? canExportBackup(restaurant) : false
+
   return (
     <div style={{ 
       minHeight: '100vh',
@@ -436,7 +446,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
         
-        {/* Header */}
         <header style={{
           padding: '30px 0',
           marginBottom: '40px'
@@ -448,14 +457,35 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
             flexWrap: 'wrap',
             gap: '15px'
           }}>
-            <h1 style={{
-              color: '#000000',
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: '400'
-            }}>
-              MVPMenu Dashboard
-            </h1>
+            <div>
+              <h1 style={{
+                color: '#000000',
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: '400'
+              }}>
+                MVPMenu Dashboard
+              </h1>
+              {restaurant && (() => {
+                const planInfo = getPlanInfo(restaurant)
+                return (
+                  <div style={{
+                    display: 'inline-block',
+                    marginTop: '8px',
+                    padding: '4px 12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                    background: planInfo.planColor,
+                    borderRadius: '4px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {planInfo.isPremium ? 'Premium' : 'Free'}
+                  </div>
+                )
+              })()}
+            </div>
             
             <div style={{
               display: 'flex',
@@ -493,7 +523,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                   onMouseEnter={(e) => e.target.style.background = '#1B5E20'}
                   onMouseLeave={(e) => e.target.style.background = '#2E7D32'}
                 >
-                  Lascia un Suggerimento
+                  Suggerisci
                 </button>
 
                 <button 
@@ -532,12 +562,8 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                     transition: 'all 0.2s ease',
                     outline: 'none'
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#F5F5F5'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#FFFFFF'
-                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
+                  onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
                 >
                   Logout
                 </button>
@@ -546,7 +572,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           </div>
         </header>
 
-        {/* SEZIONE 1: Menu Pubblico */}
         {restaurant && (
           <CollapsibleSection
             title="Menu Pubblico"
@@ -609,7 +634,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               gap: '10px',
               flexWrap: 'wrap'
             }}>
-              <a
+              <a 
                 href={`${window.location.origin}/#/menu/${restaurant.subdomain}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -638,32 +663,43 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               </a>
 
               <button
-                onClick={downloadQRCode}
-                aria-label="Scarica QR Code del menu"
+                onClick={handleQRCodeClick}
+                aria-label={canDownloadQR ? "Scarica QR Code del menu" : "Passa a Premium per scaricare il QR Code"}
                 style={{
                   flex: 1,
                   minWidth: '180px',
                   padding: '10px 20px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  color: '#000000',
-                  background: '#FFFFFF',
-                  border: '1px solid #000000',
+                  color: canDownloadQR ? '#FFFFFF' : '#000000',
+                  background: canDownloadQR ? '#000000' : '#FF9800',
+                  border: `1px solid ${canDownloadQR ? '#000000' : '#FF9800'}`,
                   borderRadius: '6px',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   outline: 'none'
                 }}
-                onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
-                onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
+                onMouseEnter={(e) => {
+                  if (canDownloadQR) {
+                    e.target.style.background = '#333333'
+                  } else {
+                    e.target.style.background = '#F57C00'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (canDownloadQR) {
+                    e.target.style.background = '#000000'
+                  } else {
+                    e.target.style.background = '#FF9800'
+                  }
+                }}
               >
-                Scarica QR Code
+                {canDownloadQR ? 'Scarica QR Code' : 'Passa a Premium'}
               </button>
             </div>
           </CollapsibleSection>
         )}
 
-        {/* SEZIONE 2: Attività */}
         <CollapsibleSection
           title="Attività"
           isOpen={openSections.restaurant}
@@ -672,18 +708,19 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           <RestaurantForm restaurant={restaurant} onSave={handleRestaurantSave} />
         </CollapsibleSection>
 
-        {/* SEZIONE 3: Menu */}
         {restaurant && (
           <CollapsibleSection
             title="Menu"
             isOpen={openSections.categories}
             onToggle={() => toggleSection('categories')}
           >
-            <CategoryManager restaurantId={restaurant.id} />
+            <CategoryManager 
+              restaurantId={restaurant.id} 
+              onUpgradeClick={handleUpgradeClick}
+            />
           </CollapsibleSection>
         )}
 
-        {/* SEZIONE 4: Orari di Apertura */}
         {restaurant && (
           <CollapsibleSection
             title="Orari di Apertura"
@@ -694,18 +731,97 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
           </CollapsibleSection>
         )}
 
-        {/* SEZIONE 5: Backup Menu */}
         {restaurant && (
           <CollapsibleSection
             title="Backup Menu"
             isOpen={openSections.importExport}
             onToggle={() => toggleSection('importExport')}
           >
-            <MenuImportExport restaurantId={restaurant.id} />
+            {canExport ? (
+              <MenuImportExport restaurantId={restaurant.id} />
+            ) : (
+              <div>
+                <div style={{
+                  padding: '16px',
+                  background: '#FFF3E0',
+                  border: '1px solid #FFE0B2',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '4px' }}>
+                        Funzionalità Premium
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#FF9800', fontWeight: '500' }}>
+                        Il backup del menu è disponibile solo per utenti Premium
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={handleUpgradeClick}
+                      style={{
+                        padding: '10px 20px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#000000',
+                        background: '#FF9800',
+                        border: '1px solid #FF9800',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        outline: 'none'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#F57C00'}
+                      onMouseLeave={(e) => e.target.style.background = '#FF9800'}
+                    >
+                      Passa a Premium
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  background: '#F5F5F5',
+                  borderRadius: '8px',
+                  border: '1px dashed #E0E0E0'
+                }}>
+                  <div style={{
+                    fontSize: '48px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                      <rect x="5" y="11" width="14" height="10" stroke="#000" strokeWidth="2" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4" stroke="#000" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <h3 style={{
+                    margin: '0 0 8px 0',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    color: '#000000'
+                  }}>
+                    Sblocca il Backup del Menu
+                  </h3>
+                  <p style={{
+                    margin: '0 0 20px 0',
+                    fontSize: '14px',
+                    color: '#666',
+                    lineHeight: '1.6'
+                  }}>
+                    Con Premium potrai esportare e importare il tuo menu in formato CSV.
+                    <br />
+                    Perfetto per fare backup o migrare il menu.
+                  </p>
+                </div>
+              </div>
+            )}
           </CollapsibleSection>
         )}
 
-        {/* Footer */}
         <footer style={{
           marginTop: '80px',
           padding: '30px 0',
@@ -723,7 +839,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
             fontSize: '13px'
           }}>
             <p style={{ margin: 0 }}>
-              Made with <span role="img" aria-label="cuore">❤️</span> by{' '}
+              Made with love by{' '}
               <a 
                 href="/#/landing" 
                 target="_blank" 
@@ -742,7 +858,11 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         </footer>
       </div>
 
-      {/* Modal Supporto */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
+
       {showSupportModal && (
         <div 
           onClick={(e) => {
@@ -1021,7 +1141,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         </div>
       )}
 
-      {/* Modal Feedback/Suggerimento */}
       {showFeedbackModal && (
         <div 
           onClick={(e) => {
@@ -1098,7 +1217,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
               fontWeight: '500',
               fontStyle: 'italic'
             }}>
-              💡 Le tue idee ci aiutano a crescere!
+              Le tue idee ci aiutano a crescere
             </p>
 
             <div>
@@ -1347,7 +1466,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         </div>
       )}
 
-      {/* Toast Notification */}
       {toast && (
         <Toast
           message={toast.message}
@@ -1356,7 +1474,6 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
         />
       )}
 
-      {/* Styles */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }

@@ -1,18 +1,6 @@
 import { useState } from 'react'
 
 function Landing() {
-  const [email, setEmail] = useState('')
-  const [showSuccess, setShowSuccess] = useState(false)
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Qui andrebbe la logica per salvare l'email (es: Supabase, API, etc.)
-    console.log('Email submitted:', email)
-    setShowSuccess(true)
-    setEmail('')
-    setTimeout(() => setShowSuccess(false), 3000)
-  }
-
   const scrollToSection = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -145,7 +133,7 @@ function Landing() {
           flexWrap: 'wrap'
         }}>
           <a
-            href="/#/signup"
+            href="/#/login"
             style={{
               padding: '16px 40px',
               fontSize: '16px',
@@ -162,27 +150,8 @@ function Landing() {
             onMouseEnter={(e) => e.target.style.background = '#333333'}
             onMouseLeave={(e) => e.target.style.background = '#000000'}
           >
-            Inizia gratis
+            Registrati gratis
           </a>
-          
-          <button
-            onClick={() => scrollToSection('demo')}
-            style={{
-              padding: '16px 40px',
-              fontSize: '16px',
-              fontWeight: '500',
-              color: '#000000',
-              background: '#FFFFFF',
-              border: '1px solid #000000',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => e.target.style.background = '#F5F5F5'}
-            onMouseLeave={(e) => e.target.style.background = '#FFFFFF'}
-          >
-            Richiedi demo
-          </button>
         </div>
       </section>
 
@@ -432,7 +401,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  1 Menu
+                  Max 3 categorie
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -445,7 +414,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Categorie illimitate
+                  Max 3 prodotti per categoria
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -458,7 +427,20 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  QR Code
+                  Caricamento immagini
+                </li>
+                <li style={{
+                  fontSize: '14px',
+                  color: '#666',
+                  marginBottom: '12px',
+                  paddingLeft: '24px',
+                  position: 'relative'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: 0
+                  }}>✓</span>
+                  Link condivisibile
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -476,7 +458,7 @@ function Landing() {
               </ul>
 
               <a
-                href="/#/signup"
+                href="/#/login"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -499,7 +481,7 @@ function Landing() {
               </a>
             </div>
 
-            {/* Pro Plan */}
+            {/* Premium Plan */}
             <div style={{
               padding: '40px',
               border: '2px solid #000000',
@@ -542,9 +524,9 @@ function Landing() {
                 fontSize: '48px',
                 fontWeight: '400',
                 color: '#000000',
-                margin: '0 0 30px 0'
+                margin: '0 0 10px 0'
               }}>
-                €29
+                €30
                 <span style={{
                   fontSize: '16px',
                   color: '#666'
@@ -552,6 +534,15 @@ function Landing() {
                   /mese
                 </span>
               </div>
+              <p style={{
+                fontSize: '13px',
+                fontWeight: '400',
+                color: '#999',
+                margin: '0 0 30px 0',
+                fontStyle: 'italic'
+              }}>
+                Circa 1€ al giorno
+              </p>
               
               <ul style={{
                 listStyle: 'none',
@@ -569,7 +560,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Menu illimitati
+                  <strong>Categorie illimitate</strong>
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -582,7 +573,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Dominio personalizzato
+                  <strong>Prodotti illimitati</strong>
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -595,7 +586,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Statistiche avanzate
+                  Caricamento immagini
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -608,7 +599,7 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Supporto prioritario
+                  Link condivisibile
                 </li>
                 <li style={{
                   fontSize: '14px',
@@ -621,12 +612,38 @@ function Landing() {
                     position: 'absolute',
                     left: 0
                   }}>✓</span>
-                  Personalizzazione design
+                  <strong>Scaricamento QR Code</strong>
+                </li>
+                <li style={{
+                  fontSize: '14px',
+                  color: '#666',
+                  marginBottom: '12px',
+                  paddingLeft: '24px',
+                  position: 'relative'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: 0
+                  }}>✓</span>
+                  <strong>Scaricamento backup</strong>
+                </li>
+                <li style={{
+                  fontSize: '14px',
+                  color: '#666',
+                  marginBottom: '12px',
+                  paddingLeft: '24px',
+                  position: 'relative'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: 0
+                  }}>✓</span>
+                  <strong>Assistenza prioritaria</strong>
                 </li>
               </ul>
 
               <a
-                href="/#/signup"
+                href="/checkout"
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -649,95 +666,6 @@ function Landing() {
               </a>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Demo Request Section */}
-      <section id="demo" style={{
-        padding: '80px 20px',
-        backgroundColor: '#000000'
-      }}>
-        <div style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          textAlign: 'center'
-        }}>
-          <h3 style={{
-            fontSize: '36px',
-            fontWeight: '400',
-            color: '#FFFFFF',
-            margin: '0 0 20px 0'
-          }}>
-            Richiedi una demo
-          </h3>
-          
-          <p style={{
-            fontSize: '16px',
-            fontWeight: '400',
-            color: '#999',
-            margin: '0 0 40px 0'
-          }}>
-            Lascia la tua email e ti contatteremo per mostrarti MVPMenu in azione
-          </p>
-
-          <div style={{
-            display: 'flex',
-            gap: '10px',
-            maxWidth: '500px',
-            margin: '0 auto'
-          }}>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tuaemail@esempio.com"
-              style={{
-                flex: 1,
-                padding: '14px 16px',
-                fontSize: '14px',
-                border: '1px solid #333333',
-                borderRadius: '6px',
-                background: '#FFFFFF',
-                color: '#000000',
-                outline: 'none'
-              }}
-            />
-            <button
-              onClick={handleSubmit}
-              disabled={!email}
-              style={{
-                padding: '14px 30px',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#000000',
-                background: '#FFFFFF',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: email ? 'pointer' : 'not-allowed',
-                opacity: email ? 1 : 0.5,
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (email) e.target.style.background = '#E0E0E0'
-              }}
-              onMouseLeave={(e) => {
-                if (email) e.target.style.background = '#FFFFFF'
-              }}
-            >
-              Invia
-            </button>
-          </div>
-
-          {showSuccess && (
-            <p style={{
-              marginTop: '20px',
-              color: '#4CAF50',
-              fontSize: '14px',
-              fontWeight: '400'
-            }}>
-              ✓ Grazie! Ti contatteremo presto.
-            </p>
-          )}
         </div>
       </section>
 
