@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { checkPremiumAccess } from '../utils/subscription'
+import {
+  getFavoritesArray,
+  isFavorite,
+  toggleFavorite,
+  getFavoritesCount,
+  onFavoritesChange
+} from '../utils/favorites'
 
 function PublicMenu() {
   const { subdomain } = useParams()
@@ -13,7 +20,10 @@ function PublicMenu() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [expandedProducts, setExpandedProducts] = useState({})
   const [openingHours, setOpeningHours] = useState([])
-  
+  const [favoritesCount, setFavoritesCount] = useState(0)
+  const [isFavoritesSidebarOpen, setIsFavoritesSidebarOpen] = useState(false)
+  const [favorites, setFavorites] = useState([])
+
   const [isDragging, setIsDragging] = useState(false)
   const [startX, setStartX] = useState(0)
   const [currentTranslate, setCurrentTranslate] = useState(0)
@@ -26,12 +36,48 @@ function PublicMenu() {
   useEffect(() => {
     document.body.style.overflowX = 'hidden'
     document.documentElement.style.overflowX = 'hidden'
-    
+
     return () => {
       document.body.style.overflowX = ''
       document.documentElement.style.overflowX = ''
     }
   }, [])
+
+  // Aggiorna contatore preferiti e lista
+  useEffect(() => {
+    if (subdomain) {
+      updateFavorites()
+    }
+  }, [subdomain])
+
+  // Listener per sincronizzazione tra tab
+  useEffect(() => {
+    if (!subdomain) return
+
+    const unsubscribe = onFavoritesChange(() => {
+      updateFavorites()
+    })
+
+    return unsubscribe
+  }, [subdomain])
+
+  const updateFavorites = () => {
+    if (subdomain) {
+      setFavoritesCount(getFavoritesCount(subdomain))
+      setFavorites(getFavoritesArray(subdomain))
+    }
+  }
+
+  const handleToggleFavorite = (e, product, categoryName, categoryId) => {
+    e.stopPropagation()
+    toggleFavorite(subdomain, product, categoryName, categoryId)
+    updateFavorites()
+  }
+
+  const handleRemoveFromFavorites = (productId) => {
+    toggleFavorite(subdomain, { id: productId }, '', '')
+    updateFavorites()
+  }
 
   const loadMenu = async () => {
     try {
@@ -183,13 +229,32 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
         <style>{globalStyles}</style>
         <div style={styles.pageContainer}>
           <div style={styles.productsHeader}>
-            <button 
-              onClick={() => setSelectedCategory(null)}
-              style={styles.backButton}
-            >
-              ← Categorie
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <button
+                onClick={() => setSelectedCategory(null)}
+                style={styles.backButton}
+              >
+                ← Categorie
+              </button>
+              <button
+                onClick={() => setIsFavoritesSidebarOpen(true)}
+                style={styles.favoritesHeaderButton}
+                aria-label="Apri preferiti"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+                {favoritesCount > 0 && (
+                  <span style={styles.favoritesBadge}>{favoritesCount}</span>
+                )}
+              </button>
+            </div>
             <h1 style={styles.categoryTitle}>{categoryData?.name}</h1>
+            {categoryData?.description && (
+              <p style={styles.categoryDescription}>
+                {categoryData.description}
+              </p>
+            )}
             <p style={styles.productCount}>
               {categoryProducts.length} {categoryProducts.length === 1 ? 'prodotto' : 'prodotti'}
             </p>
@@ -209,6 +274,21 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                     onClick={() => toggleProduct(product.id)}
                     style={styles.productButton}
                   >
+                    <button
+                      onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
+                      style={styles.favoriteButton}
+                      aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+                    >
+                      {isFavorite(subdomain, product.id) ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#e74c3c" stroke="#e74c3c" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                      )}
+                    </button>
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={styles.productName}>{product.name}</div>
                     </div>
@@ -258,14 +338,14 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
           </footer>
 
           <div style={styles.stickyButtons}>
-            <a 
+            <a
               href={`tel:${restaurant.phone}`}
               style={styles.stickyButtonLeft}
             >
               <span style={styles.stickyButtonText}>Ordina da Casa</span>
             </a>
-            
-            <a 
+
+            <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -274,6 +354,64 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
               <span style={styles.stickyButtonText}>Vieni a Trovarci</span>
             </a>
           </div>
+
+          {/* Sidebar Preferiti */}
+          {isFavoritesSidebarOpen && (
+            <>
+              <div
+                style={styles.sidebarOverlay}
+                onClick={() => setIsFavoritesSidebarOpen(false)}
+              />
+              <div style={styles.sidebar}>
+                <div style={styles.sidebarHeader}>
+                  <h2 style={styles.sidebarTitle}>I Tuoi Preferiti</h2>
+                  <button
+                    onClick={() => setIsFavoritesSidebarOpen(false)}
+                    style={styles.sidebarCloseButton}
+                    aria-label="Chiudi preferiti"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div style={styles.sidebarContent}>
+                  {favorites.length === 0 ? (
+                    <div style={styles.emptyFavorites}>
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" style={{ marginBottom: '16px' }}>
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                      </svg>
+                      <p style={{ color: '#999', fontSize: '16px', margin: 0 }}>
+                        Nessun preferito ancora
+                      </p>
+                      <p style={{ color: '#ccc', fontSize: '14px', marginTop: '8px' }}>
+                        Tocca il cuore sui prodotti per salvarli
+                      </p>
+                    </div>
+                  ) : (
+                    favorites.map((fav) => (
+                      <div key={fav.id} style={styles.favoriteItem}>
+                        <div style={{ flex: 1 }}>
+                          <div style={styles.favoriteItemName}>{fav.name}</div>
+                          <div style={styles.favoriteItemCategory}>{fav.categoryName}</div>
+                          <div style={styles.favoriteItemPrice}>€{fav.price.toFixed(2)}</div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFromFavorites(fav.id)}
+                          style={styles.removeFavoriteButton}
+                          aria-label="Rimuovi dai preferiti"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </>
     )
@@ -479,6 +617,17 @@ const globalStyles = `
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
 `
 
 const styles = {
@@ -677,7 +826,16 @@ const styles = {
     fontWeight: 'bold',
     overflowWrap: 'break-word',
   },
-  
+
+  categoryDescription: {
+    color: '#666',
+    fontSize: 'clamp(14px, 4vw, 16px)',
+    margin: '0 0 12px 0',
+    lineHeight: '1.6',
+    overflowWrap: 'break-word',
+    whiteSpace: 'pre-wrap',
+  },
+
   productCount: {
     color: '#666',
     fontSize: 'clamp(12px, 4vw, 14px)',
@@ -751,6 +909,7 @@ const styles = {
     margin: 0,
     lineHeight: '1.6',
     overflowWrap: 'break-word',
+    whiteSpace: 'pre-wrap',
   },
   
   emptyState: {
@@ -879,6 +1038,163 @@ const styles = {
 
   stickyButtonText: {
     whiteSpace: 'nowrap',
+  },
+
+  // Stili per i preferiti
+  favoriteButton: {
+    background: 'none',
+    border: 'none',
+    padding: '8px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'transform 0.2s ease',
+    marginRight: '8px',
+  },
+
+  favoritesHeaderButton: {
+    background: 'none',
+    border: 'none',
+    padding: '8px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    transition: 'transform 0.2s ease',
+  },
+
+  favoritesBadge: {
+    position: 'absolute',
+    top: '2px',
+    right: '2px',
+    backgroundColor: '#e74c3c',
+    color: '#fff',
+    borderRadius: '50%',
+    width: '18px',
+    height: '18px',
+    fontSize: '11px',
+    fontWeight: 'bold',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Sidebar preferiti
+  sidebarOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 9998,
+    backdropFilter: 'blur(2px)',
+  },
+
+  sidebar: {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: '90%',
+    maxWidth: '400px',
+    backgroundColor: '#ffffff',
+    boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    flexDirection: 'column',
+    animation: 'slideInRight 0.3s ease-out',
+  },
+
+  sidebarHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px',
+    borderBottom: '1px solid #e0e0e0',
+    backgroundColor: '#ffffff',
+  },
+
+  sidebarTitle: {
+    margin: 0,
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#000',
+  },
+
+  sidebarCloseButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '28px',
+    cursor: 'pointer',
+    color: '#666',
+    padding: '0',
+    width: '32px',
+    height: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'color 0.2s ease',
+  },
+
+  sidebarContent: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '16px',
+  },
+
+  emptyFavorites: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '60px 20px',
+    textAlign: 'center',
+    height: '100%',
+  },
+
+  favoriteItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '12px',
+    padding: '16px',
+    marginBottom: '12px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '12px',
+    border: '1px solid #e0e0e0',
+  },
+
+  favoriteItemName: {
+    fontSize: '16px',
+    fontWeight: '500',
+    color: '#000',
+    marginBottom: '4px',
+  },
+
+  favoriteItemCategory: {
+    fontSize: '13px',
+    color: '#666',
+    marginBottom: '6px',
+  },
+
+  favoriteItemPrice: {
+    fontSize: '15px',
+    fontWeight: 'bold',
+    color: '#000',
+  },
+
+  removeFavoriteButton: {
+    background: 'none',
+    border: 'none',
+    padding: '4px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'transform 0.2s ease',
+    flexShrink: 0,
   },
 }
 

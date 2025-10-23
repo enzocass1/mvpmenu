@@ -585,7 +585,9 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
                           fontSize: '13px',
                           color: '#666666',
                           display: 'block',
-                          marginTop: '2px'
+                          marginTop: '2px',
+                          whiteSpace: 'pre-wrap',
+                          lineHeight: '1.5'
                         }}>
                           {category.description}
                         </span>

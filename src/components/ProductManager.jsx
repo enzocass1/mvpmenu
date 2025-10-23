@@ -856,7 +856,8 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
                           margin: '0 0 10px 0',
                           fontSize: '13px',
                           color: '#666666',
-                          lineHeight: '1.5'
+                          lineHeight: '1.5',
+                          whiteSpace: 'pre-wrap'
                         }}>
                           {product.description}
                         </p>
