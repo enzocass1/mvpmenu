@@ -255,7 +255,33 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
           // Applica limiti Free/Premium sui prodotti
           const visibleProducts = hasValidAccess ? productsData : (productsData || []).slice(0, 3)
-          productsMap[category.id] = visibleProducts || []
+
+          // Carica varianti per ogni prodotto
+          const productsWithVariants = await Promise.all(
+            (visibleProducts || []).map(async (product) => {
+              const { data: variantsData } = await supabase
+                .from('v_product_variants')
+                .select('*')
+                .eq('product_id', product.id)
+                .eq('is_available', true)
+                .order('position')
+
+              const { data: optionsData } = await supabase
+                .from('v_product_variant_options')
+                .select('*')
+                .eq('product_id', product.id)
+                .order('position')
+
+              return {
+                ...product,
+                variants: variantsData || [],
+                hasVariants: (variantsData || []).length > 0,
+                optionsCount: (optionsData || []).length
+              }
+            })
+          )
+
+          productsMap[category.id] = productsWithVariants
         }
         setProducts(productsMap)
         
@@ -478,8 +504,48 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                     )}
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={styles.productName}>{product.name}</div>
+                      {product.hasVariants && (
+                        <div style={styles.variantsPreview}>
+                          {(() => {
+                            // Calcola range prezzi
+                            const prices = product.variants.map(v => v.price || product.price)
+                            const minPrice = Math.min(...prices)
+                            const maxPrice = Math.max(...prices)
+                            const hasPriceRange = minPrice !== maxPrice
+
+                            // Prendi primi 3 valori delle opzioni per preview
+                            const optionValues = product.variants
+                              .slice(0, 3)
+                              .map(v => Object.values(v.option_values || {}).join(' / '))
+                              .filter((v, i, arr) => arr.indexOf(v) === i)
+
+                            return (
+                              <>
+                                <span style={styles.variantsCount}>
+                                  {product.variants.length} {product.variants.length === 1 ? 'variante' : 'varianti'}
+                                </span>
+                                {optionValues.length > 0 && (
+                                  <span style={styles.variantsExamples}>
+                                    {' • '}{optionValues.slice(0, 2).join(', ')}
+                                    {product.variants.length > 2 && '...'}
+                                  </span>
+                                )}
+                              </>
+                            )
+                          })()}
+                        </div>
+                      )}
                     </div>
-                    <div style={styles.productPrice}>€{product.price.toFixed(2)}</div>
+                    <div style={styles.productPrice}>
+                      {product.hasVariants ? (() => {
+                        const prices = product.variants.map(v => v.price || product.price)
+                        const minPrice = Math.min(...prices)
+                        const maxPrice = Math.max(...prices)
+                        return minPrice !== maxPrice
+                          ? `€${minPrice.toFixed(2)} - €${maxPrice.toFixed(2)}`
+                          : `€${minPrice.toFixed(2)}`
+                      })() : `€${product.price.toFixed(2)}`}
+                    </div>
                     <div style={styles.expandIcon}>
                       {expandedProducts[product.id] ? '▲' : '▼'}
                     </div>
@@ -1133,7 +1199,24 @@ const styles = {
     fontSize: 'clamp(15px, 4vw, 17px)',
     whiteSpace: 'nowrap',
   },
-  
+
+  variantsPreview: {
+    fontSize: '11px',
+    color: '#666',
+    marginTop: '4px',
+    fontWeight: '400',
+  },
+
+  variantsCount: {
+    fontWeight: '600',
+    color: '#555',
+  },
+
+  variantsExamples: {
+    fontStyle: 'italic',
+    color: '#888',
+  },
+
   expandIcon: {
     fontSize: '12px',
     color: '#999',
