@@ -96,57 +96,84 @@ function FiscalSettings() {
   }
 
   const loadRTConfig = async () => {
-    const { data, error } = await supabase
-      .from('rt_configurations')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('v_rt_configurations')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .maybeSingle()
 
-    if (error && error.code !== 'PGRST116') {
-      throw error
-    }
+      if (error) {
+        console.error('Errore caricamento RT config:', error)
+        return
+      }
 
-    if (data) {
-      setRtConfig(data)
+      if (data) {
+        setRtConfig(data)
+      }
+    } catch (err) {
+      console.error('Errore loadRTConfig:', err)
     }
   }
 
   const loadTaxRates = async () => {
-    const { data, error } = await supabase
-      .from('tax_rates')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .order('rate', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('v_tax_rates')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .order('rate', { ascending: false })
 
-    if (error) throw error
-    setTaxRates(data || [])
+      if (error) {
+        console.error('Errore caricamento aliquote IVA:', error)
+        return
+      }
+      setTaxRates(data || [])
+    } catch (err) {
+      console.error('Errore loadTaxRates:', err)
+    }
   }
 
   const loadPaymentMethods = async () => {
-    const { data, error } = await supabase
-      .from('payment_methods')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .order('sort_order')
+    try {
+      const { data, error } = await supabase
+        .from('v_payment_methods')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .order('sort_order')
 
-    if (error) throw error
-    setPaymentMethods(data || [])
+      if (error) {
+        console.error('Errore caricamento metodi pagamento:', error)
+        return
+      }
+      setPaymentMethods(data || [])
+    } catch (err) {
+      console.error('Errore loadPaymentMethods:', err)
+    }
   }
 
   const loadRTModels = async () => {
-    const { data, error } = await supabase
-      .from('rt_models_catalog')
-      .select('*')
-      .eq('is_active', true)
-      .order('manufacturer')
+    try {
+      const { data, error } = await supabase
+        .from('v_rt_models_catalog')
+        .select('*')
+        .eq('is_active', true)
+        .order('manufacturer')
 
-    if (error) throw error
-    setRtModels(data || [])
+      if (error) {
+        console.error('Errore caricamento modelli RT:', error)
+        return
+      }
+      setRtModels(data || [])
+    } catch (err) {
+      console.error('Errore loadRTModels:', err)
+    }
   }
 
   const saveRTConfig = async () => {
     setSaving(true)
     try {
+      // Usa upsert diretto sulla tabella (non sulla view)
       const { error } = await supabase
         .from('rt_configurations')
         .upsert({
