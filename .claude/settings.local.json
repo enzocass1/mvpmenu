@@ -9,7 +9,10 @@
       "Bash(powershell -Command \"(Get-Content src/components/Cart.jsx) | Set-Content src/components/Cart.jsx\")",
       "Bash(psql:*)",
       "Bash(dir:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"(Get-Content ProductManager.jsx) | Measure-Object -Line | Select-Object -ExpandProperty Lines\")",
+      "Bash(powershell -Command \"(Get-Content ProductManager.jsx)[-10..-1]\")"
     ],
     "deny": [],
     "ask": []

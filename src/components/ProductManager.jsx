@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import ImageUpload from './ImageUpload'
-import { 
-  checkPremiumAccess, 
-  canAddItem, 
+import VariantManager from './VariantManager'
+import {
+  checkPremiumAccess,
+  canAddItem,
   isProductVisible,
-  FREE_LIMITS 
+  FREE_LIMITS
 } from '../utils/subscription'
 
 function ProductManager({ category, restaurant, onUpgradeClick }) {
@@ -14,6 +15,7 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
   const [openProductId, setOpenProductId] = useState(null)
+  const [showVariantManager, setShowVariantManager] = useState(null) // product ID
   
   const [formData, setFormData] = useState({
     name: '',
@@ -750,6 +752,34 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
                           </button>
 
                           <button
+                            onClick={() => setShowVariantManager(product)}
+                            aria-label={`Gestisci varianti ${product.name}`}
+                            title="Gestisci Varianti"
+                            style={{
+                              width: '38px',
+                              height: '38px',
+                              padding: '0',
+                              color: '#FFFFFF',
+                              background: '#2196F3',
+                              border: '1px solid #2196F3',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              outline: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = '#1976D2'}
+                            onMouseLeave={(e) => e.target.style.background = '#2196F3'}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                              <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
+                              <path d="M8 4a.5.5 0 0 1 .5.5V6H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4z"/>
+                            </svg>
+                          </button>
+
+                          <button
                             onClick={() => handleDelete(product.id)}
                             aria-label={`Elimina prodotto ${product.name}`}
                             style={{
@@ -890,6 +920,17 @@ function ProductManager({ category, restaurant, onUpgradeClick }) {
             )
           })}
         </div>
+      )}
+
+      {/* Variant Manager Modal */}
+      {showVariantManager && (
+        <VariantManager
+          product={showVariantManager}
+          onClose={() => setShowVariantManager(null)}
+          onSave={() => {
+            loadProducts() // Ricarica prodotti dopo modifiche varianti
+          }}
+        />
       )}
     </div>
   )
