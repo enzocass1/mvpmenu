@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import RestaurantForm from '../components/RestaurantForm'
 import CategoryManager from '../components/CategoryManager'
@@ -262,6 +263,7 @@ function SubscriptionAlert({ health, onManageSubscription }) {
 }
 
 function Dashboard({ session }) {
+  const navigate = useNavigate()
   const [restaurant, setRestaurant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [openSections, setOpenSections] = useState({
@@ -1287,7 +1289,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 onMouseEnter={(e) => e.target.style.opacity = '0.8'}
                 onMouseLeave={(e) => e.target.style.opacity = '1'}
               >
-                Apri Impostazioni Fiscali →
+                Apri Impostazioni Fiscali
               </button>
             </div>
 
