@@ -1246,6 +1246,51 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
             isOpen={openSections.settings}
             onToggle={() => toggleSection('settings')}
           >
+            {/* Pulsante Impostazioni Fiscali */}
+            <div style={{
+              marginBottom: '24px',
+              padding: '20px',
+              background: '#F9F9F9',
+              borderRadius: '8px'
+            }}>
+              <div style={{ marginBottom: '12px' }}>
+                <h3 style={{
+                  margin: '0 0 8px 0',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#000'
+                }}>
+                  Impostazioni Fiscali
+                </h3>
+                <p style={{
+                  margin: 0,
+                  fontSize: '14px',
+                  color: '#666',
+                  lineHeight: '1.5'
+                }}>
+                  Configura registratore telematico, aliquote IVA, metodi di pagamento e chiusure fiscali
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/fiscal-settings', { state: { restaurant } })}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#fff',
+                  backgroundColor: '#000',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.opacity = '0.8'}
+                onMouseLeave={(e) => e.target.style.opacity = '1'}
+              >
+                Apri Impostazioni Fiscali →
+              </button>
+            </div>
+
             <OrderSettings restaurant={restaurant} />
           </CollapsibleSection>
         )}

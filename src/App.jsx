@@ -17,6 +17,7 @@ import StaffOrders from './pages/StaffOrders'
 import OrderConfirmation from './pages/OrderConfirmation'
 import PublicMenu from './pages/PublicMenu'
 import OrderDetail from './pages/OrderDetail'
+import FiscalSettings from './pages/FiscalSettings'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -242,6 +243,12 @@ function App() {
       <Route
         path="/analytics/aov-analysis"
         element={session ? <AOVAnalysis /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Fiscal Settings - solo se loggato */}
+      <Route
+        path="/fiscal-settings"
+        element={session ? <FiscalSettings /> : <Navigate to="/login" replace />}
       />
 
       {/* Staff Login - accessibile a tutti */}
