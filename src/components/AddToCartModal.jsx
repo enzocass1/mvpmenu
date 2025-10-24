@@ -82,8 +82,13 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
 
       setVariants(variantsData || [])
 
-      // Se c'è solo una variante, selezionala automaticamente
-      if (variantsData && variantsData.length === 1) {
+      // Se c'è una variante preselezionata, usala
+      if (product.preselectedVariant) {
+        setSelectedVariant(product.preselectedVariant)
+        setSelectedOptions(product.preselectedVariant.option_values || {})
+      }
+      // Altrimenti, se c'è solo una variante, selezionala automaticamente
+      else if (variantsData && variantsData.length === 1) {
         setSelectedVariant(variantsData[0])
         setSelectedOptions(variantsData[0].option_values || {})
       }

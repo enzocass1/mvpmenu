@@ -465,111 +465,130 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                 </p>
               </div>
             ) : (
-              categoryProducts.map((product) => (
-                <div key={product.id} style={styles.productCard}>
-                  <div
-                    onClick={() => toggleProduct(product.id, selectedCategory)}
-                    style={styles.productButton}
-                  >
-                    <div
-                      onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
-                      style={styles.favoriteButton}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
-                    >
-                      {isFavorite(subdomain, product.id) ? (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#e74c3c" stroke="#e74c3c" strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                      ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                      )}
-                    </div>
-                    {orderSettingsEnabled && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setAddToCartModalProduct(product)
-                        }}
-                        style={styles.addToCartButtonCompact}
-                        role="button"
-                        tabIndex={0}
-                        aria-label="Aggiungi al carrello"
-                      >
-                        ORDINA
+              categoryProducts.flatMap((product) => {
+                // Se il prodotto ha varianti, mostra solo le varianti
+                if (product.hasVariants && product.variants.length > 0) {
+                  return product.variants.map((variant) => (
+                    <div key={`variant-${variant.id}`} style={styles.productCard}>
+                      <div style={styles.productButton}>
+                        <div
+                          onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
+                          style={styles.favoriteButton}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+                        >
+                          {isFavorite(subdomain, product.id) ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="#e74c3c" stroke="#e74c3c" strokeWidth="2">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                          )}
+                        </div>
+                        {orderSettingsEnabled && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              // Passa il prodotto con la variante preselezionata
+                              setAddToCartModalProduct({
+                                ...product,
+                                preselectedVariant: variant
+                              })
+                            }}
+                            style={styles.addToCartButtonCompact}
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Aggiungi al carrello"
+                          >
+                            ORDINA
+                          </div>
+                        )}
+                        <div style={{ flex: 1, textAlign: 'left' }}>
+                          <div style={styles.productName}>
+                            {product.name}
+                            <span style={styles.variantTitle}> - {variant.title}</span>
+                          </div>
+                        </div>
+                        <div style={styles.productPrice}>
+                          €{(variant.price || product.price).toFixed(2)}
+                        </div>
                       </div>
-                    )}
-                    <div style={{ flex: 1, textAlign: 'left' }}>
-                      <div style={styles.productName}>{product.name}</div>
-                      {product.hasVariants && (
-                        <div style={styles.variantsPreview}>
-                          {(() => {
-                            // Calcola range prezzi
-                            const prices = product.variants.map(v => v.price || product.price)
-                            const minPrice = Math.min(...prices)
-                            const maxPrice = Math.max(...prices)
-                            const hasPriceRange = minPrice !== maxPrice
+                    </div>
+                  ))
+                } else {
+                  // Prodotto senza varianti - mostra normalmente
+                  return (
+                    <div key={product.id} style={styles.productCard}>
+                      <div
+                        onClick={() => toggleProduct(product.id, selectedCategory)}
+                        style={styles.productButton}
+                      >
+                        <div
+                          onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
+                          style={styles.favoriteButton}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+                        >
+                          {isFavorite(subdomain, product.id) ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="#e74c3c" stroke="#e74c3c" strokeWidth="2">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                          ) : (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                          )}
+                        </div>
+                        {orderSettingsEnabled && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setAddToCartModalProduct(product)
+                            }}
+                            style={styles.addToCartButtonCompact}
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Aggiungi al carrello"
+                          >
+                            ORDINA
+                          </div>
+                        )}
+                        <div style={{ flex: 1, textAlign: 'left' }}>
+                          <div style={styles.productName}>{product.name}</div>
+                        </div>
+                        <div style={styles.productPrice}>
+                          €{product.price.toFixed(2)}
+                        </div>
+                        <div style={styles.expandIcon}>
+                          {expandedProducts[product.id] ? '▲' : '▼'}
+                        </div>
+                      </div>
 
-                            // Prendi primi 3 valori delle opzioni per preview
-                            const optionValues = product.variants
-                              .slice(0, 3)
-                              .map(v => Object.values(v.option_values || {}).join(' / '))
-                              .filter((v, i, arr) => arr.indexOf(v) === i)
-
-                            return (
-                              <>
-                                <span style={styles.variantsCount}>
-                                  {product.variants.length} {product.variants.length === 1 ? 'variante' : 'varianti'}
-                                </span>
-                                {optionValues.length > 0 && (
-                                  <span style={styles.variantsExamples}>
-                                    {' • '}{optionValues.slice(0, 2).join(', ')}
-                                    {product.variants.length > 2 && '...'}
-                                  </span>
-                                )}
-                              </>
-                            )
-                          })()}
+                      {expandedProducts[product.id] && (
+                        <div style={styles.productDetails}>
+                          {product.image_url && (
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              style={styles.productImage}
+                              loading="lazy"
+                            />
+                          )}
+                          {product.description && (
+                            <p style={styles.productDescription}>
+                              {product.description}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
-                    <div style={styles.productPrice}>
-                      {product.hasVariants ? (() => {
-                        const prices = product.variants.map(v => v.price || product.price)
-                        const minPrice = Math.min(...prices)
-                        const maxPrice = Math.max(...prices)
-                        return minPrice !== maxPrice
-                          ? `€${minPrice.toFixed(2)} - €${maxPrice.toFixed(2)}`
-                          : `€${minPrice.toFixed(2)}`
-                      })() : `€${product.price.toFixed(2)}`}
-                    </div>
-                    <div style={styles.expandIcon}>
-                      {expandedProducts[product.id] ? '▲' : '▼'}
-                    </div>
-                  </div>
-                  
-                  {expandedProducts[product.id] && (
-                    <div style={styles.productDetails}>
-                      {product.image_url && (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          style={styles.productImage}
-                          loading="lazy"
-                        />
-                      )}
-                      {product.description && (
-                        <p style={styles.productDescription}>
-                          {product.description}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))
+                  )
+                }
+              })
             )}
           </div>
 
@@ -1192,7 +1211,13 @@ const styles = {
     fontWeight: '500',
     overflowWrap: 'break-word',
   },
-  
+
+  variantTitle: {
+    fontWeight: '400',
+    color: '#666',
+    fontSize: 'clamp(13px, 3.5vw, 15px)',
+  },
+
   productPrice: {
     color: '#000',
     fontWeight: 'bold',
