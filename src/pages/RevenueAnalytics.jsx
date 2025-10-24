@@ -277,7 +277,7 @@ function RevenueAnalytics() {
     setProductYearlyData([])
 
     try {
-      const dateRange = getDateRange()
+      const dateRange = getDateRangeFromTimeRange(timeRange, customStartDate, customEndDate)
       if (!dateRange) return
 
       const { startDate, endDate } = dateRange
