@@ -1,12 +1,25 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '../supabaseClient'
 
 /**
  * Modale per aggiungere prodotto al carrello
- * Permette di selezionare quantità e aggiungere note separate per ogni unità
+ * Permette di selezionare varianti, quantità e aggiungere note
  */
 function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
+  const [variants, setVariants] = useState([])
+  const [options, setOptions] = useState([])
+  const [selectedVariant, setSelectedVariant] = useState(null)
+  const [selectedOptions, setSelectedOptions] = useState({}) // {optionName: value}
+  const [loadingVariants, setLoadingVariants] = useState(false)
+
+  // Carica varianti quando il modal si apre
+  useEffect(() => {
+    if (isOpen && product) {
+      loadVariants()
+    }
+  }, [isOpen, product])
 
   // Blocca lo scroll del body quando il modal è aperto
   useEffect(() => {
@@ -25,29 +38,122 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
     }
   }, [isOpen])
 
+  const loadVariants = async () => {
+    if (!product?.id) return
+
+    setLoadingVariants(true)
+    try {
+      // Carica opzioni
+      const { data: optionsData, error: optionsError } = await supabase
+        .from('v_product_variant_options')
+        .select('*')
+        .eq('product_id', product.id)
+        .order('position')
+
+      if (optionsError) throw optionsError
+
+      // Per ogni opzione, carica i valori
+      const optionsWithValues = await Promise.all(
+        (optionsData || []).map(async (option) => {
+          const { data: valuesData } = await supabase
+            .from('v_product_variant_option_values')
+            .select('*')
+            .eq('option_id', option.id)
+            .order('position')
+
+          return {
+            ...option,
+            values: valuesData || []
+          }
+        })
+      )
+
+      setOptions(optionsWithValues)
+
+      // Carica varianti disponibili
+      const { data: variantsData, error: variantsError } = await supabase
+        .from('v_product_variants')
+        .select('*')
+        .eq('product_id', product.id)
+        .eq('is_available', true)
+        .order('position')
+
+      if (variantsError) throw variantsError
+
+      setVariants(variantsData || [])
+
+      // Se c'è solo una variante, selezionala automaticamente
+      if (variantsData && variantsData.length === 1) {
+        setSelectedVariant(variantsData[0])
+        setSelectedOptions(variantsData[0].option_values || {})
+      }
+    } catch (error) {
+      console.error('Errore caricamento varianti:', error)
+    } finally {
+      setLoadingVariants(false)
+    }
+  }
+
+  // Quando l'utente seleziona un'opzione, trova la variante corrispondente
+  const handleOptionChange = (optionName, value) => {
+    const newSelectedOptions = { ...selectedOptions, [optionName]: value }
+    setSelectedOptions(newSelectedOptions)
+
+    // Trova la variante che corrisponde alle opzioni selezionate
+    const matchingVariant = variants.find(variant => {
+      const variantOptions = variant.option_values || {}
+      return Object.keys(newSelectedOptions).every(
+        key => variantOptions[key] === newSelectedOptions[key]
+      )
+    })
+
+    setSelectedVariant(matchingVariant || null)
+  }
+
   if (!isOpen || !product) return null
+
+  // Calcola il prezzo finale (variante o prodotto base)
+  const finalPrice = selectedVariant?.price || product.price
+  const hasVariants = options.length > 0
 
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Aggiungi ogni unità separatamente al carrello con le stesse note
-    // In questo modo se l'utente vuole 5 caffè, può aggiungerli tutti con note identiche
-    // oppure aggiungerli uno alla volta con note diverse
-    onAddToCart({
+    // Se ci sono varianti ma nessuna è selezionata, non procedere
+    if (hasVariants && !selectedVariant) {
+      alert('Seleziona tutte le opzioni prima di aggiungere al carrello')
+      return
+    }
+
+    // Prepara i dati del prodotto con variante
+    const productToAdd = {
       ...product,
       quantity,
-      notes: notes.trim()
-    })
+      notes: notes.trim(),
+      // Aggiungi dati variante se presente
+      ...(selectedVariant && {
+        variant_id: selectedVariant.id,
+        variant_title: selectedVariant.title,
+        price: selectedVariant.price || product.price,
+        option_values: selectedVariant.option_values
+      })
+    }
+
+    onAddToCart(productToAdd)
 
     // Reset e chiudi
     setQuantity(1)
     setNotes('')
+    setSelectedVariant(null)
+    setSelectedOptions({})
     onClose()
   }
 
   const handleClose = () => {
     setQuantity(1)
     setNotes('')
+    setSelectedVariant(null)
+    setSelectedOptions({})
     onClose()
   }
 
@@ -95,9 +201,63 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
               {product.description && (
                 <p style={styles.productDescription}>{product.description}</p>
               )}
-              <p style={styles.productPrice}>€{product.price.toFixed(2)}</p>
+              <p style={styles.productPrice}>
+                €{finalPrice.toFixed(2)}
+                {selectedVariant && selectedVariant.price !== product.price && (
+                  <span style={{ textDecoration: 'line-through', marginLeft: '8px', color: '#999', fontSize: '14px' }}>
+                    €{product.price.toFixed(2)}
+                  </span>
+                )}
+              </p>
             </div>
           </div>
+
+          {/* Variants Selection */}
+          {loadingVariants && (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              Caricamento varianti...
+            </div>
+          )}
+
+          {!loadingVariants && hasVariants && (
+            <div style={styles.variantsSection}>
+              <h5 style={styles.variantsSectionTitle}>Seleziona opzioni</h5>
+              {options.map((option) => (
+                <div key={option.id} style={styles.optionGroup}>
+                  <label style={styles.optionLabel}>{option.name}</label>
+                  <div style={styles.optionValues}>
+                    {option.values.map((value) => {
+                      const isSelected = selectedOptions[option.name] === value.value
+                      return (
+                        <button
+                          key={value.id}
+                          type="button"
+                          onClick={() => handleOptionChange(option.name, value.value)}
+                          style={{
+                            ...styles.optionButton,
+                            ...(isSelected ? styles.optionButtonSelected : {})
+                          }}
+                        >
+                          {value.value}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+              {selectedVariant && (
+                <div style={styles.variantInfo}>
+                  <span style={styles.variantInfoLabel}>Variante selezionata:</span>
+                  <span style={styles.variantInfoValue}>{selectedVariant.title}</span>
+                </div>
+              )}
+              {hasVariants && !selectedVariant && Object.keys(selectedOptions).length > 0 && (
+                <div style={{ ...styles.variantInfo, color: '#f44336' }}>
+                  ⚠️ Combinazione non disponibile
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Quantity */}
           <div style={styles.formGroup}>
@@ -410,6 +570,69 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.2s'
+  },
+  variantsSection: {
+    marginBottom: '20px',
+    padding: '16px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '12px',
+    border: '1px solid #e0e0e0'
+  },
+  variantsSectionTitle: {
+    margin: '0 0 12px 0',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#000'
+  },
+  optionGroup: {
+    marginBottom: '16px'
+  },
+  optionLabel: {
+    display: 'block',
+    marginBottom: '8px',
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#333'
+  },
+  optionValues: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px'
+  },
+  optionButton: {
+    padding: '8px 16px',
+    backgroundColor: '#fff',
+    color: '#333',
+    border: '2px solid #ddd',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    outline: 'none'
+  },
+  optionButtonSelected: {
+    backgroundColor: '#000',
+    color: '#fff',
+    borderColor: '#000'
+  },
+  variantInfo: {
+    marginTop: '12px',
+    padding: '10px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    fontSize: '13px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  variantInfoLabel: {
+    fontWeight: '500',
+    color: '#666'
+  },
+  variantInfoValue: {
+    fontWeight: '600',
+    color: '#000'
   }
 }
 

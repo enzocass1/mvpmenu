@@ -93,11 +93,13 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
 
       if (orderError) throw orderError
 
-      // 2. Aggiungi prodotti all'ordine
+      // 2. Aggiungi prodotti all'ordine (con varianti se presenti)
       const orderItems = cartItems.map(item => ({
         order_id: order.id,
         product_id: item.id,
         product_name: item.name,
+        variant_id: item.variant_id || null,
+        variant_title: item.variant_title || null,
         product_price: item.price,
         quantity: item.quantity,
         notes: item.notes || null,
@@ -242,6 +244,9 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
                       <div style={styles.itemContent}>
                         <div style={styles.itemInfo}>
                           <p style={styles.itemName}>{item.name}</p>
+                          {item.variant_title && (
+                            <p style={styles.itemVariant}>{item.variant_title}</p>
+                          )}
                           {item.notes && (
                             <p style={styles.itemNotes}>Note: {item.notes}</p>
                           )}
@@ -580,6 +585,16 @@ const styles = {
     margin: '0',
     fontSize: '11px',
     color: '#999'
+  },
+  itemVariant: {
+    margin: '2px 0 6px 0',
+    fontSize: '11px',
+    color: '#666',
+    fontWeight: '500',
+    backgroundColor: '#f0f0f0',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    display: 'inline-block'
   },
   itemNotes: {
     margin: '0 0 6px 0',
