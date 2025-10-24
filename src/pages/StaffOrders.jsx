@@ -715,7 +715,7 @@ function StaffOrders() {
                 if (selectionMode) {
                   toggleOrderSelection(order.id)
                 } else {
-                  navigate(`/${subdomain}/staff/orders/${order.id}`)
+                  navigate(`/staff/${subdomain}/orders/${order.id}`)
                 }
               }
 
