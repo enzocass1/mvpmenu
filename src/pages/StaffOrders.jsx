@@ -637,7 +637,6 @@ function StaffOrders() {
         </div>
 
         {/* Create Order Button - mostra solo se enable_table_orders è attivo */}
-        {console.log('🎛️ enableTableOrders state:', enableTableOrders)}
         {enableTableOrders && (
           <div style={styles.createOrderContainer}>
             <button
