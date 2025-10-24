@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { checkPremiumAccess } from '../utils/subscription'
 import {
@@ -9,9 +9,20 @@ import {
   getFavoritesCount,
   onFavoritesChange
 } from '../utils/favorites'
+import {
+  trackFavoriteAdded,
+  trackFavoriteRemoved,
+  trackProductViewed,
+  trackCategoryViewed,
+  trackQRScanned,
+  useSessionTracking
+} from '../utils/analytics'
+import Cart from '../components/Cart'
+import AddToCartModal from '../components/AddToCartModal'
 
 function PublicMenu() {
   const { subdomain } = useParams()
+  const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [restaurant, setRestaurant] = useState(null)
   const [categories, setCategories] = useState([])
@@ -23,6 +34,21 @@ function PublicMenu() {
   const [favoritesCount, setFavoritesCount] = useState(0)
   const [isFavoritesSidebarOpen, setIsFavoritesSidebarOpen] = useState(false)
   const [favorites, setFavorites] = useState([])
+
+  // Cart state - Carica dal localStorage se disponibile
+  const [cartItems, setCartItems] = useState(() => {
+    if (!subdomain) return []
+    try {
+      const savedCart = localStorage.getItem(`cart_${subdomain}`)
+      return savedCart ? JSON.parse(savedCart) : []
+    } catch (error) {
+      console.error('Errore caricamento carrello:', error)
+      return []
+    }
+  })
+  const [isCartOpen, setIsCartOpen] = useState(false)
+  const [addToCartModalProduct, setAddToCartModalProduct] = useState(null)
+  const [orderSettingsEnabled, setOrderSettingsEnabled] = useState(false)
 
   const [isDragging, setIsDragging] = useState(false)
   const [startX, setStartX] = useState(0)
@@ -61,6 +87,54 @@ function PublicMenu() {
     return unsubscribe
   }, [subdomain])
 
+  // Salva carrello in localStorage ogni volta che cambia
+  useEffect(() => {
+    if (!subdomain) return
+    try {
+      localStorage.setItem(`cart_${subdomain}`, JSON.stringify(cartItems))
+    } catch (error) {
+      console.error('Errore salvataggio carrello:', error)
+    }
+  }, [cartItems, subdomain])
+
+  // Tracciamento sessione e QR scan
+  useEffect(() => {
+    if (!restaurant?.id) return
+
+    // Traccia QR scan se source=qr nei query params
+    const source = searchParams.get('source')
+    if (source === 'qr') {
+      trackQRScanned(restaurant.id)
+    }
+
+    // Inizia tracciamento sessione
+    const cleanup = useSessionTracking(restaurant.id)
+
+    return cleanup
+  }, [restaurant?.id, searchParams])
+
+  // Carica impostazioni ordini
+  useEffect(() => {
+    if (!restaurant?.id) return
+
+    const loadOrderSettings = async () => {
+      try {
+        const { data } = await supabase
+          .from('restaurant_order_settings')
+          .select('orders_enabled')
+          .eq('restaurant_id', restaurant.id)
+          .single()
+
+        setOrderSettingsEnabled(data?.orders_enabled || false)
+      } catch (err) {
+        console.log('Ordini non configurati per questo ristorante')
+        setOrderSettingsEnabled(false)
+      }
+    }
+
+    loadOrderSettings()
+  }, [restaurant?.id])
+
   const updateFavorites = () => {
     if (subdomain) {
       setFavoritesCount(getFavoritesCount(subdomain))
@@ -70,13 +144,81 @@ function PublicMenu() {
 
   const handleToggleFavorite = (e, product, categoryName, categoryId) => {
     e.stopPropagation()
+
+    const wasFavorite = isFavorite(subdomain, product.id)
     toggleFavorite(subdomain, product, categoryName, categoryId)
     updateFavorites()
+
+    // Traccia evento analytics
+    if (restaurant?.id) {
+      if (wasFavorite) {
+        trackFavoriteRemoved(restaurant.id, product.id)
+      } else {
+        trackFavoriteAdded(restaurant.id, product.id, categoryId)
+      }
+    }
   }
 
   const handleRemoveFromFavorites = (productId) => {
     toggleFavorite(subdomain, { id: productId }, '', '')
     updateFavorites()
+  }
+
+  // Cart functions
+  const handleAddToCart = (productWithDetails) => {
+    const existing = cartItems.find(item => item.id === productWithDetails.id && item.notes === productWithDetails.notes)
+
+    if (existing) {
+      // Aggiorna quantità se stesso prodotto con stesse note
+      setCartItems(cartItems.map(item =>
+        item.id === productWithDetails.id && item.notes === productWithDetails.notes
+          ? { ...item, quantity: item.quantity + productWithDetails.quantity }
+          : item
+      ))
+    } else {
+      // Aggiungi nuovo item
+      setCartItems([...cartItems, productWithDetails])
+    }
+
+    // Traccia analytics
+    if (restaurant?.id) {
+      supabase.from('analytics_events').insert({
+        restaurant_id: restaurant.id,
+        event_type: 'order_item_added',
+        product_id: productWithDetails.id,
+        metadata: {
+          quantity: productWithDetails.quantity,
+          has_notes: !!productWithDetails.notes
+        }
+      })
+    }
+  }
+
+  const handleUpdateQuantity = (productId, notes, newQuantity) => {
+    if (newQuantity < 1) {
+      handleRemoveFromCart(productId, notes)
+      return
+    }
+    setCartItems(cartItems.map(item =>
+      item.id === productId && item.notes === notes ? { ...item, quantity: newQuantity } : item
+    ))
+  }
+
+  const handleRemoveFromCart = (productId, notes) => {
+    setCartItems(cartItems.filter(item => !(item.id === productId && item.notes === notes)))
+  }
+
+  const handleClearCart = () => {
+    setCartItems([])
+    setIsCartOpen(false)
+    // Rimuovi carrello dal localStorage
+    if (subdomain) {
+      try {
+        localStorage.removeItem(`cart_${subdomain}`)
+      } catch (error) {
+        console.error('Errore rimozione carrello:', error)
+      }
+    }
   }
 
   const loadMenu = async () => {
@@ -165,11 +307,18 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
     setCurrentTranslate(0)
   }
 
-  const toggleProduct = (productId) => {
+  const toggleProduct = (productId, categoryId) => {
+    const wasExpanded = expandedProducts[productId]
+
     setExpandedProducts(prev => ({
       ...prev,
       [productId]: !prev[productId]
     }))
+
+    // Traccia visualizzazione prodotto solo quando viene espanso
+    if (!wasExpanded && restaurant?.id) {
+      trackProductViewed(restaurant.id, productId, categoryId)
+    }
   }
 
   const formatOpeningHours = () => {
@@ -236,18 +385,40 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
               >
                 ← Categorie
               </button>
-              <button
-                onClick={() => setIsFavoritesSidebarOpen(true)}
-                style={styles.favoritesHeaderButton}
-                aria-label="Apri preferiti"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                {favoritesCount > 0 && (
-                  <span style={styles.favoritesBadge}>{favoritesCount}</span>
+
+              {/* Gruppo icone destra: Preferiti e Carrello */}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button
+                  onClick={() => setIsFavoritesSidebarOpen(true)}
+                  style={styles.favoritesHeaderButton}
+                  aria-label="Apri preferiti"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                  {favoritesCount > 0 && (
+                    <span style={styles.favoritesBadge}>{favoritesCount}</span>
+                  )}
+                </button>
+
+                {/* Cart Button - Solo se ordini abilitati */}
+                {orderSettingsEnabled && (
+                  <button
+                    onClick={() => setIsCartOpen(true)}
+                    style={styles.cartHeaderButton}
+                    aria-label="Apri carrello"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
+                      <circle cx="9" cy="21" r="1"></circle>
+                      <circle cx="20" cy="21" r="1"></circle>
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    {cartItems.length > 0 && (
+                      <span style={styles.cartBadge}>{cartItems.length}</span>
+                    )}
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
             <h1 style={styles.categoryTitle}>{categoryData?.name}</h1>
             {categoryData?.description && (
@@ -270,13 +441,15 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
             ) : (
               categoryProducts.map((product) => (
                 <div key={product.id} style={styles.productCard}>
-                  <button
-                    onClick={() => toggleProduct(product.id)}
+                  <div
+                    onClick={() => toggleProduct(product.id, selectedCategory)}
                     style={styles.productButton}
                   >
-                    <button
+                    <div
                       onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
                       style={styles.favoriteButton}
+                      role="button"
+                      tabIndex={0}
                       aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
                     >
                       {isFavorite(subdomain, product.id) ? (
@@ -288,7 +461,21 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
                       )}
-                    </button>
+                    </div>
+                    {orderSettingsEnabled && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAddToCartModalProduct(product)
+                        }}
+                        style={styles.addToCartButtonCompact}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Aggiungi al carrello"
+                      >
+                        ORDINA
+                      </div>
+                    )}
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div style={styles.productName}>{product.name}</div>
                     </div>
@@ -296,14 +483,14 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                     <div style={styles.expandIcon}>
                       {expandedProducts[product.id] ? '▲' : '▼'}
                     </div>
-                  </button>
+                  </div>
                   
                   {expandedProducts[product.id] && (
                     <div style={styles.productDetails}>
                       {product.image_url && (
-                        <img 
-                          src={product.image_url} 
-                          alt={product.name} 
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
                           style={styles.productImage}
                           loading="lazy"
                         />
@@ -394,6 +581,26 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                           <div style={styles.favoriteItemName}>{fav.name}</div>
                           <div style={styles.favoriteItemCategory}>{fav.categoryName}</div>
                           <div style={styles.favoriteItemPrice}>€{fav.price.toFixed(2)}</div>
+
+                          {/* Pulsante ORDINA se ordini abilitati */}
+                          {orderSettingsEnabled && (
+                            <div
+                              onClick={() => {
+                                setAddToCartModalProduct({
+                                  id: fav.id,
+                                  name: fav.name,
+                                  price: fav.price,
+                                  image_url: fav.image_url,
+                                  description: fav.description
+                                })
+                              }}
+                              style={styles.favoriteOrderButton}
+                              role="button"
+                              tabIndex={0}
+                            >
+                              ORDINA
+                            </div>
+                          )}
                         </div>
                         <button
                           onClick={() => handleRemoveFromFavorites(fav.id)}
@@ -412,6 +619,25 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
               </div>
             </>
           )}
+
+          {/* Cart Slidecart */}
+          <Cart
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            restaurant={restaurant}
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveFromCart}
+            onClearCart={handleClearCart}
+          />
+
+          {/* Add to Cart Modal */}
+          <AddToCartModal
+            isOpen={!!addToCartModalProduct}
+            onClose={() => setAddToCartModalProduct(null)}
+            product={addToCartModalProduct}
+            onAddToCart={handleAddToCart}
+          />
         </div>
       </>
     )
@@ -474,14 +700,38 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                       cursor: isCenter ? 'pointer' : 'default',
                       pointerEvents: isCenter ? 'auto' : 'none',
                     }}
-                    onClick={() => isCenter && setSelectedCategory(category.id)}
+                    onClick={() => {
+                      if (isCenter) {
+                        setSelectedCategory(category.id)
+                        // Traccia visualizzazione categoria
+                        if (restaurant?.id) {
+                          trackCategoryViewed(restaurant.id, category.id)
+                        }
+                      }
+                    }}
                   >
-                    <img 
-                      src={category.image_url || 'https://via.placeholder.com/350x450/cccccc/666666?text=Nessuna+Immagine'} 
-                      alt={category.name}
-                      style={styles.categoryImage}
-                      draggable="false"
-                    />
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt={category.name}
+                        style={styles.categoryImage}
+                        draggable="false"
+                      />
+                    ) : (
+                      <div style={{
+                        ...styles.categoryImage,
+                        backgroundColor: '#f0f0f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#999',
+                        fontSize: '14px',
+                        textAlign: 'center',
+                        padding: '20px'
+                      }}>
+                        Nessuna<br/>Immagine
+                      </div>
+                    )}
                     <div style={styles.categoryOverlay}>
                       <h2 style={styles.categoryName}>{category.name}</h2>
                       <p style={styles.categoryCount}>
@@ -1053,6 +1303,25 @@ const styles = {
     marginRight: '8px',
   },
 
+  addToCartButtonCompact: {
+    backgroundColor: '#000',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 16px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    marginRight: '12px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '600',
+    letterSpacing: '0.5px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    whiteSpace: 'nowrap',
+  },
+
   favoritesHeaderButton: {
     background: 'none',
     border: 'none',
@@ -1079,6 +1348,52 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  cartHeaderButton: {
+    background: 'none',
+    border: 'none',
+    padding: '8px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    transition: 'transform 0.2s ease',
+  },
+
+  cartBadge: {
+    position: 'absolute',
+    top: '2px',
+    right: '2px',
+    backgroundColor: '#000',
+    color: '#fff',
+    borderRadius: '50%',
+    width: '18px',
+    height: '18px',
+    fontSize: '11px',
+    fontWeight: '600',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  orderButton: {
+    width: '100%',
+    padding: '12px 16px',
+    backgroundColor: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    transition: 'background-color 0.2s',
   },
 
   // Sidebar preferiti
@@ -1183,6 +1498,22 @@ const styles = {
     fontSize: '15px',
     fontWeight: 'bold',
     color: '#000',
+    marginBottom: '8px',
+  },
+
+  favoriteOrderButton: {
+    backgroundColor: '#000',
+    color: '#fff',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    textAlign: 'center',
+    transition: 'all 0.2s ease',
+    border: 'none',
+    display: 'inline-block',
+    marginTop: '4px',
   },
 
   removeFavoriteButton: {

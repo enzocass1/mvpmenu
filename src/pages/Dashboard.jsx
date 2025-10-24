@@ -4,14 +4,15 @@ import RestaurantForm from '../components/RestaurantForm'
 import CategoryManager from '../components/CategoryManager'
 import OpeningHoursManager from '../components/OpeningHoursManager'
 import MenuImportExport from '../components/MenuImportExport'
+import OrderSettings from '../components/OrderSettings'
 import UpgradeModal from '../components/UpgradeModal'
 import QRCode from 'qrcode'
-import { 
-  checkPremiumAccess, 
-  canDownloadQRCode, 
-  canExportBackup, 
+import {
+  checkPremiumAccess,
+  canDownloadQRCode,
+  canExportBackup,
   getPlanInfo,
-  getSubscriptionHealth 
+  getSubscriptionHealth
 } from '../utils/subscription'
 
 const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || 'enzocassese91@gmail.com'
@@ -97,7 +98,7 @@ function LoadingSpinner() {
 
 function CollapsibleSection({ title, isOpen, onToggle, children, ariaLabel }) {
   return (
-    <div style={{ marginBottom: '40px' }}>
+    <div style={{ marginBottom: '15px' }}>
       <button
         onClick={onToggle}
         aria-expanded={isOpen}
@@ -268,7 +269,10 @@ function Dashboard({ session }) {
     restaurant: false,
     categories: false,
     hours: false,
-    importExport: false
+    importExport: false,
+    analytics: false,
+    settings: false,
+    orders: false
   })
   const [showSupportModal, setShowSupportModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
@@ -1078,6 +1082,226 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
                 </div>
               </div>
             )}
+          </CollapsibleSection>
+        )}
+
+        {/* SEZIONE ANALYTICS - SOLO PREMIUM */}
+        {restaurant && (
+          <CollapsibleSection
+            title="Analytics"
+            isOpen={openSections.analytics}
+            onToggle={() => toggleSection('analytics')}
+          >
+            {hasValidAccess ? (
+              <div>
+                <div style={{
+                  padding: '16px',
+                  background: '#E8F5E9',
+                  border: '1px solid #C8E6C9',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '4px' }}>
+                        Analytics Attive
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#666', fontWeight: '400' }}>
+                        Monitora le interazioni dei tuoi clienti con il menu
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('analytics_restaurant', JSON.stringify(restaurant))
+                    window.location.href = '/#/analytics-selection'
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '16px 24px',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    color: '#FFFFFF',
+                    background: '#000000',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '12px'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#333333'}
+                  onMouseLeave={(e) => e.target.style.background = '#000000'}
+                >
+                  Vai all'analisi
+                </button>
+
+                <div style={{
+                  marginTop: '20px',
+                  padding: '16px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  color: '#666',
+                  lineHeight: '1.6'
+                }}>
+                  <strong>Cosa puoi analizzare:</strong>
+                  <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                    <li>❤️ Prodotti aggiunti ai preferiti</li>
+                    <li>👁️ Prodotti visualizzati</li>
+                    <li>📂 Categorie aperte</li>
+                    <li>⏱️ Tempo medio sul menu</li>
+                    <li>📱 QR code scannerizzati</li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{
+                  padding: '16px',
+                  background: '#FFF3E0',
+                  border: '1px solid #FFE0B2',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '500', color: '#000', marginBottom: '4px' }}>
+                        Funzionalità Premium
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#FF9800', fontWeight: '500' }}>
+                        Le analytics sono disponibili solo per utenti Premium
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleUpgradeClick}
+                      style={{
+                        padding: '10px 20px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#000000',
+                        background: '#FF9800',
+                        border: '1px solid #FF9800',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        outline: 'none'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#F57C00'}
+                      onMouseLeave={(e) => e.target.style.background = '#FF9800'}
+                    >
+                      Passa a Premium
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  background: '#F5F5F5',
+                  borderRadius: '8px',
+                  border: '1px dashed #E0E0E0'
+                }}>
+                  <div style={{
+                    fontSize: '48px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}>
+                    📊
+                  </div>
+                  <h3 style={{
+                    margin: '0 0 8px 0',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    color: '#000000'
+                  }}>
+                    Sblocca le Analytics
+                  </h3>
+                  <p style={{
+                    margin: '0 0 20px 0',
+                    fontSize: '14px',
+                    color: '#666',
+                    lineHeight: '1.6'
+                  }}>
+                    Con Premium potrai analizzare in dettaglio le interazioni dei clienti:<br />
+                    prodotti preferiti, visualizzazioni, tempo sul menu e molto altro.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CollapsibleSection>
+        )}
+
+        {/* SEZIONE IMPOSTAZIONI */}
+        {restaurant && (
+          <CollapsibleSection
+            title="Impostazioni"
+            isOpen={openSections.settings}
+            onToggle={() => toggleSection('settings')}
+          >
+            <OrderSettings restaurant={restaurant} />
+          </CollapsibleSection>
+        )}
+
+        {/* SEZIONE ORDINI */}
+        {restaurant && (
+          <CollapsibleSection
+            title="Ordini"
+            isOpen={openSections.orders}
+            onToggle={() => toggleSection('orders')}
+          >
+            <div style={{
+              padding: '20px',
+              background: '#F9F9F9',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <h3 style={{
+                margin: '0 0 12px 0',
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#000'
+              }}>
+                Gestione Ordini
+              </h3>
+              <p style={{
+                margin: '0 0 20px 0',
+                fontSize: '14px',
+                color: '#666',
+                lineHeight: '1.6'
+              }}>
+                Accedi alla piattaforma di gestione ordini per visualizzare e gestire tutti gli ordini in tempo reale.
+              </p>
+              <a
+                href={`${window.location.origin}/#/staff/${restaurant.subdomain}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#FFFFFF',
+                  background: '#000000',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#333333'}
+                onMouseLeave={(e) => e.target.style.background = '#000000'}
+              >
+                Accedi agli Ordini
+              </a>
+            </div>
           </CollapsibleSection>
         )}
 

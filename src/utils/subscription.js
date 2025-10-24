@@ -70,6 +70,21 @@ export function canExportBackup(restaurant) {
   return access.hasValidAccess
 }
 
+export function canUseTableOrdering(restaurant) {
+  const access = checkPremiumAccess(restaurant)
+  return access.hasValidAccess
+}
+
+export function canUsePriorityOrder(restaurant) {
+  const access = checkPremiumAccess(restaurant)
+  return access.hasValidAccess
+}
+
+export function canManageStaff(restaurant) {
+  const access = checkPremiumAccess(restaurant)
+  return access.hasValidAccess
+}
+
 export function getPlanInfo(restaurant) {
   if (!restaurant) {
     return {
@@ -89,6 +104,9 @@ export function getPlanInfo(restaurant) {
       maxCategories: limits.categories,
       maxItemsPerCategory: limits.itemsPerCategory,
       features: [
+        'Ordini al tavolo',
+        'Priority Order',
+        'Gestione staff',
         'Categorie illimitate',
         'Prodotti illimitati',
         'Download QR Code',

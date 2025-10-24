@@ -5,6 +5,18 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Landing from './pages/Landing'
 import Checkout from './pages/Checkout'
+import AnalyticsSelection from './pages/AnalyticsSelection'
+import AnalyticsDashboard from './pages/AnalyticsDashboard'
+import ConversionFunnel from './pages/ConversionFunnel'
+import TopProductsOrdered from './pages/TopProductsOrdered'
+import RevenueAnalytics from './pages/RevenueAnalytics'
+import TimeBasedAnalysis from './pages/TimeBasedAnalysis'
+import AOVAnalysis from './pages/AOVAnalysis'
+import StaffLogin from './pages/StaffLogin'
+import StaffOrders from './pages/StaffOrders'
+import OrderConfirmation from './pages/OrderConfirmation'
+import PublicMenu from './pages/PublicMenu'
+import OrderDetail from './pages/OrderDetail'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -185,17 +197,89 @@ function App() {
       />
       
       {/* Checkout - solo se loggato */}
-      <Route 
-        path="/checkout" 
-        element={session ? <Checkout session={session} /> : <Navigate to="/login" replace />} 
+      <Route
+        path="/checkout"
+        element={session ? <Checkout session={session} /> : <Navigate to="/login" replace />}
       />
-      
+
+      {/* Analytics Selection - solo se loggato */}
+      <Route
+        path="/analytics-selection"
+        element={session ? <AnalyticsSelection /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Analytics Dashboard - solo se loggato */}
+      <Route
+        path="/analytics/:metricId"
+        element={session ? <AnalyticsDashboard /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Conversion Funnel - solo se loggato */}
+      <Route
+        path="/analytics/conversion-funnel"
+        element={session ? <ConversionFunnel /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Top Products Ordered - solo se loggato */}
+      <Route
+        path="/analytics/top-products-ordered"
+        element={session ? <TopProductsOrdered /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Revenue Analytics - solo se loggato */}
+      <Route
+        path="/analytics/revenue-analytics"
+        element={session ? <RevenueAnalytics /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Time Based Analysis - solo se loggato */}
+      <Route
+        path="/analytics/time-based-analysis"
+        element={session ? <TimeBasedAnalysis /> : <Navigate to="/login" replace />}
+      />
+
+      {/* AOV Analysis - solo se loggato */}
+      <Route
+        path="/analytics/aov-analysis"
+        element={session ? <AOVAnalysis /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Staff Login - accessibile a tutti */}
+      <Route
+        path="/staff/:subdomain"
+        element={<StaffLogin />}
+      />
+
+      {/* Staff Orders - accessibile a staff autenticati */}
+      <Route
+        path="/staff/:subdomain/orders"
+        element={<StaffOrders />}
+      />
+
+      {/* Order Detail - accessibile a staff autenticati */}
+      <Route
+        path="/staff/:subdomain/orders/:orderId"
+        element={<OrderDetail />}
+      />
+
+      {/* Public Menu - accessibile a tutti */}
+      <Route
+        path="/menu/:subdomain"
+        element={<PublicMenu />}
+      />
+
+      {/* Order Confirmation - accessibile a tutti */}
+      <Route
+        path="/order-confirmation/:orderId"
+        element={<OrderConfirmation />}
+      />
+
       {/* Root redirect */}
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
           session ? <Navigate to="/dashboard" replace /> : <Navigate to="/landing" replace />
-        } 
+        }
       />
     </Routes>
   )

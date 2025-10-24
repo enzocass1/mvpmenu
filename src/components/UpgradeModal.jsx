@@ -10,6 +10,9 @@ function UpgradeModal({ isOpen, onClose }) {
       'Supporto base'
     ],
     premium: [
+      { text: 'Ordini al tavolo con gestione in tempo reale', bold: true },
+      { text: 'Priority Order per ordini prioritari a pagamento', bold: true },
+      { text: 'Gestione staff e camerieri', bold: true },
       { text: 'Categorie illimitate visibili ai tuoi clienti', bold: true },
       { text: 'Prodotti illimitati visibili ai tuoi clienti', bold: true },
       { text: 'Caricamento immagini', bold: false },
