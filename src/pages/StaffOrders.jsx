@@ -188,9 +188,6 @@ function StaffOrders() {
 
       if (error) throw error
 
-      console.log('🔧 Restaurant Settings loaded:', data)
-      console.log('📋 orders_enabled:', data?.orders_enabled)
-
       setEnableTableOrders(data?.orders_enabled || false)
     } catch (error) {
       console.error('❌ Errore caricamento impostazioni:', error)

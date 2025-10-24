@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
 function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession, existingOrder = null }) {
+
   const [tableNumber, setTableNumber] = useState(existingOrder?.table_number || '')
   const [customerName, setCustomerName] = useState(existingOrder?.customer_name || '')
   const [customerNotes, setCustomerNotes] = useState(existingOrder?.customer_notes || '')
@@ -17,6 +18,14 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
   const [maxTables, setMaxTables] = useState(null)
   const [enableTableOrders, setEnableTableOrders] = useState(false)
   const [enablePriorityOrders, setEnablePriorityOrders] = useState(false)
+
+  // Variant selection states
+  const [showVariantModal, setShowVariantModal] = useState(false)
+  const [productForVariants, setProductForVariants] = useState(null)
+  const [variantsOptions, setVariantsOptions] = useState([])
+  const [variantsData, setVariantsData] = useState([])
+  const [selectedVariant, setSelectedVariant] = useState(null)
+  const [selectedOptions, setSelectedOptions] = useState({})
 
   const isEditMode = !!existingOrder
 
@@ -59,7 +68,7 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       if (error) throw error
       setCategories(data || [])
 
-      // Load products for each category
+      // Load products for each category with variants
       if (data && data.length > 0) {
         const productsData = {}
         for (const category of data) {
@@ -71,7 +80,24 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
             .order('name')
 
           if (!productsError && categoryProducts) {
-            productsData[category.id] = categoryProducts
+            // Load variants for each product
+            const productsWithVariants = await Promise.all(
+              categoryProducts.map(async (product) => {
+                const { data: variantsData, error: variantsError } = await supabase
+                  .from('v_product_variants')
+                  .select('*')
+                  .eq('product_id', product.id)
+                  .eq('is_available', true)
+                  .order('position')
+
+                return {
+                  ...product,
+                  variants: variantsData || [],
+                  hasVariants: (variantsData || []).length > 0
+                }
+              })
+            )
+            productsData[category.id] = productsWithVariants
           }
         }
         setProducts(productsData)
@@ -98,7 +124,9 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
           price: item.product_price,
           quantity: item.quantity,
           notes: item.notes || '',
-          subtotal: item.subtotal
+          subtotal: item.subtotal,
+          variant_id: item.variant_id || null,
+          variant_title: item.variant_title || null
         }))
 
       setSelectedProducts(items)
@@ -107,18 +135,106 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
     }
   }
 
-  const addProduct = (product) => {
-    // Ogni prodotto aggiunto è una nuova istanza separata (può avere note diverse)
+  const addProduct = async (product) => {
+    // Se il prodotto ha varianti, mostra modal di selezione
+    if (product.hasVariants && product.variants.length > 0) {
+      await loadVariantsForProduct(product)
+      return
+    }
+
+    // Prodotto senza varianti - aggiunta diretta
     setSelectedProducts([...selectedProducts, {
       product_id: product.id,
       product_name: product.name,
       price: product.price,
       quantity: 1,
       notes: '',
-      subtotal: product.price
+      subtotal: product.price,
+      variant_id: null,
+      variant_title: null
     }])
 
     // Reset UI state
+    setShowProductList(false)
+    setSearchQuery('')
+    setSelectedCategory(null)
+  }
+
+  const loadVariantsForProduct = async (product) => {
+    try {
+      // Carica opzioni
+      const { data: optionsData } = await supabase
+        .from('v_product_variant_options')
+        .select('*')
+        .eq('product_id', product.id)
+        .order('position')
+
+      // Per ogni opzione, carica i valori
+      const optionsWithValues = await Promise.all(
+        (optionsData || []).map(async (option) => {
+          const { data: valuesData } = await supabase
+            .from('v_product_variant_option_values')
+            .select('*')
+            .eq('option_id', option.id)
+            .order('position')
+
+          return {
+            ...option,
+            values: valuesData || []
+          }
+        })
+      )
+
+      setVariantsOptions(optionsWithValues)
+      setVariantsData(product.variants)
+      setProductForVariants(product)
+      setShowVariantModal(true)
+      setSelectedVariant(null)
+      setSelectedOptions({})
+    } catch (error) {
+      console.error('Errore caricamento varianti:', error)
+    }
+  }
+
+  const handleOptionChange = (optionName, value) => {
+    const newSelectedOptions = { ...selectedOptions, [optionName]: value }
+    setSelectedOptions(newSelectedOptions)
+
+    // Trova la variante che corrisponde alle opzioni selezionate
+    const matchingVariant = variantsData.find(variant => {
+      const variantOptions = variant.option_values || {}
+      return Object.keys(newSelectedOptions).every(
+        key => variantOptions[key] === newSelectedOptions[key]
+      )
+    })
+
+    setSelectedVariant(matchingVariant || null)
+  }
+
+  const addProductWithVariant = () => {
+    if (!selectedVariant) {
+      alert('Seleziona tutte le opzioni prima di aggiungere al carrello')
+      return
+    }
+
+    setSelectedProducts([...selectedProducts, {
+      product_id: productForVariants.id,
+      product_name: productForVariants.name,
+      price: selectedVariant.price || productForVariants.price,
+      quantity: 1,
+      notes: '',
+      subtotal: selectedVariant.price || productForVariants.price,
+      variant_id: selectedVariant.id,
+      variant_title: selectedVariant.title
+    }])
+
+    // Reset and close
+    setShowVariantModal(false)
+    setProductForVariants(null)
+    setVariantsOptions([])
+    setVariantsData([])
+    setSelectedVariant(null)
+    setSelectedOptions({})
     setShowProductList(false)
     setSearchQuery('')
     setSelectedCategory(null)
@@ -219,7 +335,7 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
 
     if (orderError) throw orderError
 
-    // Aggiungi prodotti
+    // Aggiungi prodotti con supporto varianti
     const orderItems = selectedProducts.map(p => ({
       order_id: order.id,
       product_id: p.product_id,
@@ -227,7 +343,9 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       product_price: p.price,
       quantity: p.quantity,
       notes: p.notes || null,
-      subtotal: p.subtotal
+      subtotal: p.subtotal,
+      variant_id: p.variant_id || null,
+      variant_title: p.variant_title || null
     }))
 
     console.log('📦 Inserting order items:', orderItems)
@@ -358,7 +476,7 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       .delete()
       .eq('order_id', existingOrder.id)
 
-    // Riaggiungi i prodotti aggiornati
+    // Riaggiungi i prodotti aggiornati con supporto varianti
     const orderItems = selectedProducts.map(p => ({
       order_id: existingOrder.id,
       product_id: p.product_id,
@@ -366,7 +484,9 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       product_price: p.price,
       quantity: p.quantity,
       notes: p.notes || null,
-      subtotal: p.subtotal
+      subtotal: p.subtotal,
+      variant_id: p.variant_id || null,
+      variant_title: p.variant_title || null
     }))
 
     // Aggiorna l'ordine
@@ -579,7 +699,12 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
                   <div key={index} style={styles.productCard}>
                     <div style={styles.productHeader}>
                       <div style={styles.productInfo}>
-                        <div style={styles.productName}>{product.product_name}</div>
+                        <div style={styles.productName}>
+                          {product.product_name}
+                          {product.variant_title && (
+                            <span style={styles.variantBadge}>{product.variant_title}</span>
+                          )}
+                        </div>
                         <div style={styles.productPrice}>€{product.price.toFixed(2)}</div>
                       </div>
                       <div style={styles.quantityControls}>
@@ -643,11 +768,29 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
                     filteredProducts.map((product) => (
                       <div
                         key={product.id}
-                        style={styles.productOption}
+                        style={styles.productOptionCard}
                         onClick={() => addProduct(product)}
                       >
-                        <div style={styles.productOptionName}>{product.name}</div>
-                        <div style={styles.productOptionPrice}>€{product.price.toFixed(2)}</div>
+                        <div style={styles.productOptionHeader}>
+                          <div style={styles.productOptionName}>{product.name}</div>
+                          {!product.hasVariants && (
+                            <div style={styles.productOptionPrice}>€{product.price.toFixed(2)}</div>
+                          )}
+                        </div>
+
+                        {/* Mostra varianti se presenti */}
+                        {product.hasVariants && product.variants.length > 0 && (
+                          <div style={styles.variantsPreviewList}>
+                            {product.variants.map((variant) => (
+                              <div key={variant.id} style={styles.variantPreviewItem}>
+                                <span style={styles.variantPreviewName}>{variant.title}</span>
+                                <span style={styles.variantPreviewPrice}>
+                                  €{(variant.price || product.price).toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
@@ -704,11 +847,29 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
                               categoryProducts.map((product) => (
                                 <div
                                   key={product.id}
-                                  style={styles.productOption}
+                                  style={styles.productOptionCard}
                                   onClick={() => addProduct(product)}
                                 >
-                                  <div style={styles.productOptionName}>{product.name}</div>
-                                  <div style={styles.productOptionPrice}>€{product.price.toFixed(2)}</div>
+                                  <div style={styles.productOptionHeader}>
+                                    <div style={styles.productOptionName}>{product.name}</div>
+                                    {!product.hasVariants && (
+                                      <div style={styles.productOptionPrice}>€{product.price.toFixed(2)}</div>
+                                    )}
+                                  </div>
+
+                                  {/* Mostra varianti se presenti */}
+                                  {product.hasVariants && product.variants.length > 0 && (
+                                    <div style={styles.variantsPreviewList}>
+                                      {product.variants.map((variant) => (
+                                        <div key={variant.id} style={styles.variantPreviewItem}>
+                                          <span style={styles.variantPreviewName}>{variant.title}</span>
+                                          <span style={styles.variantPreviewPrice}>
+                                            €{(variant.price || product.price).toFixed(2)}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               ))
                             )}
@@ -770,6 +931,77 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
           </button>
         </div>
       </div>
+
+      {/* Variant Selection Modal */}
+      {showVariantModal && productForVariants && (
+        <div style={styles.variantModalOverlay} onClick={() => setShowVariantModal(false)}>
+          <div style={styles.variantModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.variantModalHeader}>
+              <h3 style={styles.variantModalTitle}>Seleziona Variante</h3>
+              <button onClick={() => setShowVariantModal(false)} style={styles.closeButton}>×</button>
+            </div>
+
+            <div style={styles.variantModalBody}>
+              <h4 style={styles.variantProductName}>{productForVariants.name}</h4>
+
+              {variantsOptions.map((option) => (
+                <div key={option.id} style={styles.variantOptionGroup}>
+                  <label style={styles.variantOptionLabel}>{option.name}</label>
+                  <div style={styles.variantOptionButtons}>
+                    {option.values.map((value) => {
+                      const isSelected = selectedOptions[option.name] === value.value
+                      return (
+                        <button
+                          key={value.id}
+                          type="button"
+                          onClick={() => handleOptionChange(option.name, value.value)}
+                          style={{
+                            ...styles.variantOptionButton,
+                            ...(isSelected ? styles.variantOptionButtonSelected : {})
+                          }}
+                        >
+                          {value.value}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {selectedVariant && (
+                <div style={styles.variantSelectedInfo}>
+                  <span style={styles.variantSelectedLabel}>Variante:</span>
+                  <span style={styles.variantSelectedValue}>{selectedVariant.title}</span>
+                  <span style={styles.variantSelectedPrice}>€{(selectedVariant.price || productForVariants.price).toFixed(2)}</span>
+                </div>
+              )}
+
+              {variantsOptions.length > 0 && !selectedVariant && Object.keys(selectedOptions).length > 0 && (
+                <div style={styles.variantError}>
+                  ⚠️ Combinazione non disponibile
+                </div>
+              )}
+            </div>
+
+            <div style={styles.variantModalFooter}>
+              <button onClick={() => setShowVariantModal(false)} style={styles.cancelButton}>
+                Annulla
+              </button>
+              <button
+                onClick={addProductWithVariant}
+                style={{
+                  ...styles.submitButton,
+                  opacity: selectedVariant ? 1 : 0.5,
+                  cursor: selectedVariant ? 'pointer' : 'not-allowed'
+                }}
+                disabled={!selectedVariant}
+              >
+                Aggiungi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1193,6 +1425,156 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     opacity: 1
+  },
+  variantBadge: {
+    marginLeft: '8px',
+    padding: '2px 8px',
+    fontSize: '11px',
+    fontWeight: '500',
+    backgroundColor: '#f0f0f0',
+    color: '#666',
+    borderRadius: '4px'
+  },
+  variantModalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2000
+  },
+  variantModal: {
+    width: '90%',
+    maxWidth: '500px',
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column'
+  },
+  variantModalHeader: {
+    padding: '20px',
+    borderBottom: '1px solid #e0e0e0',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  variantModalTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '600'
+  },
+  variantModalBody: {
+    padding: '20px',
+    overflowY: 'auto',
+    flex: 1
+  },
+  variantProductName: {
+    margin: '0 0 20px 0',
+    fontSize: '16px',
+    fontWeight: '500'
+  },
+  variantOptionGroup: {
+    marginBottom: '20px'
+  },
+  variantOptionLabel: {
+    display: 'block',
+    marginBottom: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#333'
+  },
+  variantOptionButtons: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px'
+  },
+  variantOptionButton: {
+    padding: '8px 16px',
+    fontSize: '14px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '8px',
+    backgroundColor: '#fff',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  },
+  variantOptionButtonSelected: {
+    borderColor: '#000',
+    backgroundColor: '#000',
+    color: '#fff'
+  },
+  variantSelectedInfo: {
+    marginTop: '20px',
+    padding: '12px',
+    backgroundColor: '#f5f5f5',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  variantSelectedLabel: {
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  variantSelectedValue: {
+    fontSize: '14px',
+    flex: 1
+  },
+  variantSelectedPrice: {
+    fontSize: '16px',
+    fontWeight: 'bold'
+  },
+  variantError: {
+    marginTop: '12px',
+    padding: '12px',
+    backgroundColor: '#ffebee',
+    color: '#c62828',
+    borderRadius: '8px',
+    fontSize: '14px'
+  },
+  variantModalFooter: {
+    padding: '20px',
+    borderTop: '1px solid #e0e0e0',
+    display: 'flex',
+    gap: '12px'
+  },
+  productOptionCard: {
+    padding: '12px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+    marginBottom: '8px'
+  },
+  productOptionHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '4px'
+  },
+  variantsPreviewList: {
+    marginTop: '8px',
+    paddingTop: '8px',
+    borderTop: '1px solid #e0e0e0'
+  },
+  variantPreviewItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '4px 0',
+    fontSize: '13px'
+  },
+  variantPreviewName: {
+    color: '#666',
+    flex: 1
+  },
+  variantPreviewPrice: {
+    fontWeight: '600',
+    color: '#000'
   }
 }
 
