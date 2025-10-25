@@ -763,99 +763,318 @@ function ThemeCustomizer({ restaurantId }) {
       <Card>
         <div style={{ padding: tokens.spacing.xl }}>
           <h3 style={sectionTitleStyles}>Anteprima Tema</h3>
+
+          {/* Background principale del menu */}
           <div style={{
             padding: tokens.spacing.xl,
             backgroundColor: theme.primaryColor,
             borderRadius: tokens.borderRadius.lg,
+            minHeight: '400px',
           }}>
-            <h4 style={{
-              color: theme.textPrimaryColor,
-              fontFamily: getFontStyle(theme.fontFamily),
-              marginBottom: tokens.spacing.lg,
-              fontSize: tokens.typography.fontSize.xl,
-              fontWeight: tokens.typography.fontWeight.semibold,
-            }}>
-              Il Tuo Ristorante
-            </h4>
+            {/* Header del menu */}
             <div style={{
-              backgroundColor: theme.secondaryColor,
-              padding: tokens.spacing.lg,
-              borderRadius: `${theme.borderRadius}px`,
-              marginBottom: tokens.spacing.md,
+              marginBottom: tokens.spacing.xl,
+              textAlign: 'center',
             }}>
-              <p style={{
-                color: theme.textSecondaryColor,
+              <h2 style={{
+                color: theme.textPrimaryColor,
                 fontFamily: getFontStyle(theme.fontFamily),
+                fontSize: tokens.typography.fontSize['2xl'],
+                fontWeight: tokens.typography.fontWeight.bold,
                 margin: 0,
-                fontSize: tokens.typography.fontSize.base,
+                marginBottom: tokens.spacing.xs,
               }}>
-                Questo è come apparirà il tuo menu con questi colori e stili
+                {restaurant?.name || 'Il Tuo Ristorante'}
+              </h2>
+              <p style={{
+                color: theme.textPrimaryColor,
+                fontFamily: getFontStyle(theme.fontFamily),
+                fontSize: tokens.typography.fontSize.sm,
+                margin: 0,
+                opacity: 0.9,
+              }}>
+                Anteprima del tema
               </p>
             </div>
-            <button style={{
-              backgroundColor: theme.accentColor,
-              color: tokens.colors.white,
-              padding: `${tokens.spacing.sm} ${tokens.spacing.lg}`,
-              border: 'none',
-              borderRadius: `${parseInt(theme.borderRadius) / 2}px`,
-              fontFamily: getFontStyle(theme.fontFamily),
-              fontSize: tokens.typography.fontSize.sm,
-              fontWeight: tokens.typography.fontWeight.medium,
-              cursor: 'pointer',
-              transition: 'opacity 0.2s ease',
-            }}
-            onMouseEnter={(e) => e.target.style.opacity = '0.9'}
-            onMouseLeave={(e) => e.target.style.opacity = '1'}
-            >
-              Pulsante Esempio
-            </button>
+
+            {/* Card Prodotto Esempio */}
+            <div style={{
+              backgroundColor: theme.secondaryColor,
+              borderRadius: `${theme.borderRadius}px`,
+              overflow: 'hidden',
+              border: `1px solid ${theme.borderColor}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}>
+              {/* Immagine prodotto placeholder */}
+              <div style={{
+                width: '100%',
+                height: '180px',
+                backgroundColor: theme.backgroundTertiary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+              }}>
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke={theme.textTertiaryColor} strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                {/* Badge preferiti */}
+                <div style={{
+                  position: 'absolute',
+                  top: tokens.spacing.sm,
+                  right: tokens.spacing.sm,
+                  backgroundColor: theme.favoriteActiveColor,
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Dettagli prodotto */}
+              <div style={{ padding: tokens.spacing.lg }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: tokens.spacing.sm,
+                }}>
+                  <h4 style={{
+                    color: theme.textSecondaryColor,
+                    fontFamily: getFontStyle(theme.fontFamily),
+                    fontSize: tokens.typography.fontSize.lg,
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    margin: 0,
+                  }}>
+                    Prodotto Esempio
+                  </h4>
+                  <span style={{
+                    color: theme.accentColor,
+                    fontFamily: getFontStyle(theme.fontFamily),
+                    fontSize: tokens.typography.fontSize.lg,
+                    fontWeight: tokens.typography.fontWeight.bold,
+                  }}>
+                    €12.50
+                  </span>
+                </div>
+
+                <p style={{
+                  color: theme.textTertiaryColor,
+                  fontFamily: getFontStyle(theme.fontFamily),
+                  fontSize: tokens.typography.fontSize.sm,
+                  margin: 0,
+                  marginBottom: tokens.spacing.md,
+                  lineHeight: 1.5,
+                }}>
+                  Una deliziosa descrizione del prodotto che mostra come apparirà il testo nel tuo menu
+                </p>
+
+                {/* Badge categoria */}
+                <div style={{
+                  display: 'inline-block',
+                  backgroundColor: theme.backgroundTertiary,
+                  color: theme.textTertiaryColor,
+                  padding: `${tokens.spacing.xs} ${tokens.spacing.sm}`,
+                  borderRadius: tokens.borderRadius.sm,
+                  fontSize: tokens.typography.fontSize.xs,
+                  fontWeight: tokens.typography.fontWeight.medium,
+                  marginBottom: tokens.spacing.md,
+                }}>
+                  Categoria
+                </div>
+
+                {/* Bottone aggiungi */}
+                <button style={{
+                  width: '100%',
+                  backgroundColor: theme.accentColor,
+                  color: theme.textPrimaryColor,
+                  padding: `${tokens.spacing.sm} ${tokens.spacing.md}`,
+                  border: 'none',
+                  borderRadius: `${parseInt(theme.borderRadius) / 2}px`,
+                  fontFamily: getFontStyle(theme.fontFamily),
+                  fontSize: tokens.typography.fontSize.sm,
+                  fontWeight: tokens.typography.fontWeight.medium,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.opacity = '0.9'
+                  e.target.style.transform = 'translateY(-1px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.opacity = '1'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+                >
+                  Aggiungi al Carrello
+                </button>
+              </div>
+            </div>
+
+            {/* Info colori funzionali */}
+            <div style={{
+              marginTop: tokens.spacing.lg,
+              padding: tokens.spacing.md,
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              borderRadius: tokens.borderRadius.md,
+              border: `1px solid ${theme.borderColor}`,
+            }}>
+              <p style={{
+                color: theme.textPrimaryColor,
+                fontFamily: getFontStyle(theme.fontFamily),
+                fontSize: tokens.typography.fontSize.xs,
+                margin: 0,
+                opacity: 0.8,
+                textAlign: 'center',
+              }}>
+                💡 Questa anteprima mostra i colori principali, funzionali, bordi e stili del tuo tema
+              </p>
+            </div>
           </div>
         </div>
       </Card>
 
-      {/* Pulsanti Azione */}
+      {/* Azioni */}
       <Card>
         <div style={{ padding: tokens.spacing.xl }}>
-          <div style={{ display: 'flex', gap: tokens.spacing.md, flexWrap: 'wrap' }}>
-            <Button
-              variant="primary"
-              size="md"
+          <h3 style={{
+            fontSize: tokens.typography.fontSize.lg,
+            fontWeight: tokens.typography.fontWeight.semibold,
+            color: tokens.colors.gray[900],
+            margin: 0,
+            marginBottom: tokens.spacing.lg,
+          }}>
+            Azioni
+          </h3>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: tokens.spacing.md,
+          }}>
+            {/* Bottone Salva */}
+            <button
               onClick={saveTheme}
               disabled={loading}
-              style={{ minWidth: '160px' }}
-            >
-              {loading ? 'Salvando...' : '💾 Salva Tema'}
-            </Button>
-
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={handleViewMenu}
-              disabled={!restaurant?.subdomain}
-              style={{ minWidth: '160px' }}
-            >
-              👁️ Visualizza Menu
-            </Button>
-
-            {restaurant?.subdomain && (
-              <div style={{
-                flex: 1,
-                minWidth: '200px',
+              style={{
                 display: 'flex',
                 alignItems: 'center',
-                padding: tokens.spacing.sm,
-                backgroundColor: tokens.colors.gray[100],
+                justifyContent: 'center',
+                gap: tokens.spacing.sm,
+                padding: `${tokens.spacing.md} ${tokens.spacing.lg}`,
+                backgroundColor: loading ? tokens.colors.gray[400] : tokens.colors.primary,
+                color: '#ffffff',
+                border: 'none',
                 borderRadius: tokens.borderRadius.md,
+                fontSize: tokens.typography.fontSize.md,
+                fontWeight: tokens.typography.fontWeight.medium,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: loading ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.target.style.backgroundColor = tokens.colors.primaryDark;
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.target.style.backgroundColor = tokens.colors.primary;
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              <span>{loading ? 'Salvando...' : 'Salva Tema'}</span>
+            </button>
+
+            {/* Bottone Visualizza Menu */}
+            <button
+              onClick={handleViewMenu}
+              disabled={!restaurant?.subdomain}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: tokens.spacing.sm,
+                padding: `${tokens.spacing.md} ${tokens.spacing.lg}`,
+                backgroundColor: !restaurant?.subdomain ? tokens.colors.gray[200] : '#ffffff',
+                color: !restaurant?.subdomain ? tokens.colors.gray[400] : tokens.colors.gray[700],
+                border: `2px solid ${!restaurant?.subdomain ? tokens.colors.gray[300] : tokens.colors.gray[300]}`,
+                borderRadius: tokens.borderRadius.md,
+                fontSize: tokens.typography.fontSize.md,
+                fontWeight: tokens.typography.fontWeight.medium,
+                cursor: !restaurant?.subdomain ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (restaurant?.subdomain) {
+                  e.target.style.borderColor = tokens.colors.primary;
+                  e.target.style.color = tokens.colors.primary;
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (restaurant?.subdomain) {
+                  e.target.style.borderColor = tokens.colors.gray[300];
+                  e.target.style.color = tokens.colors.gray[700];
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <span>Visualizza Menu</span>
+            </button>
+          </div>
+
+          {/* URL Menu */}
+          {restaurant?.subdomain && (
+            <div style={{
+              marginTop: tokens.spacing.lg,
+              padding: tokens.spacing.md,
+              backgroundColor: tokens.colors.gray[50],
+              border: `1px solid ${tokens.colors.gray[200]}`,
+              borderRadius: tokens.borderRadius.md,
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: tokens.spacing.sm,
               }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={tokens.colors.gray[500]} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
                 <span style={{
                   fontSize: tokens.typography.fontSize.sm,
                   color: tokens.colors.gray[600],
+                  fontFamily: 'monospace',
                 }}>
-                  URL: {window.location.origin}/#/menu/{restaurant.subdomain}
+                  {window.location.origin}/#/menu/{restaurant.subdomain}
                 </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </Card>
     </div>
