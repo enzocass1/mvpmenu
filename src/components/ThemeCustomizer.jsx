@@ -147,6 +147,94 @@ function ThemeCustomizer({ restaurantId }) {
         borderRadius: '24',
         layoutStyle: 'carousel'
       }
+    },
+    {
+      name: 'Italian Trattoria',
+      config: {
+        primaryColor: '#c8102e',
+        secondaryColor: '#fff5f5',
+        accentColor: '#008c45',
+        textPrimaryColor: '#ffffff',
+        textSecondaryColor: '#1a1a1a',
+        borderColor: '#fcd5d5',
+        textTertiaryColor: '#e57373',
+        errorColor: '#d32f2f',
+        successColor: '#388e3c',
+        warningColor: '#f57c00',
+        backgroundTertiary: '#ffebee',
+        favoriteActiveColor: '#d32f2f',
+        deleteColor: '#c62828',
+        fontFamily: 'serif',
+        cardStyle: 'classic',
+        borderRadius: '8',
+        layoutStyle: 'carousel'
+      }
+    },
+    {
+      name: 'Japanese Zen',
+      config: {
+        primaryColor: '#1a1a1a',
+        secondaryColor: '#fafafa',
+        accentColor: '#d32f2f',
+        textPrimaryColor: '#ffffff',
+        textSecondaryColor: '#212121',
+        borderColor: '#e0e0e0',
+        textTertiaryColor: '#757575',
+        errorColor: '#c62828',
+        successColor: '#388e3c',
+        warningColor: '#f57c00',
+        backgroundTertiary: '#f5f5f5',
+        favoriteActiveColor: '#d32f2f',
+        deleteColor: '#b71c1c',
+        fontFamily: 'sans-serif',
+        cardStyle: 'minimal',
+        borderRadius: '0',
+        layoutStyle: 'list'
+      }
+    },
+    {
+      name: 'French Bistro',
+      config: {
+        primaryColor: '#8b1538',
+        secondaryColor: '#fef9f3',
+        accentColor: '#d4af37',
+        textPrimaryColor: '#fef9f3',
+        textSecondaryColor: '#2c1810',
+        borderColor: '#e8d4a6',
+        textTertiaryColor: '#b8956a',
+        errorColor: '#c62828',
+        successColor: '#558b2f',
+        warningColor: '#ef6c00',
+        backgroundTertiary: '#faf3e8',
+        favoriteActiveColor: '#d32f2f',
+        deleteColor: '#b71c1c',
+        fontFamily: 'serif',
+        cardStyle: 'classic',
+        borderRadius: '16',
+        layoutStyle: 'carousel'
+      }
+    },
+    {
+      name: 'Modern Green',
+      config: {
+        primaryColor: '#1b5e20',
+        secondaryColor: '#f1f8f4',
+        accentColor: '#4caf50',
+        textPrimaryColor: '#e8f5e9',
+        textSecondaryColor: '#1b5e20',
+        borderColor: '#a5d6a7',
+        textTertiaryColor: '#66bb6a',
+        errorColor: '#d32f2f',
+        successColor: '#2e7d32',
+        warningColor: '#f57c00',
+        backgroundTertiary: '#e8f5e9',
+        favoriteActiveColor: '#d32f2f',
+        deleteColor: '#c62828',
+        fontFamily: 'system',
+        cardStyle: 'modern',
+        borderRadius: '24',
+        layoutStyle: 'grid'
+      }
     }
   ]
 

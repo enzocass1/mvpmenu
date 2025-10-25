@@ -663,7 +663,7 @@ const getStyles = (theme = {}) => ({
     fontWeight: '600',
     color: theme.textSecondaryColor || '#000'
   }
-}
+})
 
 // Aggiungi animazioni
 if (typeof document !== 'undefined') {
