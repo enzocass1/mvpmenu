@@ -467,10 +467,8 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
             ) : (
               categoryProducts.map((product) => (
                 <div key={product.id} style={styles.productCard}>
-                  <div
-                    onClick={() => toggleProduct(product.id, selectedCategory)}
-                    style={styles.productButton}
-                  >
+                  {/* Header prodotto: Cuore - ORDINA - Nome - Prezzo - Toggle */}
+                  <div style={styles.productHeader}>
                     <div
                       onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
                       style={styles.favoriteButton}
@@ -488,19 +486,58 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                         </svg>
                       )}
                     </div>
-                    <div style={{ flex: 1, textAlign: 'left' }}>
+
+                    {orderSettingsEnabled && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAddToCartModalProduct(product)
+                        }}
+                        style={styles.addToCartButtonCompact}
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Aggiungi al carrello"
+                      >
+                        ORDINA
+                      </div>
+                    )}
+
+                    <div
+                      style={{ flex: 1, cursor: 'pointer' }}
+                      onClick={() => toggleProduct(product.id, selectedCategory)}
+                    >
                       <div style={styles.productName}>{product.name}</div>
                     </div>
+
                     {!product.hasVariants && (
-                      <div style={styles.productPrice}>
+                      <div style={styles.singleProductPrice}>
                         €{product.price.toFixed(2)}
                       </div>
                     )}
-                    <div style={styles.expandIcon}>
+
+                    <div
+                      style={styles.expandIcon}
+                      onClick={() => toggleProduct(product.id, selectedCategory)}
+                    >
                       {expandedProducts[product.id] ? '▲' : '▼'}
                     </div>
                   </div>
 
+                  {/* Lista varianti SEMPRE visibile (sotto il nome) */}
+                  {product.hasVariants && product.variants.length > 0 && (
+                    <div style={styles.variantsListContainer}>
+                      {product.variants.map((variant) => (
+                        <div key={variant.id} style={styles.variantItem}>
+                          <span style={styles.variantName}>{variant.title}</span>
+                          <span style={styles.variantPrice}>
+                            €{(variant.price || product.price).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Dettagli espandibili (immagine + descrizione) */}
                   {expandedProducts[product.id] && (
                     <div style={styles.productDetails}>
                       {product.image_url && (
@@ -515,36 +552,6 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                         <p style={styles.productDescription}>
                           {product.description}
                         </p>
-                      )}
-
-                      {/* Mostra varianti se presenti */}
-                      {product.hasVariants && product.variants.length > 0 && (
-                        <div style={styles.variantsListContainer}>
-                          {product.variants.map((variant) => (
-                            <div key={variant.id} style={styles.variantItem}>
-                              <div style={styles.variantInfo}>
-                                <span style={styles.variantName}>{variant.title}</span>
-                                <span style={styles.variantPrice}>
-                                  €{(variant.price || product.price).toFixed(2)}
-                                </span>
-                              </div>
-                              {orderSettingsEnabled && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setAddToCartModalProduct({
-                                      ...product,
-                                      preselectedVariant: variant
-                                    })
-                                  }}
-                                  style={styles.variantOrderButton}
-                                >
-                                  ORDINA
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
                       )}
                     </div>
                   )}
@@ -1154,7 +1161,15 @@ const styles = {
     backgroundColor: '#ffffff',
     boxShadow: 'none',
   },
-  
+
+  productHeader: {
+    width: '100%',
+    padding: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+
   productButton: {
     width: '100%',
     padding: '16px',
@@ -1232,35 +1247,35 @@ const styles = {
   },
 
   variantsListContainer: {
-    marginTop: '16px',
-    borderTop: '1px solid #e0e0e0',
-    paddingTop: '12px',
+    padding: '8px 16px 12px 56px',
   },
 
   variantItem: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 0',
-    borderBottom: '1px solid #f0f0f0',
+    padding: '6px 0',
   },
 
   variantInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
     flex: 1,
   },
 
   variantName: {
-    fontSize: 'clamp(14px, 4vw, 16px)',
-    fontWeight: '500',
-    color: '#000',
+    fontSize: 'clamp(13px, 3.5vw, 14px)',
+    fontWeight: '400',
+    color: '#666',
+  },
+
+  variantPriceAndButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
   },
 
   variantPrice: {
-    fontSize: 'clamp(15px, 4vw, 17px)',
-    fontWeight: 'bold',
+    fontSize: 'clamp(14px, 4vw, 16px)',
+    fontWeight: '600',
     color: '#000',
   },
 
@@ -1268,15 +1283,28 @@ const styles = {
     backgroundColor: '#000',
     color: '#fff',
     border: 'none',
-    padding: '10px 20px',
+    padding: '8px 16px',
     cursor: 'pointer',
     borderRadius: '8px',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: '600',
     letterSpacing: '0.5px',
     transition: 'all 0.2s ease',
     whiteSpace: 'nowrap',
-    marginLeft: '12px',
+  },
+
+  singleProductRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    padding: '12px 16px',
+  },
+
+  singleProductPrice: {
+    fontSize: 'clamp(15px, 4vw, 17px)',
+    fontWeight: 'bold',
+    color: '#000',
   },
 
   emptyState: {

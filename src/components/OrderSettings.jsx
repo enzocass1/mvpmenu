@@ -80,8 +80,10 @@ function CollapsibleSection({ title, isOpen, onToggle, children }) {
 
 /**
  * Componente per gestione impostazioni ordini al tavolo
- * Include: toggle attivazione, numero tavoli, gestione camerieri
+ * Include: toggle attivazione, gestione camerieri, ordini prioritari
  * FUNZIONALITÀ PREMIUM: Richiede abbonamento Premium attivo
+ *
+ * NOTA: I tavoli ora vengono gestiti dalla sezione Cassa > Sale/Tavoli
  */
 function OrderSettings({ restaurant }) {
   const [loading, setLoading] = useState(true)
@@ -178,35 +180,6 @@ function OrderSettings({ restaurant }) {
     }
   }
 
-  const handleSaveTables = async () => {
-    if (settings.number_of_tables < 1) {
-      showMessage('Inserisci almeno 1 tavolo', 'error')
-      return
-    }
-
-    setSaving(true)
-    try {
-      const { error } = await supabase
-        .from('restaurant_order_settings')
-        .upsert({
-          restaurant_id: restaurant.id,
-          orders_enabled: settings.orders_enabled,
-          number_of_tables: settings.number_of_tables,
-          priority_order_enabled: settings.priority_order_enabled || false,
-          priority_order_price: settings.priority_order_price || 0
-        }, {
-          onConflict: 'restaurant_id'
-        })
-
-      if (error) throw error
-      showMessage('Numero tavoli salvato', 'success')
-    } catch (error) {
-      console.error('Errore salvataggio:', error)
-      showMessage('Errore salvataggio numero tavoli', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const handleTogglePriorityOrder = async (enabled) => {
     setSaving(true)
@@ -606,34 +579,6 @@ function OrderSettings({ restaurant }) {
                   <li>Visualizzazione cronologia ordini completa</li>
                 </ul>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Numero Tavoli */}
-        {settings.orders_enabled && (
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Numero di Tavoli</h3>
-            <p style={styles.sectionDescription}>
-              Indica quanti tavoli ha il tuo ristorante
-            </p>
-            <div style={styles.inputGroup}>
-              <input
-                type="number"
-                min="1"
-                max="999"
-                value={settings.number_of_tables}
-                onChange={(e) => setSettings({ ...settings, number_of_tables: parseInt(e.target.value) || 0 })}
-                style={styles.input}
-                placeholder="Es. 20"
-              />
-              <button
-                onClick={handleSaveTables}
-                disabled={saving || settings.number_of_tables < 1}
-                style={styles.saveButton}
-              >
-                {saving ? 'Salvataggio...' : 'Salva'}
-              </button>
             </div>
           </div>
         )}

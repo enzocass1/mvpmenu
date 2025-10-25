@@ -7,6 +7,9 @@ import { supabase } from '../supabaseClient'
  */
 function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemoveItem, onClearCart }) {
   const [currentStep, setCurrentStep] = useState(1) // Step 1: Carrello, Step 2: Dettagli ordine
+  const [rooms, setRooms] = useState([])
+  const [tables, setTables] = useState([])
+  const [selectedRoomId, setSelectedRoomId] = useState('')
   const [tableNumber, setTableNumber] = useState('')
   const [customerName, setCustomerName] = useState('')
   const [customerNotes, setCustomNotes] = useState('')
@@ -19,6 +22,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
   useEffect(() => {
     if (restaurant?.id && isOpen) {
       loadOrderSettings()
+      loadRoomsAndTables()
     }
     // Reset to step 1 when opening cart
     if (isOpen) {
@@ -43,6 +47,45 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
     }
   }
 
+  const loadRoomsAndTables = async () => {
+    try {
+      // Carica le sale
+      const { data: roomsData, error: roomsError } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .order('table_start')
+
+      if (roomsError) throw roomsError
+
+      setRooms(roomsData || [])
+
+      // Se c'è una sola sala, selezionala automaticamente
+      if (roomsData && roomsData.length === 1) {
+        setSelectedRoomId(roomsData[0].id)
+      }
+
+      // Carica tutti i tavoli
+      const { data: tablesData, error: tablesError } = await supabase
+        .from('tables')
+        .select('*')
+        .eq('restaurant_id', restaurant.id)
+        .order('table_number')
+
+      if (tablesError) throw tablesError
+
+      setTables(tablesData || [])
+    } catch (err) {
+      console.error('Errore caricamento sale e tavoli:', err)
+    }
+  }
+
+  // Filtra i tavoli disponibili in base alla sala selezionata
+  const getAvailableTables = () => {
+    if (!selectedRoomId) return []
+    return tables.filter(table => table.room_id === selectedRoomId)
+  }
+
   const calculateTotal = () => {
     const itemsTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     const priorityAmount = (isPriorityOrder && orderSettings?.priority_order_enabled)
@@ -57,8 +100,13 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
 
   const handleSubmitOrder = async () => {
     // Validazione
-    if (!tableNumber || tableNumber < 1 || tableNumber > (orderSettings?.number_of_tables || 999)) {
-      setError(`Seleziona un tavolo valido (1-${orderSettings?.number_of_tables || 999})`)
+    if (rooms.length > 1 && !selectedRoomId) {
+      setError('Seleziona una sala')
+      return
+    }
+
+    if (!tableNumber) {
+      setError('Seleziona un tavolo')
       return
     }
 
@@ -76,11 +124,15 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         ? (orderSettings.priority_order_price || 0)
         : 0
 
+      // Trova il tavolo selezionato per ottenere il room_id
+      const selectedTable = tables.find(t => t.table_number === parseInt(tableNumber) && t.room_id === selectedRoomId)
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           restaurant_id: restaurant.id,
           table_number: parseInt(tableNumber),
+          room_id: selectedRoomId || null,
           customer_name: customerName || null,
           customer_notes: customerNotes || null,
           status: 'pending',
@@ -305,21 +357,52 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
               <div style={styles.orderForm}>
                 <h3 style={styles.formTitle}>Dettagli ordine</h3>
 
+                {/* Selezione Sala (solo se più di una) */}
+                {rooms.length > 1 && (
+                  <div style={styles.formGroup}>
+                    <label style={styles.label}>
+                      Sala *
+                    </label>
+                    <select
+                      value={selectedRoomId}
+                      onChange={(e) => {
+                        setSelectedRoomId(e.target.value)
+                        setTableNumber('') // Reset tavolo quando cambia sala
+                      }}
+                      style={styles.input}
+                      required
+                    >
+                      <option value="">Seleziona una sala</option>
+                      {rooms.map(room => (
+                        <option key={room.id} value={room.id}>
+                          {room.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Numero tavolo */}
                 <div style={styles.formGroup}>
                   <label style={styles.label}>
                     Numero Tavolo *
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max={orderSettings?.number_of_tables || 999}
+                  <select
                     value={tableNumber}
                     onChange={(e) => setTableNumber(e.target.value)}
                     style={styles.input}
-                    placeholder={`Tavolo (1-${orderSettings?.number_of_tables || 999})`}
+                    disabled={rooms.length > 1 && !selectedRoomId}
                     required
-                  />
+                  >
+                    <option value="">
+                      {rooms.length > 1 && !selectedRoomId ? 'Prima seleziona una sala' : 'Seleziona un tavolo'}
+                    </option>
+                    {getAvailableTables().map(table => (
+                      <option key={table.id} value={table.table_number}>
+                        Tavolo {table.table_number}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Nome cliente (opzionale) */}

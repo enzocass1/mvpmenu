@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { tokens } from '../styles/tokens'
+import { Card, Button, Spinner } from './ui'
 
 function ThemeCustomizer({ restaurantId }) {
   const [loading, setLoading] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
+  const [loadingRestaurant, setLoadingRestaurant] = useState(true)
+  const [restaurant, setRestaurant] = useState(null)
   const [theme, setTheme] = useState({
     // Colori principali
     primaryColor: '#000000',      // Sfondo principale
@@ -11,14 +14,14 @@ function ThemeCustomizer({ restaurantId }) {
     accentColor: '#4CAF50',       // Colore pulsanti/accent
     textPrimaryColor: '#ffffff',  // Testo su sfondo scuro
     textSecondaryColor: '#111827', // Testo su sfondo chiaro
-    
+
     // Font
     fontFamily: 'system',          // system, serif, sans-serif, cursive
-    
+
     // Stili card
     cardStyle: 'modern',           // modern, classic, minimal
     borderRadius: '16',            // 0, 8, 16, 24
-    
+
     // Layout
     layoutStyle: 'carousel'        // carousel, grid, list
   })
@@ -98,31 +101,46 @@ function ThemeCustomizer({ restaurantId }) {
   ]
 
   useEffect(() => {
-    loadTheme()
+    if (restaurantId) {
+      loadRestaurantAndTheme()
+    }
   }, [restaurantId])
 
-  const loadTheme = async () => {
+  const loadRestaurantAndTheme = async () => {
     try {
+      setLoadingRestaurant(true)
       const { data, error } = await supabase
         .from('restaurants')
-        .select('theme_config')
+        .select('*')
         .eq('id', restaurantId)
         .single()
 
-      if (!error && data && data.theme_config) {
+      if (error) throw error
+
+      setRestaurant(data)
+
+      // Carica tema se presente
+      if (data && data.theme_config) {
         setTheme(data.theme_config)
       }
     } catch (error) {
-      console.error('Errore caricamento tema:', error)
+      console.error('Errore caricamento ristorante e tema:', error)
+    } finally {
+      setLoadingRestaurant(false)
     }
   }
 
   const saveTheme = async () => {
+    if (!restaurantId) {
+      alert('❌ Errore: ID ristorante mancante')
+      return
+    }
+
     setLoading(true)
     try {
       const { error } = await supabase
         .from('restaurants')
-        .update({ 
+        .update({
           theme_config: theme,
           updated_at: new Date().toISOString()
         })
@@ -131,6 +149,7 @@ function ThemeCustomizer({ restaurantId }) {
       if (error) throw error
       alert('✅ Tema salvato con successo!')
     } catch (error) {
+      console.error('Errore salvataggio:', error)
       alert('❌ Errore nel salvataggio: ' + error.message)
     } finally {
       setLoading(false)
@@ -150,278 +169,394 @@ function ThemeCustomizer({ restaurantId }) {
     }
   }
 
-  return (
-    <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px' }}>
-      <h2 style={{ marginBottom: '20px' }}>🎨 Personalizza Tema Menu</h2>
+  const handleViewMenu = () => {
+    if (!restaurant?.subdomain) {
+      alert('❌ Errore: Subdomain non configurato per questo ristorante')
+      return
+    }
+    window.open(`/#/menu/${restaurant.subdomain}`, '_blank')
+  }
 
-      {/* Preset Temi */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3 style={{ fontSize: '16px', marginBottom: '15px' }}>Temi Predefiniti</h3>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          {themePresets.map((preset) => (
-            <button
-              key={preset.name}
-              onClick={() => applyPreset(preset)}
-              style={{
-                padding: '10px 15px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '8px',
-                background: 'white',
-                cursor: 'pointer',
-                fontSize: '14px',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => e.target.style.borderColor = '#6b7280'}
-              onMouseOut={(e) => e.target.style.borderColor = '#e5e7eb'}
-            >
-              {preset.name}
-            </button>
-          ))}
-        </div>
-      </div>
+  if (loadingRestaurant) {
+    return <Spinner size="lg" text="Caricamento..." centered />
+  }
 
-      {/* Personalizzazione Colori */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3 style={{ fontSize: '16px', marginBottom: '15px' }}>Colori</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
-              Sfondo Principale
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input
-                type="color"
-                value={theme.primaryColor}
-                onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
-                style={{ width: '50px', height: '40px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-              />
-              <input
-                type="text"
-                value={theme.primaryColor}
-                onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
-                style={{ flex: 1, padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
-              Sfondo Sezioni
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input
-                type="color"
-                value={theme.secondaryColor}
-                onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
-                style={{ width: '50px', height: '40px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-              />
-              <input
-                type="text"
-                value={theme.secondaryColor}
-                onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
-                style={{ flex: 1, padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
-              Colore Accent (Pulsanti)
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input
-                type="color"
-                value={theme.accentColor}
-                onChange={(e) => setTheme({...theme, accentColor: e.target.value})}
-                style={{ width: '50px', height: '40px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-              />
-              <input
-                type="text"
-                value={theme.accentColor}
-                onChange={(e) => setTheme({...theme, accentColor: e.target.value})}
-                style={{ flex: 1, padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
-              Testo su Sfondo Scuro
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input
-                type="color"
-                value={theme.textPrimaryColor}
-                onChange={(e) => setTheme({...theme, textPrimaryColor: e.target.value})}
-                style={{ width: '50px', height: '40px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-              />
-              <input
-                type="text"
-                value={theme.textPrimaryColor}
-                onChange={(e) => setTheme({...theme, textPrimaryColor: e.target.value})}
-                style={{ flex: 1, padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>
-              Testo su Sfondo Chiaro
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input
-                type="color"
-                value={theme.textSecondaryColor}
-                onChange={(e) => setTheme({...theme, textSecondaryColor: e.target.value})}
-                style={{ width: '50px', height: '40px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-              />
-              <input
-                type="text"
-                value={theme.textSecondaryColor}
-                onChange={(e) => setTheme({...theme, textSecondaryColor: e.target.value})}
-                style={{ flex: 1, padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stili e Layout */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3 style={{ fontSize: '16px', marginBottom: '15px' }}>Stile e Layout</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Font</label>
-            <select
-              value={theme.fontFamily}
-              onChange={(e) => setTheme({...theme, fontFamily: e.target.value})}
-              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-            >
-              <option value="system">Sistema (Default)</option>
-              <option value="serif">Serif (Elegante)</option>
-              <option value="sans-serif">Sans-Serif (Moderno)</option>
-              <option value="cursive">Cursive (Decorativo)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Stile Card</label>
-            <select
-              value={theme.cardStyle}
-              onChange={(e) => setTheme({...theme, cardStyle: e.target.value})}
-              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-            >
-              <option value="modern">Moderno</option>
-              <option value="classic">Classico</option>
-              <option value="minimal">Minimale</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Bordi Arrotondati</label>
-            <select
-              value={theme.borderRadius}
-              onChange={(e) => setTheme({...theme, borderRadius: e.target.value})}
-              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-            >
-              <option value="0">Nessuno (Squadrato)</option>
-              <option value="8">Leggero</option>
-              <option value="16">Medio</option>
-              <option value="24">Molto Arrotondato</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px' }}>Layout Categorie</label>
-            <select
-              value={theme.layoutStyle}
-              onChange={(e) => setTheme({...theme, layoutStyle: e.target.value})}
-              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-            >
-              <option value="carousel">Carousel (Scorrimento)</option>
-              <option value="grid">Griglia</option>
-              <option value="list">Lista</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Anteprima */}
-      <div style={{ 
-        marginBottom: '20px', 
-        padding: '20px', 
-        backgroundColor: theme.primaryColor,
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb'
-      }}>
-        <h4 style={{ 
-          color: theme.textPrimaryColor, 
-          fontFamily: getFontStyle(theme.fontFamily),
-          marginBottom: '15px'
-        }}>
-          Anteprima Tema
-        </h4>
-        <div style={{
-          backgroundColor: theme.secondaryColor,
-          padding: '15px',
-          borderRadius: `${theme.borderRadius}px`,
-          marginBottom: '10px'
-        }}>
-          <p style={{ 
-            color: theme.textSecondaryColor,
-            fontFamily: getFontStyle(theme.fontFamily),
-            margin: 0
-          }}>
-            Questo è come apparirà il tuo menu con questi colori
+  if (!restaurant) {
+    return (
+      <Card>
+        <div style={{ padding: tokens.spacing.xl, textAlign: 'center' }}>
+          <p style={{ color: tokens.colors.gray[600] }}>
+            Impossibile caricare il ristorante
           </p>
         </div>
-        <button style={{
-          backgroundColor: theme.accentColor,
-          color: 'white',
-          padding: '10px 20px',
-          border: 'none',
-          borderRadius: `${parseInt(theme.borderRadius) / 2}px`,
-          fontFamily: getFontStyle(theme.fontFamily),
-          cursor: 'pointer'
+      </Card>
+    )
+  }
+
+  const sectionTitleStyles = {
+    margin: 0,
+    marginBottom: tokens.spacing.lg,
+    fontSize: tokens.typography.fontSize.lg,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: tokens.colors.black,
+  }
+
+  const labelStyles = {
+    display: 'block',
+    marginBottom: tokens.spacing.xs,
+    fontSize: tokens.typography.fontSize.sm,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: tokens.colors.gray[700],
+  }
+
+  const inputStyles = {
+    width: '100%',
+    padding: tokens.spacing.sm,
+    fontSize: tokens.typography.fontSize.sm,
+    border: `1px solid ${tokens.colors.gray[300]}`,
+    borderRadius: tokens.borderRadius.md,
+    outline: 'none',
+    transition: 'border-color 0.2s ease',
+  }
+
+  const colorInputStyles = {
+    width: '50px',
+    height: '40px',
+    border: `1px solid ${tokens.colors.gray[300]}`,
+    borderRadius: tokens.borderRadius.sm,
+    cursor: 'pointer',
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.lg }}>
+      {/* Header */}
+      <div>
+        <h2 style={{
+          margin: 0,
+          marginBottom: tokens.spacing.xs,
+          fontSize: tokens.typography.fontSize['2xl'],
+          fontWeight: tokens.typography.fontWeight.bold,
+          color: tokens.colors.black,
         }}>
-          Pulsante Esempio
-        </button>
+          Personalizza Tema Menu
+        </h2>
+        <p style={{
+          margin: 0,
+          fontSize: tokens.typography.fontSize.sm,
+          color: tokens.colors.gray[600],
+        }}>
+          Configura l'aspetto del tuo menu pubblico
+        </p>
       </div>
+
+      {/* Preset Temi */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <h3 style={sectionTitleStyles}>Temi Predefiniti</h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: tokens.spacing.md
+          }}>
+            {themePresets.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => applyPreset(preset)}
+                style={{
+                  padding: tokens.spacing.md,
+                  border: `2px solid ${tokens.colors.gray[300]}`,
+                  borderRadius: tokens.borderRadius.md,
+                  background: tokens.colors.white,
+                  cursor: 'pointer',
+                  fontSize: tokens.typography.fontSize.sm,
+                  fontWeight: tokens.typography.fontWeight.medium,
+                  color: tokens.colors.gray[900],
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = tokens.colors.black
+                  e.target.style.backgroundColor = tokens.colors.gray[50]
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = tokens.colors.gray[300]
+                  e.target.style.backgroundColor = tokens.colors.white
+                }}
+              >
+                {preset.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Personalizzazione Colori */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <h3 style={sectionTitleStyles}>Colori</h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: tokens.spacing.lg
+          }}>
+            <div>
+              <label style={labelStyles}>Sfondo Principale</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.primaryColor}
+                  onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.primaryColor}
+                  onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Sfondo Sezioni</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.secondaryColor}
+                  onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.secondaryColor}
+                  onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Colore Accent (Pulsanti)</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.accentColor}
+                  onChange={(e) => setTheme({...theme, accentColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.accentColor}
+                  onChange={(e) => setTheme({...theme, accentColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Testo su Sfondo Scuro</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.textPrimaryColor}
+                  onChange={(e) => setTheme({...theme, textPrimaryColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.textPrimaryColor}
+                  onChange={(e) => setTheme({...theme, textPrimaryColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Testo su Sfondo Chiaro</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.textSecondaryColor}
+                  onChange={(e) => setTheme({...theme, textSecondaryColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.textSecondaryColor}
+                  onChange={(e) => setTheme({...theme, textSecondaryColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Stili e Layout */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <h3 style={sectionTitleStyles}>Stile e Layout</h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: tokens.spacing.lg
+          }}>
+            <div>
+              <label style={labelStyles}>Font</label>
+              <select
+                value={theme.fontFamily}
+                onChange={(e) => setTheme({...theme, fontFamily: e.target.value})}
+                style={inputStyles}
+              >
+                <option value="system">Sistema (Default)</option>
+                <option value="serif">Serif (Elegante)</option>
+                <option value="sans-serif">Sans-Serif (Moderno)</option>
+                <option value="cursive">Cursive (Decorativo)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Stile Card</label>
+              <select
+                value={theme.cardStyle}
+                onChange={(e) => setTheme({...theme, cardStyle: e.target.value})}
+                style={inputStyles}
+              >
+                <option value="modern">Moderno</option>
+                <option value="classic">Classico</option>
+                <option value="minimal">Minimale</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Bordi Arrotondati</label>
+              <select
+                value={theme.borderRadius}
+                onChange={(e) => setTheme({...theme, borderRadius: e.target.value})}
+                style={inputStyles}
+              >
+                <option value="0">Nessuno (Squadrato)</option>
+                <option value="8">Leggero</option>
+                <option value="16">Medio</option>
+                <option value="24">Molto Arrotondato</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Layout Categorie</label>
+              <select
+                value={theme.layoutStyle}
+                onChange={(e) => setTheme({...theme, layoutStyle: e.target.value})}
+                style={inputStyles}
+              >
+                <option value="carousel">Carousel (Scorrimento)</option>
+                <option value="grid">Griglia</option>
+                <option value="list">Lista</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Anteprima */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <h3 style={sectionTitleStyles}>Anteprima Tema</h3>
+          <div style={{
+            padding: tokens.spacing.xl,
+            backgroundColor: theme.primaryColor,
+            borderRadius: tokens.borderRadius.lg,
+          }}>
+            <h4 style={{
+              color: theme.textPrimaryColor,
+              fontFamily: getFontStyle(theme.fontFamily),
+              marginBottom: tokens.spacing.lg,
+              fontSize: tokens.typography.fontSize.xl,
+              fontWeight: tokens.typography.fontWeight.semibold,
+            }}>
+              Il Tuo Ristorante
+            </h4>
+            <div style={{
+              backgroundColor: theme.secondaryColor,
+              padding: tokens.spacing.lg,
+              borderRadius: `${theme.borderRadius}px`,
+              marginBottom: tokens.spacing.md,
+            }}>
+              <p style={{
+                color: theme.textSecondaryColor,
+                fontFamily: getFontStyle(theme.fontFamily),
+                margin: 0,
+                fontSize: tokens.typography.fontSize.base,
+              }}>
+                Questo è come apparirà il tuo menu con questi colori e stili
+              </p>
+            </div>
+            <button style={{
+              backgroundColor: theme.accentColor,
+              color: tokens.colors.white,
+              padding: `${tokens.spacing.sm} ${tokens.spacing.lg}`,
+              border: 'none',
+              borderRadius: `${parseInt(theme.borderRadius) / 2}px`,
+              fontFamily: getFontStyle(theme.fontFamily),
+              fontSize: tokens.typography.fontSize.sm,
+              fontWeight: tokens.typography.fontWeight.medium,
+              cursor: 'pointer',
+              transition: 'opacity 0.2s ease',
+            }}
+            onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.target.style.opacity = '1'}
+            >
+              Pulsante Esempio
+            </button>
+          </div>
+        </div>
+      </Card>
 
       {/* Pulsanti Azione */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          onClick={saveTheme}
-          disabled={loading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '16px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1
-          }}
-        >
-          {loading ? 'Salvando...' : '💾 Salva Tema'}
-        </button>
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <div style={{ display: 'flex', gap: tokens.spacing.md, flexWrap: 'wrap' }}>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={saveTheme}
+              disabled={loading}
+              style={{ minWidth: '160px' }}
+            >
+              {loading ? 'Salvando...' : '💾 Salva Tema'}
+            </Button>
 
-        <button
-          onClick={() => window.open(`/#/menu/${restaurantId}`, '_blank')}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '16px',
-            cursor: 'pointer'
-          }}
-        >
-          👁️ Visualizza Menu
-        </button>
-      </div>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleViewMenu}
+              disabled={!restaurant?.subdomain}
+              style={{ minWidth: '160px' }}
+            >
+              👁️ Visualizza Menu
+            </Button>
+
+            {restaurant?.subdomain && (
+              <div style={{
+                flex: 1,
+                minWidth: '200px',
+                display: 'flex',
+                alignItems: 'center',
+                padding: tokens.spacing.sm,
+                backgroundColor: tokens.colors.gray[100],
+                borderRadius: tokens.borderRadius.md,
+              }}>
+                <span style={{
+                  fontSize: tokens.typography.fontSize.sm,
+                  color: tokens.colors.gray[600],
+                }}>
+                  URL: {window.location.origin}/#/menu/{restaurant.subdomain}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }

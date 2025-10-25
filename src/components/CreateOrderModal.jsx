@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 
-function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession, existingOrder = null }) {
+function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession, existingOrder = null, preselectedRoomId = null, preselectedTableNumber = null, isOpen = true }) {
 
-  const [tableNumber, setTableNumber] = useState(existingOrder?.table_number || '')
+  const [tableNumber, setTableNumber] = useState(existingOrder?.table_number || preselectedTableNumber || '')
   const [customerName, setCustomerName] = useState(existingOrder?.customer_name || '')
   const [customerNotes, setCustomerNotes] = useState(existingOrder?.customer_notes || '')
   const [categories, setCategories] = useState([])
@@ -19,6 +19,13 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
   const [enableTableOrders, setEnableTableOrders] = useState(false)
   const [enablePriorityOrders, setEnablePriorityOrders] = useState(false)
 
+  // Room and Table selection states
+  const [rooms, setRooms] = useState([])
+  const [selectedRoomId, setSelectedRoomId] = useState(existingOrder?.room_id || preselectedRoomId || null)
+  const [tables, setTables] = useState([])
+  const [selectedTableId, setSelectedTableId] = useState(null)
+  const [roomsLoadAttempted, setRoomsLoadAttempted] = useState(false)
+
   // Variant selection states
   const [showVariantModal, setShowVariantModal] = useState(false)
   const [productForVariants, setProductForVariants] = useState(null)
@@ -32,10 +39,21 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
   useEffect(() => {
     loadCategories()
     loadRestaurantSettings()
+    loadRooms()
     if (existingOrder) {
       loadExistingOrderItems()
     }
   }, [restaurantId, existingOrder])
+
+  // Load tables when room is selected
+  useEffect(() => {
+    if (selectedRoomId) {
+      loadTables(selectedRoomId)
+    } else {
+      setTables([])
+      setSelectedTableId(null)
+    }
+  }, [selectedRoomId])
 
   const loadRestaurantSettings = async () => {
     try {
@@ -54,6 +72,74 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       }
     } catch (error) {
       console.error('Errore caricamento impostazioni:', error)
+    }
+  }
+
+  const loadRooms = async () => {
+    // Prevent infinite loop - only attempt once
+    if (roomsLoadAttempted) return
+    setRoomsLoadAttempted(true)
+
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .eq('is_active', true)
+        .order('name')
+
+      if (error) {
+        // If table doesn't exist (400 error), silently fall back to old system
+        console.log('⚠️ Sistema sale/tavoli non configurato')
+        console.log('Errore:', error.message)
+        console.log('Codice:', error.code)
+        console.log('💡 Esegui la migration SQL per attivare il sistema sale/tavoli!')
+        setRooms([])
+        return
+      }
+
+      setRooms(data || [])
+
+      // Se si sta modificando un ordine esistente, ripristina la sala
+      if (existingOrder?.room_id) {
+        setSelectedRoomId(existingOrder.room_id)
+      }
+    } catch (error) {
+      // On any error, fall back to old table number system
+      console.log('⚠️ Sistema sale/tavoli non configurato (catch)')
+      console.log('Errore:', error.message)
+      setRooms([])
+    }
+  }
+
+  const loadTables = async (roomId) => {
+    try {
+      const { data, error } = await supabase
+        .from('tables')
+        .select('*')
+        .eq('room_id', roomId)
+        .eq('is_active', true)
+        .order('number')
+
+      if (error) {
+        console.error('❌ Errore caricamento tavoli:')
+        console.error('Messaggio:', error.message)
+        console.error('Codice:', error.code)
+        throw error
+      }
+      console.log('✅ Tavoli caricati per sala:', data?.length || 0)
+      setTables(data || [])
+
+      // Auto-select table if preselectedTableNumber is provided
+      if (preselectedTableNumber && data && data.length > 0) {
+        const table = data.find(t => t.number === preselectedTableNumber)
+        if (table) {
+          setSelectedTableId(table.id)
+        }
+      }
+    } catch (error) {
+      console.error('❌ Errore caricamento tavoli (catch):', error.message)
+      setTables([])
     }
   }
 
@@ -272,20 +358,18 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
   }
 
   const isTableNumberValid = () => {
-    if (!tableNumber) return false
-    const num = parseInt(tableNumber)
-    if (isNaN(num) || num < 1) return false
-    if (maxTables && num > maxTables) return false
-    return true
+    // Valida che sia stato selezionato un tavolo
+    return selectedTableId !== null
   }
 
   const handleSubmit = async () => {
+    if (!selectedRoomId) {
+      alert('Seleziona una sala')
+      return
+    }
+
     if (!isTableNumberValid()) {
-      if (maxTables) {
-        alert(`Inserisci un numero tavolo valido (da 1 a ${maxTables})`)
-      } else {
-        alert('Inserisci un numero tavolo valido')
-      }
+      alert('Seleziona un tavolo')
       return
     }
 
@@ -316,12 +400,16 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
     const total = calculateTotal()
     const priorityAmount = isPriorityOrder ? priorityPrice : 0
 
+    // Trova il tavolo selezionato per recuperare il table_number
+    const selectedTable = tables.find(t => t.id === selectedTableId)
+
     // Crea ordine
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         restaurant_id: restaurantId,
-        table_number: parseInt(tableNumber),
+        room_id: selectedRoomId,
+        table_number: selectedTable.number,
         customer_name: customerName || null,
         customer_notes: customerNotes || null,
         total_amount: total,
@@ -618,26 +706,58 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
         </div>
 
         <div style={styles.content}>
-          {/* Table Number */}
+          {/* Sala - Dropdown delle sale disponibili */}
           <div style={styles.formGroup}>
-            <label style={styles.label}>Numero Tavolo *</label>
-            <input
-              type="number"
-              value={tableNumber}
-              onChange={(e) => setTableNumber(e.target.value)}
+            <label style={styles.label}>Sala *</label>
+            <select
+              value={selectedRoomId || ''}
+              onChange={(e) => setSelectedRoomId(e.target.value || null)}
+              style={styles.input}
+            >
+              <option value="">Seleziona una sala</option>
+              {rooms.map(room => (
+                <option key={room.id} value={room.id}>{room.name}</option>
+              ))}
+            </select>
+            {rooms.length === 0 && (
+              <div style={styles.infoText}>
+                Nessuna sala configurata. Configura le sale nella sezione Cassa.
+              </div>
+            )}
+          </div>
+
+          {/* Tavolo - Dropdown dei tavoli in base alla sala scelta */}
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Tavolo *</label>
+            <select
+              value={selectedTableId || ''}
+              onChange={(e) => setSelectedTableId(e.target.value || null)}
               style={{
                 ...styles.input,
-                borderColor: tableNumber && !isTableNumberValid() ? '#EF4444' : '#ddd'
+                borderColor: !isTableNumberValid() ? '#EF4444' : '#ddd'
               }}
-              placeholder={maxTables ? `Da 1 a ${maxTables}` : "Es: 5"}
-              min="1"
-              max={maxTables || undefined}
-            />
-            {tableNumber && !isTableNumberValid() && (
+              disabled={!selectedRoomId}
+            >
+              <option value="">Seleziona un tavolo</option>
+              {tables.map(table => (
+                <option key={table.id} value={table.id}>
+                  Tavolo {table.number}
+                </option>
+              ))}
+            </select>
+            {!selectedRoomId && (
+              <div style={styles.infoText}>
+                Seleziona prima una sala
+              </div>
+            )}
+            {selectedRoomId && tables.length === 0 && (
+              <div style={styles.infoText}>
+                Nessun tavolo disponibile per questa sala
+              </div>
+            )}
+            {!isTableNumberValid() && selectedRoomId && tables.length > 0 && (
               <div style={styles.errorText}>
-                {maxTables
-                  ? `Il numero tavolo deve essere compreso tra 1 e ${maxTables}`
-                  : 'Inserisci un numero tavolo valido'}
+                Seleziona un tavolo
               </div>
             )}
           </div>
@@ -1016,7 +1136,7 @@ const styles = {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     display: 'flex',
     alignItems: 'flex-end',
-    zIndex: 1000
+    zIndex: 9999
   },
   modal: {
     width: '100%',
@@ -1078,6 +1198,12 @@ const styles = {
     fontSize: '11px',
     color: '#EF4444',
     fontWeight: '500'
+  },
+  infoText: {
+    marginTop: '4px',
+    fontSize: '11px',
+    color: '#6B7280',
+    fontStyle: 'italic'
   },
   input: {
     width: '100%',

@@ -23,6 +23,7 @@ function StaffOrders() {
   const [selectedOrders, setSelectedOrders] = useState([]) // Array di order IDs selezionati
   const [selectionMode, setSelectionMode] = useState(false) // Modalità selezione attiva
   const [enableTableOrders, setEnableTableOrders] = useState(false) // Ordini al tavolo attivi
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768) // Desktop detection
   const longPressActiveRef = useRef(false) // Flag per tracciare se è attivo un long press
 
   useEffect(() => {
@@ -54,6 +55,15 @@ function StaffOrders() {
     }, 1000) // Aggiorna ogni secondo
 
     return () => clearInterval(interval)
+  }, [])
+
+  // Detect desktop/mobile
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
   const playNotificationSound = () => {
@@ -721,13 +731,14 @@ function StaffOrders() {
                   key={order.id}
                   style={{
                     ...styles.orderCard,
-                    borderLeft: order.is_priority_order ? '3px solid #FF9800' : '3px solid transparent',
+                    borderLeft: order.is_priority_order ? '4px solid #FF9800' : '4px solid #000',
                     backgroundColor: isSelected ? '#E3F2FD' : '#fff',
                     transform: isSelected ? 'scale(0.98)' : 'scale(1)',
                     boxShadow: isSelected
-                      ? '0 0 0 2px #2196F3, 0 4px 12px rgba(33, 150, 243, 0.3)'
-                      : '0 2px 4px rgba(0,0,0,0.1)',
-                    transition: 'all 0.2s ease'
+                      ? '0 0 0 3px #2196F3, 0 6px 16px rgba(33, 150, 243, 0.4)'
+                      : '0 4px 8px rgba(0,0,0,0.12)',
+                    transition: 'all 0.2s ease',
+                    border: '2px solid #e0e0e0'
                   }}
                   onClick={handleCardClick}
                   onContextMenu={(e) => {
@@ -738,11 +749,60 @@ function StaffOrders() {
                   onTouchEnd={handleTouchEnd}
                 >
                   <div style={styles.cardHeader}>
-                    <div style={styles.orderId}>
-                      #{order.id.substring(0, 8).toUpperCase()}
-                      {order.is_priority_order && (
-                        <span style={styles.priorityBadge}>Priority</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                      {/* Checkbox visibile su desktop */}
+                      {isDesktop && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          backgroundColor: isSelected ? '#2196F3' : 'transparent',
+                          border: isSelected ? 'none' : '2px solid #ddd',
+                          transition: 'all 0.2s'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              e.stopPropagation()
+                              toggleOrderSelection(order.id)
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              cursor: 'pointer',
+                              accentColor: '#2196F3'
+                            }}
+                          />
+                        </div>
                       )}
+                      {/* Indicatore selezione su mobile */}
+                      {!isDesktop && selectionMode && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          backgroundColor: isSelected ? '#2196F3' : '#e0e0e0',
+                          transition: 'all 0.2s'
+                        }}>
+                          {isSelected && (
+                            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>✓</span>
+                          )}
+                        </div>
+                      )}
+                      <div style={styles.orderId}>
+                        #{order.id.substring(0, 8).toUpperCase()}
+                        {order.is_priority_order && (
+                          <span style={styles.priorityBadge}>Priority</span>
+                        )}
+                      </div>
                     </div>
                     <div style={styles.cardTime}>{formatDateTime(order.created_at)}</div>
                   </div>
@@ -766,6 +826,28 @@ function StaffOrders() {
                       <span style={styles.cardLabel}>Tempo</span>
                       <span style={styles.cardValue}>{calculateWaitTime(order)}</span>
                     </div>
+
+                    {/* Lista Prodotti con cornici */}
+                    {order.order_items && order.order_items.length > 0 && (
+                      <div style={styles.productsSection}>
+                        <div style={styles.productsSectionTitle}>Prodotti:</div>
+                        <div style={styles.productsList}>
+                          {order.order_items.map((item, idx) => (
+                            <div key={idx} style={styles.productItem}>
+                              <span style={styles.productQuantity}>{item.quantity}x</span>
+                              <span style={styles.productName}>
+                                {item.product_name}
+                                {item.variant_title && (
+                                  <span style={styles.productVariant}> ({item.variant_title})</span>
+                                )}
+                              </span>
+                              <span style={styles.productPrice}>€{item.subtotal.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div style={styles.cardRow}>
                       <span style={styles.cardLabel}>Totale</span>
                       <span style={styles.cardValueBold}>€{order.total_amount.toFixed(2)}</span>
@@ -1098,6 +1180,51 @@ const styles = {
     borderRadius: '10px',
     fontSize: '11px',
     fontWeight: '600'
+  },
+  productsSection: {
+    marginTop: '8px',
+    marginBottom: '8px'
+  },
+  productsSectionTitle: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: '6px'
+  },
+  productsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px'
+  },
+  productItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px',
+    backgroundColor: '#f9f9f9',
+    border: '1px solid #e0e0e0',
+    borderRadius: '6px',
+    fontSize: '11px'
+  },
+  productQuantity: {
+    fontWeight: '600',
+    color: '#666',
+    minWidth: '30px'
+  },
+  productName: {
+    flex: 1,
+    color: '#000',
+    fontWeight: '500'
+  },
+  productVariant: {
+    color: '#666',
+    fontSize: '10px',
+    fontWeight: '400'
+  },
+  productPrice: {
+    fontWeight: '600',
+    color: '#000',
+    whiteSpace: 'nowrap'
   },
   quickActionButton: {
     width: '100%',

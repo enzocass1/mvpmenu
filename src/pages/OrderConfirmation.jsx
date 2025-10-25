@@ -109,7 +109,12 @@ function OrderConfirmation() {
             {order.order_items?.map((item) => (
               <div key={item.id} style={styles.item}>
                 <div style={styles.itemQuantity}>{item.quantity}x</div>
-                <div style={styles.itemName}>{item.product_name}</div>
+                <div style={styles.itemNameContainer}>
+                  <div style={styles.itemName}>{item.product_name}</div>
+                  {item.variant_title && (
+                    <div style={styles.variantBadge}>{item.variant_title}</div>
+                  )}
+                </div>
                 <div style={styles.itemPrice}>€{item.subtotal.toFixed(2)}</div>
               </div>
             ))}
@@ -254,10 +259,24 @@ const styles = {
     color: '#6B7280',
     minWidth: '30px'
   },
+  itemNameContainer: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
   itemName: {
     fontSize: '14px',
-    color: '#111827',
-    flex: 1
+    color: '#111827'
+  },
+  variantBadge: {
+    padding: '2px 8px',
+    fontSize: '11px',
+    fontWeight: '500',
+    backgroundColor: '#E5E7EB',
+    color: '#6B7280',
+    borderRadius: '4px',
+    alignSelf: 'flex-start'
   },
   itemPrice: {
     fontSize: '14px',

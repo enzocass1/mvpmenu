@@ -13,7 +13,12 @@
       "Bash(findstr:*)",
       "Bash(powershell -Command \"(Get-Content ProductManager.jsx) | Measure-Object -Line | Select-Object -ExpandProperty Lines\")",
       "Bash(powershell -Command \"(Get-Content ProductManager.jsx)[-10..-1]\")",
-      "Bash(powershell -Command \"(Get-Content AddToCartModal.jsx)[-30..-1]\")"
+      "Bash(powershell -Command \"(Get-Content AddToCartModal.jsx)[-30..-1]\")",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout /t 3)",
+      "Bash(powershell -Command:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

@@ -70,20 +70,38 @@ function OrderDetail() {
 
   const loadOrder = async () => {
     try {
-      const { data, error } = await supabase
+      // Load order first
+      const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          order_items (
-            *,
-            product:products (name, price)
-          )
-        `)
+        .select('*')
         .eq('id', orderId)
         .single()
 
-      if (error) throw error
-      setOrder(data)
+      if (orderError) throw orderError
+
+      console.log('📦 Ordine caricato:', orderData)
+
+      // Load order items separately
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', orderId)
+
+      if (itemsError) {
+        console.error('❌ Errore caricamento items:', itemsError)
+      }
+
+      console.log('📦 Order items caricati separatamente:', itemsData)
+      console.log('📦 Order items length:', itemsData?.length)
+
+      // Combine data
+      const completeOrder = {
+        ...orderData,
+        order_items: itemsData || []
+      }
+
+      console.log('📦 Ordine completo:', completeOrder)
+      setOrder(completeOrder)
     } catch (error) {
       console.error('Errore caricamento ordine:', error)
     } finally {
@@ -345,20 +363,31 @@ function OrderDetail() {
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}>Prodotti Ordinati</h3>
 
-        <div style={styles.productsList}>
-          {order.order_items?.map((item) => (
-            <div key={item.id} style={styles.productCard}>
-              <div style={styles.productHeader}>
-                <span style={styles.productQuantity}>{item.quantity}x</span>
-                <span style={styles.productName}>{item.product_name}</span>
-                <span style={styles.productPrice}>€{item.subtotal.toFixed(2)}</span>
+        {!order.order_items || order.order_items.length === 0 ? (
+          <div style={styles.emptyProducts}>
+            Nessun prodotto trovato per questo ordine
+          </div>
+        ) : (
+          <div style={styles.productsList}>
+            {order.order_items.map((item) => (
+              <div key={item.id} style={styles.productCard}>
+                <div style={styles.productHeader}>
+                  <span style={styles.productQuantity}>{item.quantity}x</span>
+                  <div style={styles.productInfo}>
+                    <span style={styles.productName}>{item.product_name}</span>
+                    {item.variant_title && (
+                      <span style={styles.variantBadge}>{item.variant_title}</span>
+                    )}
+                  </div>
+                  <span style={styles.productPrice}>€{item.subtotal.toFixed(2)}</span>
+                </div>
+                {item.notes && (
+                  <div style={styles.productNotes}>Note: {item.notes}</div>
+                )}
               </div>
-              {item.notes && (
-                <div style={styles.productNotes}>Note: {item.notes}</div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div style={styles.totalCard}>
           <div style={styles.totalRow}>
@@ -624,6 +653,13 @@ const styles = {
     alignItems: 'center',
     gap: '10px'
   },
+  productInfo: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    flexWrap: 'wrap'
+  },
   quantityControls: {
     display: 'flex',
     alignItems: 'center',
@@ -650,10 +686,17 @@ const styles = {
     minWidth: '30px'
   },
   productName: {
-    flex: 1,
     fontSize: '12px',
     fontWeight: '500',
     color: '#000'
+  },
+  variantBadge: {
+    padding: '2px 8px',
+    fontSize: '11px',
+    fontWeight: '500',
+    backgroundColor: '#f0f0f0',
+    color: '#666',
+    borderRadius: '4px'
   },
   productPrice: {
     fontSize: '12px',
@@ -751,6 +794,15 @@ const styles = {
     textAlign: 'center',
     color: '#999',
     fontSize: '12px'
+  },
+  emptyProducts: {
+    padding: '24px',
+    textAlign: 'center',
+    color: '#999',
+    fontSize: '13px',
+    backgroundColor: '#fafafa',
+    border: '1px dashed #ddd',
+    borderRadius: '4px'
   },
   metricsCard: {
     display: 'flex',

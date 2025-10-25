@@ -18,6 +18,16 @@ import OrderConfirmation from './pages/OrderConfirmation'
 import PublicMenu from './pages/PublicMenu'
 import OrderDetail from './pages/OrderDetail'
 import FiscalSettings from './pages/FiscalSettings'
+import DesignSystemDemo from './pages/DesignSystemDemo'
+import Home from './pages/Home'
+import OrdersPage from './pages/OrdersPage'
+import OrderDetailPage from './pages/OrderDetailPage'
+import ProductsPage from './pages/ProductsPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import ChannelsPage from './pages/ChannelsPage'
+import SettingsPage from './pages/SettingsPage'
+import PlanPage from './pages/PlanPage'
+import CassaPage from './pages/CassaPage'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -184,6 +194,9 @@ function App() {
     <Routes>
       {/* Landing Page - accessibile a tutti */}
       <Route path="/landing" element={<Landing />} />
+
+      {/* Design System Demo - accessibile a tutti (development) */}
+      <Route path="/design-system-demo" element={<DesignSystemDemo />} />
       
       {/* Login - solo se NON loggato */}
       <Route 
@@ -191,10 +204,16 @@ function App() {
         element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
       />
       
-      {/* Dashboard - solo se loggato */}
-      <Route 
-        path="/dashboard" 
-        element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />} 
+      {/* Home/Overview - solo se loggato */}
+      <Route
+        path="/dashboard"
+        element={session ? <Home session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Old Dashboard (temporary, will be removed) */}
+      <Route
+        path="/dashboard-old"
+        element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />}
       />
       
       {/* Checkout - solo se loggato */}
@@ -243,6 +262,54 @@ function App() {
       <Route
         path="/analytics/aov-analysis"
         element={session ? <AOVAnalysis /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Orders Page - solo se loggato */}
+      <Route
+        path="/ordini"
+        element={session ? <OrdersPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Order Detail Page - solo se loggato */}
+      <Route
+        path="/ordini/:orderId"
+        element={session ? <OrderDetailPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Products Page - solo se loggato */}
+      <Route
+        path="/prodotti"
+        element={session ? <ProductsPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Analytics Page - solo se loggato */}
+      <Route
+        path="/analytics"
+        element={session ? <AnalyticsPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Channels Page - solo se loggato */}
+      <Route
+        path="/canali"
+        element={session ? <ChannelsPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Settings Page - solo se loggato */}
+      <Route
+        path="/impostazioni"
+        element={session ? <SettingsPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Plan Page - solo se loggato */}
+      <Route
+        path="/piano"
+        element={session ? <PlanPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Cassa (POS) Page - solo se loggato */}
+      <Route
+        path="/cassa"
+        element={session ? <CassaPage session={session} /> : <Navigate to="/login" replace />}
       />
 
       {/* Fiscal Settings - solo se loggato */}

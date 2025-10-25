@@ -206,14 +206,12 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
               {product.description && (
                 <p style={styles.productDescription}>{product.description}</p>
               )}
-              <p style={styles.productPrice}>
-                €{finalPrice.toFixed(2)}
-                {selectedVariant && selectedVariant.price !== product.price && (
-                  <span style={{ textDecoration: 'line-through', marginLeft: '8px', color: '#999', fontSize: '14px' }}>
-                    €{product.price.toFixed(2)}
-                  </span>
-                )}
-              </p>
+              {/* Mostra prezzo solo se non ci sono varianti */}
+              {!hasVariants && (
+                <p style={styles.productPrice}>
+                  €{finalPrice.toFixed(2)}
+                </p>
+              )}
             </div>
           </div>
 
@@ -334,7 +332,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
           <div style={styles.subtotalSection}>
             <span style={styles.subtotalLabel}>Subtotale</span>
             <span style={styles.subtotalAmount}>
-              €{(product.price * quantity).toFixed(2)}
+              €{(finalPrice * quantity).toFixed(2)}
             </span>
           </div>
 
