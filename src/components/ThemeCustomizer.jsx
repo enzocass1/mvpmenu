@@ -15,6 +15,16 @@ function ThemeCustomizer({ restaurantId }) {
     textPrimaryColor: '#ffffff',  // Testo su sfondo scuro
     textSecondaryColor: '#111827', // Testo su sfondo chiaro
 
+    // Colori funzionali (NUOVI)
+    borderColor: '#e0e0e0',        // Bordi card, input, separatori
+    textTertiaryColor: '#999999',  // Testo disabilitato/placeholder
+    errorColor: '#f44336',         // Messaggi errore
+    successColor: '#4CAF50',       // Messaggi successo
+    warningColor: '#ff9800',       // Warning/priority order
+    backgroundTertiary: '#f9f9f9', // Background sezioni espanse
+    favoriteActiveColor: '#e74c3c', // Cuore preferiti attivo
+    deleteColor: '#f44336',        // Pulsanti elimina
+
     // Font
     fontFamily: 'system',          // system, serif, sans-serif, cursive
 
@@ -36,6 +46,14 @@ function ThemeCustomizer({ restaurantId }) {
         accentColor: '#4CAF50',
         textPrimaryColor: '#ffffff',
         textSecondaryColor: '#111827',
+        borderColor: '#e0e0e0',
+        textTertiaryColor: '#999999',
+        errorColor: '#f44336',
+        successColor: '#4CAF50',
+        warningColor: '#ff9800',
+        backgroundTertiary: '#f9f9f9',
+        favoriteActiveColor: '#e74c3c',
+        deleteColor: '#f44336',
         fontFamily: 'system',
         cardStyle: 'modern',
         borderRadius: '16',
@@ -50,6 +68,14 @@ function ThemeCustomizer({ restaurantId }) {
         accentColor: '#0ea5e9',
         textPrimaryColor: '#f0f9ff',
         textSecondaryColor: '#0f172a',
+        borderColor: '#bae6fd',
+        textTertiaryColor: '#7dd3fc',
+        errorColor: '#dc2626',
+        successColor: '#0ea5e9',
+        warningColor: '#f59e0b',
+        backgroundTertiary: '#e0f2fe',
+        favoriteActiveColor: '#f43f5e',
+        deleteColor: '#dc2626',
         fontFamily: 'sans-serif',
         cardStyle: 'modern',
         borderRadius: '24',
@@ -64,6 +90,14 @@ function ThemeCustomizer({ restaurantId }) {
         accentColor: '#f59e0b',
         textPrimaryColor: '#fef3c7',
         textSecondaryColor: '#7c2d12',
+        borderColor: '#fbbf24',
+        textTertiaryColor: '#d97706',
+        errorColor: '#dc2626',
+        successColor: '#16a34a',
+        warningColor: '#ea580c',
+        backgroundTertiary: '#fef08a',
+        favoriteActiveColor: '#dc2626',
+        deleteColor: '#b91c1c',
         fontFamily: 'serif',
         cardStyle: 'classic',
         borderRadius: '8',
@@ -78,6 +112,14 @@ function ThemeCustomizer({ restaurantId }) {
         accentColor: '#3b82f6',
         textPrimaryColor: '#111827',
         textSecondaryColor: '#374151',
+        borderColor: '#d1d5db',
+        textTertiaryColor: '#9ca3af',
+        errorColor: '#ef4444',
+        successColor: '#10b981',
+        warningColor: '#f59e0b',
+        backgroundTertiary: '#f3f4f6',
+        favoriteActiveColor: '#ef4444',
+        deleteColor: '#dc2626',
         fontFamily: 'system',
         cardStyle: 'minimal',
         borderRadius: '0',
@@ -92,6 +134,14 @@ function ThemeCustomizer({ restaurantId }) {
         accentColor: '#a855f7',
         textPrimaryColor: '#faf5ff',
         textSecondaryColor: '#581c87',
+        borderColor: '#e9d5ff',
+        textTertiaryColor: '#c084fc',
+        errorColor: '#dc2626',
+        successColor: '#22c55e',
+        warningColor: '#f59e0b',
+        backgroundTertiary: '#f3e8ff',
+        favoriteActiveColor: '#f43f5e',
+        deleteColor: '#dc2626',
         fontFamily: 'serif',
         cardStyle: 'modern',
         borderRadius: '24',
@@ -293,7 +343,7 @@ function ThemeCustomizer({ restaurantId }) {
       {/* Personalizzazione Colori */}
       <Card>
         <div style={{ padding: tokens.spacing.xl }}>
-          <h3 style={sectionTitleStyles}>Colori</h3>
+          <h3 style={sectionTitleStyles}>Colori Principali</h3>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
@@ -384,6 +434,169 @@ function ThemeCustomizer({ restaurantId }) {
                   type="text"
                   value={theme.textSecondaryColor}
                   onChange={(e) => setTheme({...theme, textSecondaryColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Colori Funzionali (NUOVA SEZIONE) */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <h3 style={sectionTitleStyles}>Colori Funzionali</h3>
+          <p style={{
+            marginBottom: tokens.spacing.lg,
+            fontSize: tokens.typography.fontSize.sm,
+            color: tokens.colors.gray[600]
+          }}>
+            Colori per elementi specifici: bordi, stati di errore/successo, azioni
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: tokens.spacing.lg
+          }}>
+            <div>
+              <label style={labelStyles}>Colore Bordi</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.borderColor}
+                  onChange={(e) => setTheme({...theme, borderColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.borderColor}
+                  onChange={(e) => setTheme({...theme, borderColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Testo Disabilitato</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.textTertiaryColor}
+                  onChange={(e) => setTheme({...theme, textTertiaryColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.textTertiaryColor}
+                  onChange={(e) => setTheme({...theme, textTertiaryColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Background Terziario</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.backgroundTertiary}
+                  onChange={(e) => setTheme({...theme, backgroundTertiary: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.backgroundTertiary}
+                  onChange={(e) => setTheme({...theme, backgroundTertiary: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Colore Errore</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.errorColor}
+                  onChange={(e) => setTheme({...theme, errorColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.errorColor}
+                  onChange={(e) => setTheme({...theme, errorColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Colore Successo</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.successColor}
+                  onChange={(e) => setTheme({...theme, successColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.successColor}
+                  onChange={(e) => setTheme({...theme, successColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Colore Warning</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.warningColor}
+                  onChange={(e) => setTheme({...theme, warningColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.warningColor}
+                  onChange={(e) => setTheme({...theme, warningColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Colore Preferiti Attivi</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.favoriteActiveColor}
+                  onChange={(e) => setTheme({...theme, favoriteActiveColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.favoriteActiveColor}
+                  onChange={(e) => setTheme({...theme, favoriteActiveColor: e.target.value})}
+                  style={{ ...inputStyles, flex: 1 }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Colore Elimina</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+                <input
+                  type="color"
+                  value={theme.deleteColor}
+                  onChange={(e) => setTheme({...theme, deleteColor: e.target.value})}
+                  style={colorInputStyles}
+                />
+                <input
+                  type="text"
+                  value={theme.deleteColor}
+                  onChange={(e) => setTheme({...theme, deleteColor: e.target.value})}
                   style={{ ...inputStyles, flex: 1 }}
                 />
               </div>

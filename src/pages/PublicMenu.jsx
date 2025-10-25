@@ -729,6 +729,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
             onClose={() => setAddToCartModalProduct(null)}
             product={addToCartModalProduct}
             onAddToCart={handleAddToCart}
+            restaurant={restaurant}
           />
         </div>
       </>

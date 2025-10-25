@@ -1,5 +1,23 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
+
+// Helper functions for theme styling (must be defined before component)
+const getThemeStyles = (themeConfig) => {
+  if (!themeConfig) return {} // Usa stili default se non c'è theme_config
+
+  return {
+    primaryColor: themeConfig.primaryColor || '#000000',
+    secondaryColor: themeConfig.secondaryColor || '#ffffff',
+    textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
+    textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
+    textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+    borderColor: themeConfig.borderColor || '#e0e0e0',
+    errorColor: themeConfig.errorColor || '#f44336',
+    warningColor: themeConfig.warningColor || '#ff9800',
+    deleteColor: themeConfig.deleteColor || '#f44336',
+    backgroundTertiary: themeConfig.backgroundTertiary || '#f9f9f9',
+  }
+}
 
 /**
  * Componente Slidecart per ordini al tavolo
@@ -18,6 +36,16 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
   const [error, setError] = useState('')
   const [orderSettings, setOrderSettings] = useState(null)
   const [loadingSettings, setLoadingSettings] = useState(true)
+
+  // Calcola stili dinamici basati sul theme_config del ristorante
+  const themeStyles = useMemo(() => {
+    return getThemeStyles(restaurant?.theme_config)
+  }, [restaurant])
+
+  // Genera stili completi con il tema applicato
+  const styles = useMemo(() => {
+    return getStyles(themeStyles)
+  }, [themeStyles])
 
   useEffect(() => {
     if (restaurant?.id && isOpen) {
@@ -555,7 +583,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
   )
 }
 
-const styles = {
+const getStyles = (theme = {}) => ({
   overlay: {
     position: 'fixed',
     top: 0,
@@ -573,7 +601,7 @@ const styles = {
     width: '100%',
     maxWidth: '480px',
     height: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     zIndex: 1000,
     display: 'flex',
     flexDirection: 'column',
@@ -585,20 +613,20 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 16px',
-    borderBottom: '1px solid #e0e0e0'
+    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`
   },
   title: {
     margin: 0,
     fontSize: '16px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   closeButton: {
     background: 'none',
     border: 'none',
     fontSize: '22px',
     cursor: 'pointer',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     padding: '0',
     width: '26px',
     height: '26px',
@@ -616,7 +644,7 @@ const styles = {
   emptyCart: {
     textAlign: 'center',
     padding: '60px 20px',
-    color: '#999'
+    color: theme.textTertiaryColor || '#999'
   },
   emptyText: {
     fontSize: '18px',
@@ -634,10 +662,10 @@ const styles = {
     display: 'flex',
     gap: '8px',
     padding: '8px 8px 16px 8px',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     borderRadius: '6px',
     marginBottom: '8px',
-    border: '1px solid #e0e0e0',
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`,
     position: 'relative'
   },
   itemImage: {
@@ -662,19 +690,19 @@ const styles = {
     margin: '0 0 4px 0',
     fontSize: '13px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   itemPrice: {
     margin: '0',
     fontSize: '11px',
-    color: '#999'
+    color: theme.textTertiaryColor || '#999'
   },
   itemVariant: {
     margin: '2px 0 6px 0',
     fontSize: '11px',
-    color: '#666',
+    color: theme.textSecondaryColor || '#666',
     fontWeight: '500',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.backgroundTertiary || '#f0f0f0',
     padding: '2px 6px',
     borderRadius: '4px',
     display: 'inline-block'
@@ -682,16 +710,16 @@ const styles = {
   itemNotes: {
     margin: '0 0 6px 0',
     fontSize: '10px',
-    color: '#999',
+    color: theme.textTertiaryColor || '#999',
     fontStyle: 'italic',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: theme.backgroundTertiary || '#f9f9f9',
     padding: '3px 5px',
     borderRadius: '3px'
   },
   itemSubtotal: {
     fontSize: '13px',
     fontWeight: '600',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     whiteSpace: 'nowrap',
     textAlign: 'right',
     marginTop: '4px',
@@ -715,16 +743,16 @@ const styles = {
   quantityDisplay: {
     fontSize: '13px',
     fontWeight: '600',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     minWidth: '20px',
     textAlign: 'center'
   },
   controlButton: {
     width: '24px',
     height: '24px',
-    border: '1px solid #000',
+    border: `1px solid ${theme.textSecondaryColor || '#000'}`,
     borderRadius: '4px',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '600',
@@ -732,7 +760,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     lineHeight: 1,
     padding: 0
   },
@@ -741,7 +769,7 @@ const styles = {
     height: '24px',
     border: 'none',
     borderRadius: '4px',
-    backgroundColor: '#f44336',
+    backgroundColor: theme.deleteColor || '#f44336',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -751,15 +779,15 @@ const styles = {
   },
   orderForm: {
     padding: '12px',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     borderRadius: '6px',
-    border: '1px solid #e0e0e0'
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
   },
   formTitle: {
     margin: '0 0 10px 0',
     fontSize: '14px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   formGroup: {
     marginBottom: '10px'
@@ -769,37 +797,37 @@ const styles = {
     marginBottom: '5px',
     fontSize: '12px',
     fontWeight: '500',
-    color: '#333'
+    color: theme.textSecondaryColor || '#333'
   },
   input: {
     width: '100%',
     padding: '8px',
     fontSize: '13px',
-    border: '1px solid #ddd',
+    border: `1px solid ${theme.borderColor || '#ddd'}`,
     borderRadius: '5px',
     boxSizing: 'border-box',
     outline: 'none',
-    backgroundColor: '#fff',
-    color: '#000'
+    backgroundColor: theme.secondaryColor || '#fff',
+    color: theme.textSecondaryColor || '#000'
   },
   textarea: {
     width: '100%',
     padding: '8px',
     fontSize: '13px',
-    border: '1px solid #ddd',
+    border: `1px solid ${theme.borderColor || '#ddd'}`,
     borderRadius: '5px',
     boxSizing: 'border-box',
     outline: 'none',
     resize: 'none',
     fontFamily: 'inherit',
     minHeight: '50px',
-    backgroundColor: '#fff',
-    color: '#000'
+    backgroundColor: theme.secondaryColor || '#fff',
+    color: theme.textSecondaryColor || '#000'
   },
   error: {
     padding: '8px',
-    backgroundColor: '#ffebee',
-    color: '#c62828',
+    backgroundColor: `${theme.errorColor || '#f44336'}20`,
+    color: theme.errorColor || '#c62828',
     borderRadius: '5px',
     fontSize: '12px',
     marginTop: '8px'
@@ -813,8 +841,8 @@ const styles = {
     alignItems: 'flex-start',
     gap: '10px',
     padding: '12px',
-    backgroundColor: '#fff9e6',
-    border: '1px solid #ffcc00',
+    backgroundColor: `${theme.warningColor || '#ff9800'}20`,
+    border: `1px solid ${theme.warningColor || '#ffcc00'}`,
     borderRadius: '6px',
     cursor: 'pointer',
     transition: 'all 0.2s'
@@ -838,23 +866,23 @@ const styles = {
   priorityOrderTitle: {
     fontSize: '13px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   priorityOrderPrice: {
     fontSize: '13px',
     fontWeight: '700',
-    color: '#ff9800'
+    color: theme.warningColor || '#ff9800'
   },
   priorityOrderDescription: {
     margin: 0,
     fontSize: '11px',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     lineHeight: '1.4'
   },
   footer: {
     padding: '12px',
-    borderTop: '1px solid #e0e0e0',
-    backgroundColor: '#fff'
+    borderTop: `1px solid ${theme.borderColor || '#e0e0e0'}`,
+    backgroundColor: theme.secondaryColor || '#fff'
   },
   progressBar: {
     display: 'flex',
@@ -888,7 +916,7 @@ const styles = {
   stepLine: {
     width: '60px',
     height: '2px',
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.borderColor || '#e0e0e0',
     margin: '0 8px',
     marginBottom: '18px'
   },
@@ -913,28 +941,28 @@ const styles = {
   totalLabel: {
     fontSize: '12px',
     fontWeight: '500',
-    color: '#999'
+    color: theme.textTertiaryColor || '#999'
   },
   totalLabelBold: {
     fontSize: '20px',
     fontWeight: '700',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   itemCount: {
     fontSize: '12px',
     fontWeight: '500',
-    color: '#999'
+    color: theme.textTertiaryColor || '#999'
   },
   totalAmount: {
     fontSize: '20px',
     fontWeight: '700',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   confirmButton: {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     border: 'none',
     borderRadius: '6px',
     fontSize: '14px',
@@ -947,14 +975,14 @@ const styles = {
     width: '100%',
     padding: '10px',
     backgroundColor: 'transparent',
-    color: '#666',
-    border: '1px solid #ddd',
+    color: theme.textTertiaryColor || '#666',
+    border: `1px solid ${theme.borderColor || '#ddd'}`,
     borderRadius: '6px',
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer'
   }
-}
+})
 
 // Aggiungi animazioni al documento
 if (typeof document !== 'undefined') {

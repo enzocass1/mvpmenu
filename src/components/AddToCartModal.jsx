@@ -1,11 +1,27 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
+
+// Helper functions for theme styling (must be defined before component)
+const getThemeStyles = (themeConfig) => {
+  if (!themeConfig) return {} // Usa stili default se non c'è theme_config
+
+  return {
+    primaryColor: themeConfig.primaryColor || '#000000',
+    secondaryColor: themeConfig.secondaryColor || '#ffffff',
+    textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
+    textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
+    textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+    borderColor: themeConfig.borderColor || '#e0e0e0',
+    errorColor: themeConfig.errorColor || '#f44336',
+    backgroundTertiary: themeConfig.backgroundTertiary || '#f9f9f9',
+  }
+}
 
 /**
  * Modale per aggiungere prodotto al carrello
  * Permette di selezionare varianti, quantità e aggiungere note
  */
-function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
+function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
   const [variants, setVariants] = useState([])
@@ -13,6 +29,16 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
   const [selectedVariant, setSelectedVariant] = useState(null)
   const [selectedOptions, setSelectedOptions] = useState({}) // {optionName: value}
   const [loadingVariants, setLoadingVariants] = useState(false)
+
+  // Calcola stili dinamici basati sul theme_config del ristorante
+  const themeStyles = useMemo(() => {
+    return getThemeStyles(restaurant?.theme_config)
+  }, [restaurant])
+
+  // Genera stili completi con il tema applicato
+  const styles = useMemo(() => {
+    return getStyles(themeStyles)
+  }, [themeStyles])
 
   // Carica varianti quando il modal si apre
   useEffect(() => {
@@ -358,7 +384,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart }) {
   )
 }
 
-const styles = {
+const getStyles = (theme = {}) => ({
   modalContainer: {
     position: 'fixed',
     top: 0,
@@ -375,7 +401,7 @@ const styles = {
     overflowY: 'auto'
   },
   modal: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     borderRadius: '20px',
     width: '100%',
     maxWidth: '480px',
@@ -392,21 +418,21 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '16px 20px',
-    borderBottom: '1px solid #e0e0e0',
+    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`,
     flexShrink: 0
   },
   title: {
     margin: 0,
     fontSize: '18px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   closeButton: {
     background: 'none',
     border: 'none',
     fontSize: '22px',
     cursor: 'pointer',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     padding: '0',
     width: '28px',
     height: '28px',
@@ -426,9 +452,9 @@ const styles = {
     gap: '12px',
     marginBottom: '16px',
     padding: '12px',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     borderRadius: '8px',
-    border: '1px solid #e0e0e0'
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
   },
   productImage: {
     width: '60px',
@@ -441,19 +467,19 @@ const styles = {
     margin: '0 0 4px 0',
     fontSize: '16px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   productDescription: {
     margin: '0 0 4px 0',
     fontSize: '13px',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     lineHeight: '1.3'
   },
   productPrice: {
     margin: 0,
     fontSize: '15px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   formGroup: {
     marginBottom: '16px'
@@ -463,13 +489,13 @@ const styles = {
     marginBottom: '6px',
     fontSize: '13px',
     fontWeight: '600',
-    color: '#333'
+    color: theme.textSecondaryColor || '#333'
   },
   labelHint: {
     display: 'block',
     fontSize: '11px',
     fontWeight: '400',
-    color: '#999',
+    color: theme.textTertiaryColor || '#999',
     marginTop: '2px'
   },
   quantitySelector: {
@@ -481,9 +507,9 @@ const styles = {
   quantityButton: {
     width: '40px',
     height: '40px',
-    border: '2px solid #000',
+    border: `2px solid ${theme.textSecondaryColor || '#000'}`,
     borderRadius: '10px',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     cursor: 'pointer',
     fontSize: '20px',
     fontWeight: '600',
@@ -491,7 +517,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     lineHeight: 1
   },
   quantityInput: {
@@ -500,17 +526,17 @@ const styles = {
     textAlign: 'center',
     fontSize: '16px',
     fontWeight: '600',
-    border: '2px solid #e0e0e0',
+    border: `2px solid ${theme.borderColor || '#e0e0e0'}`,
     borderRadius: '10px',
     outline: 'none',
-    color: '#000',
-    backgroundColor: '#fff'
+    color: theme.textSecondaryColor || '#000',
+    backgroundColor: theme.secondaryColor || '#fff'
   },
   textarea: {
     width: '100%',
     padding: '10px',
     fontSize: '13px',
-    border: '1px solid #ddd',
+    border: `1px solid ${theme.borderColor || '#ddd'}`,
     borderRadius: '8px',
     boxSizing: 'border-box',
     outline: 'none',
@@ -518,13 +544,13 @@ const styles = {
     fontFamily: 'inherit',
     lineHeight: '1.4',
     minHeight: '60px',
-    backgroundColor: '#fff',
-    color: '#000'
+    backgroundColor: theme.secondaryColor || '#fff',
+    color: theme.textSecondaryColor || '#000'
   },
   charCount: {
     textAlign: 'right',
     fontSize: '11px',
-    color: '#999',
+    color: theme.textTertiaryColor || '#999',
     marginTop: '4px'
   },
   subtotalSection: {
@@ -532,20 +558,20 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     borderRadius: '8px',
     marginBottom: '16px',
-    border: '1px solid #e0e0e0'
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
   },
   subtotalLabel: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#666'
+    color: theme.textTertiaryColor || '#666'
   },
   subtotalAmount: {
     fontSize: '18px',
     fontWeight: '700',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   actions: {
     display: 'grid',
@@ -555,8 +581,8 @@ const styles = {
   cancelButton: {
     padding: '12px',
     backgroundColor: 'transparent',
-    color: '#666',
-    border: '1px solid #ddd',
+    color: theme.textTertiaryColor || '#666',
+    border: `1px solid ${theme.borderColor || '#ddd'}`,
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
@@ -565,8 +591,8 @@ const styles = {
   },
   addButton: {
     padding: '12px',
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     border: 'none',
     borderRadius: '8px',
     fontSize: '14px',
@@ -577,15 +603,15 @@ const styles = {
   variantsSection: {
     marginBottom: '20px',
     padding: '16px',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: theme.backgroundTertiary || '#f9f9f9',
     borderRadius: '12px',
-    border: '1px solid #e0e0e0'
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
   },
   variantsSectionTitle: {
     margin: '0 0 12px 0',
     fontSize: '14px',
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   },
   optionGroup: {
     marginBottom: '16px'
@@ -595,7 +621,7 @@ const styles = {
     marginBottom: '8px',
     fontSize: '13px',
     fontWeight: '500',
-    color: '#333'
+    color: theme.textSecondaryColor || '#333'
   },
   optionValues: {
     display: 'flex',
@@ -604,9 +630,9 @@ const styles = {
   },
   optionButton: {
     padding: '8px 16px',
-    backgroundColor: '#fff',
-    color: '#333',
-    border: '2px solid #ddd',
+    backgroundColor: theme.secondaryColor || '#fff',
+    color: theme.textSecondaryColor || '#333',
+    border: `2px solid ${theme.borderColor || '#ddd'}`,
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
@@ -615,14 +641,14 @@ const styles = {
     outline: 'none'
   },
   optionButtonSelected: {
-    backgroundColor: '#000',
-    color: '#fff',
-    borderColor: '#000'
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
+    borderColor: theme.primaryColor || '#000'
   },
   variantInfo: {
     marginTop: '12px',
     padding: '10px',
-    backgroundColor: '#fff',
+    backgroundColor: theme.secondaryColor || '#fff',
     borderRadius: '8px',
     fontSize: '13px',
     display: 'flex',
@@ -631,11 +657,11 @@ const styles = {
   },
   variantInfoLabel: {
     fontWeight: '500',
-    color: '#666'
+    color: theme.textTertiaryColor || '#666'
   },
   variantInfoValue: {
     fontWeight: '600',
-    color: '#000'
+    color: theme.textSecondaryColor || '#000'
   }
 }
 
