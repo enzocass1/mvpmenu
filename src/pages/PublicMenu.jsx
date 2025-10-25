@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { checkPremiumAccess } from '../utils/subscription'
@@ -54,6 +54,16 @@ function PublicMenu() {
   const [startX, setStartX] = useState(0)
   const [currentTranslate, setCurrentTranslate] = useState(0)
   const carouselRef = useRef(null)
+
+  // Calcola stili dinamici basati sul theme_config del ristorante
+  const themeStyles = useMemo(() => {
+    return getThemeStyles(restaurant?.theme_config)
+  }, [restaurant])
+
+  // Genera stili completi con il tema applicato
+  const styles = useMemo(() => {
+    return getStyles(themeStyles)
+  }, [themeStyles])
 
   useEffect(() => {
     loadMenu()
@@ -219,6 +229,35 @@ function PublicMenu() {
         console.error('Errore rimozione carrello:', error)
       }
     }
+  }
+
+  // Funzione per ottenere stili dinamici basati su theme_config
+  const getThemeStyles = (themeConfig) => {
+    if (!themeConfig) return {} // Usa stili default se non c'è theme_config
+
+    return {
+      primaryColor: themeConfig.primaryColor || '#000000',
+      secondaryColor: themeConfig.secondaryColor || '#ffffff',
+      accentColor: themeConfig.accentColor || '#4CAF50',
+      textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
+      textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
+      fontFamily: getFontFamily(themeConfig.fontFamily || 'system'),
+      borderRadius: getBorderRadius(themeConfig.borderRadius || '16'),
+    }
+  }
+
+  const getFontFamily = (fontType) => {
+    const fontMap = {
+      'system': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      'serif': 'Georgia, "Times New Roman", serif',
+      'sans-serif': '"Helvetica Neue", Arial, sans-serif',
+      'cursive': '"Comic Sans MS", cursive'
+    }
+    return fontMap[fontType] || fontMap['system']
+  }
+
+  const getBorderRadius = (radius) => {
+    return radius + 'px'
   }
 
   const loadMenu = async () => {
@@ -933,16 +972,17 @@ const globalStyles = `
   }
 `
 
-const styles = {
+const getStyles = (theme = {}) => ({
   pageContainer: {
     width: '100vw',
     minHeight: '100vh',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.secondaryColor || '#ffffff',
     overflowX: 'hidden',
     position: 'relative',
     paddingBottom: '80px',
+    fontFamily: theme.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
-  
+
   loadingContainer: {
     width: '100vw',
     minHeight: '100vh',
@@ -950,30 +990,30 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.secondaryColor || '#ffffff',
   },
   
   spinner: {
     width: '40px',
     height: '40px',
     border: '4px solid #e0e0e0',
-    borderTop: '4px solid #000',
+    borderTop: `4px solid ${theme.primaryColor || '#000'}`,
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
     marginBottom: '16px',
   },
-  
+
   loadingText: {
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     fontSize: '16px',
   },
-  
+
   header: {
     width: '100%',
     padding: '30px 5% 20px 5%',
     textAlign: 'center',
     borderBottom: 'none',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.secondaryColor || '#ffffff',
   },
   
   logo: {
@@ -984,25 +1024,25 @@ const styles = {
   },
   
   restaurantName: {
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     fontSize: 'clamp(28px, 8vw, 48px)',
     fontWeight: '600',
     letterSpacing: '1px',
     margin: '0 0 12px 0',
     overflowWrap: 'break-word',
   },
-  
+
   subtitle: {
     color: '#666',
     fontSize: 'clamp(13px, 4vw, 16px)',
     margin: 0,
     fontWeight: '400',
   },
-  
+
   carouselSection: {
     width: '100%',
     padding: '0px 0 60px 0',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.secondaryColor || '#ffffff',
     position: 'relative',
   },
   
@@ -1028,7 +1068,7 @@ const styles = {
     position: 'absolute',
     width: '320px',
     height: '420px',
-    borderRadius: '20px',
+    borderRadius: theme.borderRadius || '20px',
     overflow: 'hidden',
     border: 'none',
     padding: 0,
@@ -1037,7 +1077,7 @@ const styles = {
     transformStyle: 'preserve-3d',
     backgroundColor: '#f5f5f5',
   },
-  
+
   categoryImage: {
     width: '100%',
     height: '100%',
@@ -1046,23 +1086,26 @@ const styles = {
     userSelect: 'none',
     pointerEvents: 'none',
   },
-  
+
   categoryOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    background: 'linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.4) 60%, transparent)',
+    background: theme.primaryColor
+      ? `linear-gradient(to top, ${theme.primaryColor}dd, ${theme.primaryColor}66 60%, transparent)`
+      : 'linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.4) 60%, transparent)',
     padding: '30px 20px',
-    color: 'white',
+    color: theme.textPrimaryColor || 'white',
   },
-  
+
   categoryName: {
     margin: 0,
     fontSize: 'clamp(22px, 6vw, 28px)',
     fontWeight: 'bold',
     overflowWrap: 'break-word',
     textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+    color: theme.textPrimaryColor || 'white',
   },
   
   categoryCount: {
@@ -1091,9 +1134,9 @@ const styles = {
     padding: 0,
     transition: 'all 0.3s',
   },
-  
+
   indicatorActive: {
-    background: '#000',
+    background: theme.primaryColor || '#000',
     width: '28px',
     borderRadius: '5px',
   },
@@ -1156,9 +1199,9 @@ const styles = {
     width: '100%',
     marginBottom: '12px',
     border: '1px solid #e0e0e0',
-    borderRadius: '12px',
+    borderRadius: theme.borderRadius || '12px',
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.secondaryColor || '#ffffff',
     boxShadow: 'none',
   },
 
@@ -1280,12 +1323,12 @@ const styles = {
   },
 
   variantOrderButton: {
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     border: 'none',
     padding: '8px 16px',
     cursor: 'pointer',
-    borderRadius: '8px',
+    borderRadius: theme.borderRadius || '8px',
     fontSize: '12px',
     fontWeight: '600',
     letterSpacing: '0.5px',
@@ -1358,26 +1401,26 @@ const styles = {
   footer: {
     marginTop: '80px',
     padding: '30px 0',
-    backgroundColor: '#000000',
+    backgroundColor: theme.primaryColor || '#000000',
     width: '100vw',
     marginLeft: 'calc(-50vw + 50%)',
   },
-  
+
   footerContent: {
     maxWidth: '1200px',
     margin: '0 auto',
     padding: '0 20px',
     textAlign: 'left',
   },
-  
+
   footerText: {
     margin: 0,
-    color: '#FFFFFF',
+    color: theme.textPrimaryColor || '#FFFFFF',
     fontSize: '13px',
   },
-  
+
   footerLink: {
-    color: '#FFFFFF',
+    color: theme.textPrimaryColor || '#FFFFFF',
     textDecoration: 'underline',
     cursor: 'pointer',
   },
@@ -1404,10 +1447,10 @@ const styles = {
     justifyContent: 'center',
     gap: '8px',
     padding: '16px',
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     textDecoration: 'none',
-    borderRadius: '12px',
+    borderRadius: theme.borderRadius || '12px',
     fontWeight: '600',
     fontSize: 'clamp(13px, 3.5vw, 15px)',
     transition: 'all 0.3s ease',
@@ -1421,10 +1464,10 @@ const styles = {
     justifyContent: 'center',
     gap: '8px',
     padding: '16px',
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     textDecoration: 'none',
-    borderRadius: '12px',
+    borderRadius: theme.borderRadius || '12px',
     fontWeight: '600',
     fontSize: 'clamp(13px, 3.5vw, 15px)',
     transition: 'all 0.3s ease',
@@ -1449,8 +1492,8 @@ const styles = {
   },
 
   addToCartButtonCompact: {
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     border: 'none',
     padding: '8px 16px',
     cursor: 'pointer',
@@ -1459,7 +1502,7 @@ const styles = {
     justifyContent: 'center',
     transition: 'all 0.2s ease',
     marginRight: '12px',
-    borderRadius: '8px',
+    borderRadius: theme.borderRadius || '8px',
     fontSize: '13px',
     fontWeight: '600',
     letterSpacing: '0.5px',
@@ -1526,10 +1569,10 @@ const styles = {
   orderButton: {
     width: '100%',
     padding: '12px 16px',
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: theme.borderRadius || '8px',
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -1647,10 +1690,10 @@ const styles = {
   },
 
   favoriteOrderButton: {
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     padding: '8px 16px',
-    borderRadius: '8px',
+    borderRadius: theme.borderRadius || '8px',
     fontSize: '13px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -1672,6 +1715,6 @@ const styles = {
     transition: 'transform 0.2s ease',
     flexShrink: 0,
   },
-}
+})
 
 export default PublicMenu
