@@ -25,11 +25,24 @@ const getThemeStyles = (themeConfig) => {
   if (!themeConfig) return {} // Usa stili default se non c'è theme_config
 
   return {
+    // Colori principali
     primaryColor: themeConfig.primaryColor || '#000000',
     secondaryColor: themeConfig.secondaryColor || '#ffffff',
     accentColor: themeConfig.accentColor || '#4CAF50',
     textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
     textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
+
+    // Colori funzionali
+    borderColor: themeConfig.borderColor || '#e0e0e0',
+    textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+    errorColor: themeConfig.errorColor || '#f44336',
+    successColor: themeConfig.successColor || '#4CAF50',
+    warningColor: themeConfig.warningColor || '#ff9800',
+    backgroundTertiary: themeConfig.backgroundTertiary || '#f9f9f9',
+    favoriteActiveColor: themeConfig.favoriteActiveColor || '#e74c3c',
+    deleteColor: themeConfig.deleteColor || '#f44336',
+
+    // Font e stili
     fontFamily: getFontFamily(themeConfig.fontFamily || 'system'),
     borderRadius: getBorderRadius(themeConfig.borderRadius || '16'),
   }
@@ -499,7 +512,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
           <div style={styles.productsList}>
             {categoryProducts.length === 0 ? (
               <div style={styles.emptyState}>
-                <p style={{ color: '#666', fontSize: '16px' }}>
+                <p style={{ color: themeStyles.textTertiaryColor || '#666', fontSize: '16px' }}>
                   Nessun prodotto disponibile in questa categoria
                 </p>
               </div>
@@ -516,11 +529,11 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                       aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
                     >
                       {isFavorite(subdomain, product.id) ? (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#e74c3c" stroke="#e74c3c" strokeWidth="2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill={themeStyles.favoriteActiveColor || '#e74c3c'} stroke={themeStyles.favoriteActiveColor || '#e74c3c'} strokeWidth="2">
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
                       ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={themeStyles.textSecondaryColor || '#000'} strokeWidth="2">
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
                       )}
@@ -656,13 +669,13 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                 <div style={styles.sidebarContent}>
                   {favorites.length === 0 ? (
                     <div style={styles.emptyFavorites}>
-                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" style={{ marginBottom: '16px' }}>
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke={themeStyles.textTertiaryColor || '#ccc'} strokeWidth="2" style={{ marginBottom: '16px' }}>
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                       </svg>
-                      <p style={{ color: '#999', fontSize: '16px', margin: 0 }}>
+                      <p style={{ color: themeStyles.textTertiaryColor || '#999', fontSize: '16px', margin: 0 }}>
                         Nessun preferito ancora
                       </p>
-                      <p style={{ color: '#ccc', fontSize: '14px', marginTop: '8px' }}>
+                      <p style={{ color: themeStyles.textTertiaryColor || '#ccc', fontSize: '14px', marginTop: '8px' }}>
                         Tocca il cuore sui prodotti per salvarli
                       </p>
                     </div>
@@ -817,7 +830,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#999',
+                        color: themeStyles.textTertiaryColor || '#999',
                         fontSize: '14px',
                         textAlign: 'center',
                         padding: '20px'
@@ -997,7 +1010,7 @@ const getStyles = (theme = {}) => ({
   spinner: {
     width: '40px',
     height: '40px',
-    border: '4px solid #e0e0e0',
+    border: `4px solid ${theme.borderColor || '#e0e0e0'}`,
     borderTop: `4px solid ${theme.primaryColor || '#000'}`,
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
@@ -1034,7 +1047,7 @@ const getStyles = (theme = {}) => ({
   },
 
   subtitle: {
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     fontSize: 'clamp(13px, 4vw, 16px)',
     margin: 0,
     fontWeight: '400',
@@ -1145,7 +1158,7 @@ const getStyles = (theme = {}) => ({
   productsHeader: {
     width: '100%',
     padding: '20px 5%',
-    borderBottom: '1px solid #e0e0e0',
+    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`,
     position: 'sticky',
     top: 0,
     backgroundColor: '#ffffff',
@@ -1175,7 +1188,7 @@ const getStyles = (theme = {}) => ({
   },
 
   categoryDescription: {
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     fontSize: 'clamp(14px, 4vw, 16px)',
     margin: '0 0 12px 0',
     lineHeight: '1.6',
@@ -1184,7 +1197,7 @@ const getStyles = (theme = {}) => ({
   },
 
   productCount: {
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     fontSize: 'clamp(12px, 4vw, 14px)',
     margin: 0,
   },
@@ -1199,7 +1212,7 @@ const getStyles = (theme = {}) => ({
   productCard: {
     width: '100%',
     marginBottom: '12px',
-    border: '1px solid #e0e0e0',
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`,
     borderRadius: theme.borderRadius || '12px',
     overflow: 'hidden',
     backgroundColor: theme.secondaryColor || '#ffffff',
@@ -1234,7 +1247,7 @@ const getStyles = (theme = {}) => ({
 
   variantTitle: {
     fontWeight: '400',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     fontSize: 'clamp(13px, 3.5vw, 15px)',
   },
 
@@ -1264,12 +1277,12 @@ const getStyles = (theme = {}) => ({
 
   expandIcon: {
     fontSize: '12px',
-    color: '#999',
+    color: theme.textTertiaryColor || '#999',
   },
   
   productDetails: {
     padding: '0 16px 16px',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: theme.backgroundTertiary || '#f9f9f9',
   },
   
   productImage: {
@@ -1282,7 +1295,7 @@ const getStyles = (theme = {}) => ({
   },
   
   productDescription: {
-    color: '#444',
+    color: theme.textTertiaryColor || '#666',
     fontSize: 'clamp(14px, 4vw, 16px)',
     margin: 0,
     lineHeight: '1.6',
@@ -1308,7 +1321,7 @@ const getStyles = (theme = {}) => ({
   variantName: {
     fontSize: 'clamp(13px, 3.5vw, 14px)',
     fontWeight: '400',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
   },
 
   variantPriceAndButton: {
@@ -1385,7 +1398,7 @@ const getStyles = (theme = {}) => ({
 
   infoText: {
     fontSize: '16px',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     overflowWrap: 'break-word',
     lineHeight: '1.5',
   },
@@ -1435,7 +1448,7 @@ const getStyles = (theme = {}) => ({
     gap: '12px',
     padding: '12px',
     backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    borderTop: '1px solid #e0e0e0',
+    borderTop: `1px solid ${theme.borderColor || '#e0e0e0'}`,
     boxShadow: 'none',
     zIndex: 1000,
     backdropFilter: 'blur(10px)',
@@ -1527,7 +1540,7 @@ const getStyles = (theme = {}) => ({
     position: 'absolute',
     top: '2px',
     right: '2px',
-    backgroundColor: '#e74c3c',
+    backgroundColor: theme.favoriteActiveColor || '#e74c3c',
     color: '#fff',
     borderRadius: '50%',
     width: '18px',
@@ -1617,7 +1630,7 @@ const getStyles = (theme = {}) => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '20px',
-    borderBottom: '1px solid #e0e0e0',
+    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`,
     backgroundColor: '#ffffff',
   },
 
@@ -1633,7 +1646,7 @@ const getStyles = (theme = {}) => ({
     border: 'none',
     fontSize: '28px',
     cursor: 'pointer',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     padding: '0',
     width: '32px',
     height: '32px',
@@ -1665,9 +1678,9 @@ const getStyles = (theme = {}) => ({
     gap: '12px',
     padding: '16px',
     marginBottom: '12px',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: theme.backgroundTertiary || '#f9f9f9',
     borderRadius: '12px',
-    border: '1px solid #e0e0e0',
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`,
   },
 
   favoriteItemName: {
@@ -1679,7 +1692,7 @@ const getStyles = (theme = {}) => ({
 
   favoriteItemCategory: {
     fontSize: '13px',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     marginBottom: '6px',
   },
 
