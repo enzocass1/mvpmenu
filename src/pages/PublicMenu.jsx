@@ -20,6 +20,35 @@ import {
 import Cart from '../components/Cart'
 import AddToCartModal from '../components/AddToCartModal'
 
+// Helper functions for theme styling (must be defined before component)
+const getThemeStyles = (themeConfig) => {
+  if (!themeConfig) return {} // Usa stili default se non c'è theme_config
+
+  return {
+    primaryColor: themeConfig.primaryColor || '#000000',
+    secondaryColor: themeConfig.secondaryColor || '#ffffff',
+    accentColor: themeConfig.accentColor || '#4CAF50',
+    textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
+    textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
+    fontFamily: getFontFamily(themeConfig.fontFamily || 'system'),
+    borderRadius: getBorderRadius(themeConfig.borderRadius || '16'),
+  }
+}
+
+const getFontFamily = (fontType) => {
+  const fontMap = {
+    'system': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    'serif': 'Georgia, "Times New Roman", serif',
+    'sans-serif': '"Helvetica Neue", Arial, sans-serif',
+    'cursive': '"Comic Sans MS", cursive'
+  }
+  return fontMap[fontType] || fontMap['system']
+}
+
+const getBorderRadius = (radius) => {
+  return radius + 'px'
+}
+
 function PublicMenu() {
   const { subdomain } = useParams()
   const [searchParams] = useSearchParams()
@@ -229,35 +258,6 @@ function PublicMenu() {
         console.error('Errore rimozione carrello:', error)
       }
     }
-  }
-
-  // Funzione per ottenere stili dinamici basati su theme_config
-  const getThemeStyles = (themeConfig) => {
-    if (!themeConfig) return {} // Usa stili default se non c'è theme_config
-
-    return {
-      primaryColor: themeConfig.primaryColor || '#000000',
-      secondaryColor: themeConfig.secondaryColor || '#ffffff',
-      accentColor: themeConfig.accentColor || '#4CAF50',
-      textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
-      textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
-      fontFamily: getFontFamily(themeConfig.fontFamily || 'system'),
-      borderRadius: getBorderRadius(themeConfig.borderRadius || '16'),
-    }
-  }
-
-  const getFontFamily = (fontType) => {
-    const fontMap = {
-      'system': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      'serif': 'Georgia, "Times New Roman", serif',
-      'sans-serif': '"Helvetica Neue", Arial, sans-serif',
-      'cursive': '"Comic Sans MS", cursive'
-    }
-    return fontMap[fontType] || fontMap['system']
-  }
-
-  const getBorderRadius = (radius) => {
-    return radius + 'px'
   }
 
   const loadMenu = async () => {
