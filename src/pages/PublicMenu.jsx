@@ -417,8 +417,8 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
       return (
         <div key={index} style={{ marginBottom: '8px' }}>
-          <span style={{ fontWeight: '600', color: theme.textSecondaryColor }}>{dayString}:</span>{' '}
-          <span style={{ ...styles.infoText, color: theme.textSecondaryColor }}>{timeString}</span>
+          <span style={{ fontWeight: '600', color: themeStyles.textSecondaryColor }}>{dayString}:</span>{' '}
+          <span style={{ ...styles.infoText, color: themeStyles.textSecondaryColor }}>{timeString}</span>
         </div>
       )
     })
