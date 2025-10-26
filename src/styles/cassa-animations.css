@@ -1,0 +1,229 @@
+/**
+ * Animazioni CSS per Sistema Cassa
+ * - Heartbeat per tavoli attivi
+ * - Pulse per badge notifiche
+ */
+
+/* Animazione Heartbeat per tavoli attivi (status = preparing) */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.9;
+  }
+}
+
+.table-active {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Animazione Pulse per badge notifiche */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.badge-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Badge posizionato top-right */
+.badge-notification {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background-color: #dc3545;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+/* Icona "+" per aggiunte non confermate */
+.icon-plus-additions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #ff9800;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  z-index: 5;
+}
+
+/* Stati tavolo - Colori background */
+.table-status-pending {
+  background-color: #fff3cd;
+  border-color: #ff9800;
+  border-width: 2px;
+}
+
+.table-status-active {
+  background-color: #d1f2eb;
+  border-color: #28a745;
+  border-width: 2px;
+}
+
+.table-status-closed {
+  background-color: #ffffff;
+  border-color: #dee2e6;
+  border-width: 1px;
+}
+
+/* Separatore batch nel popup */
+.batch-separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.batch-separator::before,
+.batch-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #dee2e6, transparent);
+}
+
+/* Timer display */
+.timer-display {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 4px 12px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Priority order badge */
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background-color: #ffc107;
+  color: #000;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Checkbox prodotti preparati */
+.product-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #28a745;
+  cursor: pointer;
+}
+
+/* Lista prodotti con checkbox */
+.product-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  align-items: start;
+  transition: background 0.2s;
+}
+
+.product-item:hover {
+  background: #e9ecef;
+}
+
+.product-item.prepared {
+  opacity: 0.7;
+}
+
+/* Scontrino/Preconto print preview */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm; /* Termic printer width */
+  }
+}
+
+.print-receipt {
+  width: 80mm;
+  padding: 8mm;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.print-receipt-header {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed #000;
+  padding-bottom: 8px;
+}
+
+.print-receipt-line {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+}
+
+.print-receipt-total {
+  font-weight: bold;
+  font-size: 14px;
+  border-top: 1px dashed #000;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .table-status-pending,
+  .table-status-active,
+  .table-status-closed {
+    min-height: 120px;
+  }
+
+  .batch-separator {
+    font-size: 12px;
+    margin: 12px 0;
+  }
+}

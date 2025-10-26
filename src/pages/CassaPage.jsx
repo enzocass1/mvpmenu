@@ -4,6 +4,9 @@ import { tokens } from '../styles/tokens'
 import { Card, Button, Badge, Modal, Select, Input, Spinner, EmptyState } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import CreateOrderModal from '../components/CreateOrderModal'
+import * as ordersService from '../lib/ordersService'
+import { trackEvent } from '../utils/analytics'
+import '../styles/cassa-animations.css'
 
 /**
  * Cassa (POS) Page - Shopify-like Design System
@@ -13,7 +16,7 @@ import CreateOrderModal from '../components/CreateOrderModal'
 function CassaPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState('banco') // 'banco' | 'tavolo'
+  const [mode, setMode] = useState('tavolo') // 'banco' | 'tavolo' | 'ordini'
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -25,15 +28,25 @@ function CassaPage({ session }) {
   const [productNotes, setProductNotes] = useState('')
 
   // Tavolo mode states
-  const [rooms, setRooms] = useState([]) // Sale dal database con range tavoli
-  const [tables, setTables] = useState([]) // Tavoli dal database con posizioni
-  const [tableStats, setTableStats] = useState({}) // Stats per ogni tavolo {tableId: {status, revenue, productsCount}}
+  const [rooms, setRooms] = useState([]) // Sale dal database
+  const [tables, setTables] = useState([]) // Tavoli dal database
+  const [activeOrders, setActiveOrders] = useState([]) // Ordini attivi (v_active_orders)
+  const [pendingCount, setPendingCount] = useState(0) // Badge conteggio pending
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [selectedTable, setSelectedTable] = useState(null)
-  const [showTableModal, setShowTableModal] = useState(false)
-  const [tableOrders, setTableOrders] = useState([])
+  const [selectedOrder, setSelectedOrder] = useState(null) // Ordine selezionato per popup
+  const [showTableDetailModal, setShowTableDetailModal] = useState(false)
+  const [showAddProductsModal, setShowAddProductsModal] = useState(false)
   const [showRoomManagementModal, setShowRoomManagementModal] = useState(false)
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false)
+
+  // Ordini mode states
+  const [ordersTab, setOrdersTab] = useState('all') // 'all' | 'table' | 'counter' | 'deleted'
+  const [ordersFilter, setOrdersFilter] = useState(null) // 'pending' | 'preparing' | 'completed' | null
+  const [ordersDateFilter, setOrdersDateFilter] = useState('today') // 'today' | 'yesterday' | 'week' | 'month' | 'custom'
+  const [ordersSearchQuery, setOrdersSearchQuery] = useState('')
+  const [ordersList, setOrdersList] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
 
   // Management modal states
   const [newRoomName, setNewRoomName] = useState('')
