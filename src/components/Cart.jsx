@@ -6,16 +6,31 @@ const getThemeStyles = (themeConfig) => {
   if (!themeConfig) return {} // Usa stili default se non c'è theme_config
 
   return {
+    // Colori principali
     primaryColor: themeConfig.primaryColor || '#000000',
     secondaryColor: themeConfig.secondaryColor || '#ffffff',
     textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
     textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
     textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+
+    // Colori funzionali
     borderColor: themeConfig.borderColor || '#e0e0e0',
     errorColor: themeConfig.errorColor || '#f44336',
     warningColor: themeConfig.warningColor || '#ff9800',
     deleteColor: themeConfig.deleteColor || '#f44336',
     backgroundTertiary: themeConfig.backgroundTertiary || '#f9f9f9',
+
+    // Nuovi colori aggiunti in Fase 1
+    inputBackground: themeConfig.inputBackground || '#ffffff',
+    inputBorder: themeConfig.inputBorder || '#e0e0e0',
+    inputBorderFocus: themeConfig.inputBorderFocus || '#000000',
+    inputText: themeConfig.inputText || '#111827',
+    overlayBackground: themeConfig.overlayBackground || 'rgba(0,0,0,0.5)',
+    cardBackground: themeConfig.cardBackground || '#ffffff',
+    cardBorder: themeConfig.cardBorder || '#e0e0e0',
+    emptyStateText: themeConfig.emptyStateText || '#999999',
+    linkColor: themeConfig.linkColor || '#4CAF50',
+    linkHoverColor: themeConfig.linkHoverColor || '#000000',
   }
 }
 
@@ -629,7 +644,7 @@ const getStyles = (theme = {}) => ({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: theme.overlayBackground || 'rgba(0,0,0,0.5)',
     zIndex: 999,
     animation: 'fadeIn 0.3s ease'
   },
@@ -640,7 +655,7 @@ const getStyles = (theme = {}) => ({
     width: '100%',
     maxWidth: 'min(480px, 100vw)',
     height: '100%',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff',
     zIndex: 1000,
     display: 'flex',
     flexDirection: 'column',
@@ -652,7 +667,7 @@ const getStyles = (theme = {}) => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 16px',
-    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`
+    borderBottom: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`
   },
   title: {
     margin: 0,
@@ -683,16 +698,18 @@ const getStyles = (theme = {}) => ({
   emptyCart: {
     textAlign: 'center',
     padding: '60px 20px',
-    color: theme.textTertiaryColor || '#999'
+    color: theme.emptyStateText || theme.textTertiaryColor || '#999'
   },
   emptyText: {
     fontSize: '18px',
     fontWeight: '500',
-    margin: '0 0 8px 0'
+    margin: '0 0 8px 0',
+    color: theme.emptyStateText || theme.textTertiaryColor || '#999'
   },
   emptySubtext: {
     fontSize: '14px',
-    margin: 0
+    margin: 0,
+    color: theme.emptyStateText || theme.textTertiaryColor || '#999'
   },
   itemsList: {
     marginBottom: '0'
@@ -701,10 +718,10 @@ const getStyles = (theme = {}) => ({
     display: 'flex',
     gap: '8px',
     padding: '8px 8px 16px 8px',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff',
     borderRadius: '6px',
     marginBottom: '8px',
-    border: `1px solid ${theme.borderColor || '#e0e0e0'}`,
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`,
     position: 'relative'
   },
   itemImage: {
@@ -789,9 +806,9 @@ const getStyles = (theme = {}) => ({
   controlButton: {
     width: '24px',
     height: '24px',
-    border: `1px solid ${theme.textSecondaryColor || '#000'}`,
+    border: `1px solid ${theme.inputBorder || theme.borderColor || '#e0e0e0'}`,
     borderRadius: '4px',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.inputBackground || theme.secondaryColor || '#fff',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '600',
@@ -799,7 +816,7 @@ const getStyles = (theme = {}) => ({
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s',
-    color: theme.textSecondaryColor || '#000',
+    color: theme.inputText || theme.textSecondaryColor || '#000',
     lineHeight: 1,
     padding: 0
   },
@@ -818,9 +835,9 @@ const getStyles = (theme = {}) => ({
   },
   orderForm: {
     padding: '12px',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff',
     borderRadius: '6px',
-    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`
   },
   formTitle: {
     margin: '0 0 10px 0',
@@ -842,26 +859,26 @@ const getStyles = (theme = {}) => ({
     width: '100%',
     padding: '8px',
     fontSize: '13px',
-    border: `1px solid ${theme.borderColor || '#ddd'}`,
+    border: `1px solid ${theme.inputBorder || theme.borderColor || '#ddd'}`,
     borderRadius: '5px',
     boxSizing: 'border-box',
     outline: 'none',
-    backgroundColor: theme.secondaryColor || '#fff',
-    color: theme.textSecondaryColor || '#000'
+    backgroundColor: theme.inputBackground || '#fff',
+    color: theme.inputText || theme.textSecondaryColor || '#000'
   },
   textarea: {
     width: '100%',
     padding: '8px',
     fontSize: '13px',
-    border: `1px solid ${theme.borderColor || '#ddd'}`,
+    border: `1px solid ${theme.inputBorder || theme.borderColor || '#ddd'}`,
     borderRadius: '5px',
     boxSizing: 'border-box',
     outline: 'none',
     resize: 'none',
     fontFamily: 'inherit',
     minHeight: '50px',
-    backgroundColor: theme.secondaryColor || '#fff',
-    color: theme.textSecondaryColor || '#000'
+    backgroundColor: theme.inputBackground || '#fff',
+    color: theme.inputText || theme.textSecondaryColor || '#000'
   },
   error: {
     padding: '8px',
@@ -920,8 +937,8 @@ const getStyles = (theme = {}) => ({
   },
   footer: {
     padding: '12px',
-    borderTop: `1px solid ${theme.borderColor || '#e0e0e0'}`,
-    backgroundColor: theme.secondaryColor || '#fff'
+    borderTop: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`,
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff'
   },
   progressBar: {
     display: 'flex',
@@ -1015,7 +1032,7 @@ const getStyles = (theme = {}) => ({
     padding: '10px',
     backgroundColor: 'transparent',
     color: theme.textTertiaryColor || '#666',
-    border: `1px solid ${theme.borderColor || '#ddd'}`,
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#ddd'}`,
     borderRadius: '6px',
     fontSize: '13px',
     fontWeight: '500',
