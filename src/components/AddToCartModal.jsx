@@ -369,13 +369,15 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
             </div>
           </div>
 
-          {/* Subtotal */}
-          <div style={styles.subtotalSection}>
-            <span style={styles.subtotalLabel}>Subtotale</span>
-            <span style={styles.subtotalAmount}>
-              €{(finalPrice * quantity).toFixed(2)}
-            </span>
-          </div>
+          {/* Subtotal - Mostra solo se: prodotto senza varianti OPPURE variante selezionata */}
+          {(!hasVariants || selectedVariant) && (
+            <div style={styles.subtotalSection}>
+              <span style={styles.subtotalLabel}>Subtotale</span>
+              <span style={styles.subtotalAmount}>
+                €{(finalPrice * quantity).toFixed(2)}
+              </span>
+            </div>
+          )}
 
           {/* Actions */}
           <div style={styles.actions}>

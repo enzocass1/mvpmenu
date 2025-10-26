@@ -429,8 +429,8 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
       return (
         <div key={index} style={{ marginBottom: '8px' }}>
-          <span style={{ fontWeight: '600', color: themeStyles.textSecondaryColor }}>{dayString}:</span>{' '}
-          <span style={{ ...styles.infoText, color: themeStyles.textSecondaryColor }}>{timeString}</span>
+          <span style={{ fontWeight: '600', color: themeStyles.textPrimaryColor || '#fff' }}>{dayString}:</span>{' '}
+          <span style={{ ...styles.infoText }}>{timeString}</span>
         </div>
       )
     })
@@ -1050,7 +1050,7 @@ const getStyles = (theme = {}) => ({
   },
   
   restaurantName: {
-    color: theme.textSecondaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     fontSize: 'clamp(28px, 8vw, 48px)',
     fontWeight: '600',
     letterSpacing: '1px',
@@ -1404,26 +1404,27 @@ const getStyles = (theme = {}) => ({
   
   infoLabel: {
     fontSize: '13px',
-    color: theme.textTertiaryColor || '#666',
+    color: theme.textPrimaryColor || '#fff',
     marginBottom: '4px',
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+    opacity: 0.8,
   },
 
   infoText: {
     fontSize: '16px',
-    color: theme.textSecondaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     overflowWrap: 'break-word',
     lineHeight: '1.5',
   },
 
   phoneLink: {
-    color: theme.linkColor || theme.textSecondaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     textDecoration: 'none',
     fontSize: '16px',
     fontWeight: '500',
-    borderBottom: `1px solid ${theme.linkColor || theme.textSecondaryColor || 'rgba(0,0,0,0.3)'}`,
+    borderBottom: `1px solid ${theme.textPrimaryColor || 'rgba(255,255,255,0.5)'}`,
     paddingBottom: '2px',
   },
   
