@@ -472,3 +472,176 @@ CREATE TABLE restaurant_staff (
 
 ---
 
+
+## [2025-10-26T17:40:00+01:00] - Creazione Suite Testing Sistema Ruoli
+
+### 🎯 Obiettivo
+Creare suite completa di test per verificare il sistema ruoli deployato in produzione.
+
+### 📝 File Creati
+
+#### 1. database/testing/test_roles_system.sql (450+ righe)
+Script SQL completo con 6 parti di test:
+
+**PARTE 1: Verifica Setup Iniziale**
+- Test 1.1: Ruoli creati per ogni ristorante (deve essere 6)
+- Test 1.2: Dettagli ruoli e permessi (Admin, Manager, Cameriere, etc.)
+- Test 1.3: Staff migrati con role_id
+
+**PARTE 2: Test Permission Checking Functions**
+- Test 2.1: Funzione `staff_has_permission(staff_id, 'permission.path')`
+- Test 2.2: Funzione `get_staff_permissions(staff_id)` ritorna JSONB
+
+**PARTE 3: Test Timeline Tracking**
+- Test 3.1: Verifica colonne (user_id, created_by_type, staff_role_display)
+- Test 3.2: Timeline esistenti popolate
+- Test 3.3: Trigger auto-population funziona (test con INSERT)
+
+**PARTE 4: Test Analytics Views**
+- Test 4.1: `v_role_performance_analytics` (aggregati per ruolo)
+- Test 4.2: `v_staff_member_analytics` (KPI per staff)
+- Test 4.3: `v_staff_daily_metrics` (metriche giornaliere)
+
+**PARTE 5: Test Display Format**
+- Test 5.1: Verifica formato "da Admin - Vincenzo Cassese"
+- Query per controllare display_text costruito correttamente
+
+**PARTE 6: Summary**
+- RAISE NOTICE con checklist completa
+- Istruzioni per verificare risultati
+
+**Caratteristiche:**
+- Esecuzione automatica completa (copia/incolla → Run)
+- Output dettagliato con ✅ PASS / ❌ FAIL
+- Test trigger con INSERT + cleanup automatico
+- Query di verifica per ogni componente
+
+#### 2. database/testing/README_TEST_RUOLI.md (400+ righe)
+Guida completa testing step-by-step:
+
+**Struttura:**
+- Prerequisiti
+- Esecuzione rapida (opzione 1: automatico, opzione 2: manuale)
+- Test Suite dettagliata con output attesi
+- Checklist finale (11 test)
+- Troubleshooting con soluzioni
+- Risultato atteso
+
+**Test Coperti:**
+1. Setup ruoli (3 test)
+2. Permission checking (2 test)
+3. Timeline tracking (3 test)
+4. Analytics views (2 test)
+5. Display format UI (2 test)
+
+**Per Ogni Test:**
+- Query SQL da eseguire
+- Output atteso (esempio reale)
+- Criterio PASS/FAIL
+- Troubleshooting se FAIL
+
+#### 3. database/testing/QUICK_START_TEST.md (100 righe)
+Guida ultra-rapida per test in 2 minuti:
+
+**3 Opzioni:**
+1. Test automatico SQL (1 minuto)
+2. Test UI applicazione (1 minuto)
+3. Verifica veloce (30 secondi)
+
+**Sezioni:**
+- Cosa testa esattamente
+- Risultato atteso
+- Fix rapidi common issues
+- Link a documentazione completa
+
+### 🔧 Dettagli Tecnici
+
+**Test Automatici:**
+```sql
+-- Esempio Test 2.1: Permission Checking
+DO $$
+DECLARE
+  test_staff_id UUID;
+  has_create_orders BOOLEAN;
+BEGIN
+  SELECT s.id INTO test_staff_id
+  FROM restaurant_staff s
+  JOIN roles r ON s.role_id = r.id
+  WHERE r.name = 'manager'
+  LIMIT 1;
+
+  has_create_orders := staff_has_permission(test_staff_id, 'orders.create');
+  
+  IF has_create_orders = true THEN
+    RAISE NOTICE '✅ PASS: Permessi Manager corretti';
+  ELSE
+    RAISE NOTICE '❌ FAIL: Permessi Manager non corretti';
+  END IF;
+END $$;
+```
+
+**Test Timeline Trigger:**
+```sql
+-- Insert test entry → trigger popola campi → verifica → cleanup
+INSERT INTO order_timeline (order_id, action, staff_id)
+VALUES (test_order_id, 'updated', test_staff_id);
+
+-- Verifica
+SELECT staff_role_display FROM order_timeline
+WHERE notes LIKE '%TEST:%';
+
+-- Cleanup
+DELETE FROM order_timeline WHERE notes LIKE '%TEST:%';
+```
+
+**Analytics Views Test:**
+```sql
+-- Verifica ogni view ritorna dati senza errori
+SELECT * FROM v_role_performance_analytics LIMIT 1;
+SELECT * FROM v_staff_member_analytics LIMIT 1;
+SELECT * FROM v_staff_daily_metrics LIMIT 1;
+```
+
+### 📊 Coverage Testing
+
+**Database Layer:**
+- ✅ Tabelle (roles, order_timeline aggiornata)
+- ✅ Trigger (populate_timeline_staff_info, populate_table_change_staff_info)
+- ✅ Funzioni (staff_has_permission, get_staff_permissions)
+- ✅ Views (v_role_performance_analytics, v_staff_member_analytics, v_staff_daily_metrics)
+- ✅ Migration (ruoli creati, staff migrati)
+
+**JavaScript Layer:**
+- ⚠️  Non testato direttamente (solo verifica visuale UI)
+- Coperto da test display format in UI
+
+**UI Layer:**
+- ✅ Test manuale con guida screenshot
+- Verifica display "da Admin - Vincenzo Cassese"
+
+### 💡 Note
+
+**Filosofia Testing:**
+- Test automatici dove possibile (SQL)
+- Test manuali per UI (con screenshot esempio)
+- Quick start per verifica rapida
+- Troubleshooting integrato
+
+**Uso:**
+1. Developer: test_roles_system.sql completo
+2. QA: README_TEST_RUOLI.md step-by-step
+3. Quick check: QUICK_START_TEST.md 2 minuti
+
+**Benefici:**
+- Verifica completa sistema in < 5 minuti
+- Identifica problemi specifici con troubleshooting
+- Automatico (no setup manuale)
+- Output chiaro ✅/❌
+
+### 🔗 Link Rilevanti
+- [test_roles_system.sql](../../database/testing/test_roles_system.sql)
+- [README_TEST_RUOLI.md](../../database/testing/README_TEST_RUOLI.md)
+- [QUICK_START_TEST.md](../../database/testing/QUICK_START_TEST.md)
+
+---
+
