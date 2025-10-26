@@ -990,7 +990,7 @@ const getStyles = (theme = {}) => ({
   pageContainer: {
     width: '100vw',
     minHeight: '100vh',
-    backgroundColor: theme.secondaryColor || '#ffffff',
+    backgroundColor: theme.primaryColor || '#000000',
     overflowX: 'hidden',
     position: 'relative',
     paddingBottom: '80px',
@@ -1004,14 +1004,14 @@ const getStyles = (theme = {}) => ({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.secondaryColor || '#ffffff',
+    backgroundColor: theme.primaryColor || '#000000',
   },
   
   spinner: {
     width: '40px',
     height: '40px',
     border: `4px solid ${theme.borderColor || '#e0e0e0'}`,
-    borderTop: `4px solid ${theme.primaryColor || '#000'}`,
+    borderTop: `4px solid ${theme.accentColor || theme.textSecondaryColor || '#000'}`,
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
     marginBottom: '16px',
@@ -1027,7 +1027,7 @@ const getStyles = (theme = {}) => ({
     padding: '30px 5% 20px 5%',
     textAlign: 'center',
     borderBottom: 'none',
-    backgroundColor: theme.secondaryColor || '#ffffff',
+    backgroundColor: 'transparent',
   },
   
   logo: {
@@ -1056,7 +1056,7 @@ const getStyles = (theme = {}) => ({
   carouselSection: {
     width: '100%',
     padding: '0px 0 60px 0',
-    backgroundColor: theme.secondaryColor || '#ffffff',
+    backgroundColor: 'transparent',
     position: 'relative',
   },
   
