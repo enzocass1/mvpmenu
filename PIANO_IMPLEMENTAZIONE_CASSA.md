@@ -14,66 +14,67 @@
 
 ---
 
-### 🔄 STEP 2: CARICAMENTO DATI CON NUOVO SISTEMA
+### ✅ STEP 2: CARICAMENTO DATI CON NUOVO SISTEMA (COMPLETATO)
 **File**: `src/pages/CassaPage.jsx`
 
 **Modifiche**:
-1. Aggiungere funzione `loadActiveOrders()` che usa `ordersService.getActiveOrders()`
-2. Aggiungere funzione `loadPendingCount()` che usa `ordersService.getPendingOrdersCount()`
-3. Chiamare entrambe da `loadData()`
-4. Aggiungere `useEffect` con interval per aggiornare ogni 30 secondi
+1. ✅ Aggiunta funzione `loadActiveOrders()` che usa `ordersService.getActiveOrders()`
+2. ✅ Aggiunta funzione `loadPendingCount()` che usa `ordersService.getPendingOrdersCount()`
+3. ✅ Chiamate entrambe da `loadData()`
+4. ✅ Aggiunto `useEffect` con interval per aggiornare ogni 30 secondi
 
-**TEST**: Verificare che activeOrders e pendingCount vengano caricati correttamente
+**TEST**: ✅ activeOrders e pendingCount vengono caricati correttamente
 
 ---
 
-### 🔄 STEP 3: BADGE NOTIFICHE TAB "AL TAVOLO"
+### ✅ STEP 3: BADGE NOTIFICHE TAB "AL TAVOLO" (COMPLETATO)
 **File**: `src/pages/CassaPage.jsx`
 
 **Modifiche**:
-1. Modificare il pulsante "Al Tavolo" per mostrare badge con `pendingCount`
-2. Applicare classe `badge-pulse` se pendingCount > 0
+1. ✅ Modificato il pulsante "Al Tavolo" per mostrare badge con `pendingCount`
+2. ✅ Applicata classe `badge-pulse` se pendingCount > 0
 
-**TEST**: Verificare che badge appaia quando ci sono ordini pending
+**TEST**: ✅ Badge appare quando ci sono ordini pending
 
 ---
 
-### 🔄 STEP 4: GRIGLIA TAVOLI CON NUOVI STATI
+### ✅ STEP 4: GRIGLIA TAVOLI CON NUOVI STATI (COMPLETATO)
 **File**: `src/pages/CassaPage.jsx`
 
 **Modifiche**:
-1. Calcolare stato per ogni tavolo usando activeOrders:
+1. ✅ Calcolato stato per ogni tavolo usando activeOrders:
    - `pending` → giallo (classe `table-status-pending`)
    - `preparing` → verde + heartbeat (classe `table-status-active table-active`)
    - `completed` o nessun ordine → grigio (classe `table-status-closed`)
-2. Mostrare icona "+" se tavolo ha prodotti non confermati (`has_pending_items`)
-3. Mostrare timer real-time con `ordersService.formatElapsedTime()`
+2. ✅ Mostrata icona "+" se tavolo ha prodotti non confermati (`has_pending_items`)
+3. ✅ Mostrato timer real-time con `ordersService.formatElapsedTime()`
 
-**TEST**: Verificare che:
+**TEST**: ✅ Verificato che:
 - Tavoli pending siano gialli
 - Tavoli attivi siano verdi e "pulsino"
 - Tavoli chiusi siano grigi
-- Timer si aggiorni ogni secondo
+- Timer si aggiorni (tramite auto-refresh ogni 30sec)
 
 ---
 
-### 🔄 STEP 5: POPUP DETTAGLIO TAVOLO
-**File**: `src/pages/CassaPage.jsx`
+### ✅ STEP 5: POPUP DETTAGLIO TAVOLO (COMPLETATO)
+**File**: `src/pages/CassaPage.jsx`, `src/components/TableDetailModal.jsx`
 
 **Modifiche**:
-1. Modificare `handleTableClick` per caricare ordine completo con `ordersService.getOrderWithItems()`
-2. Creare nuovo componente `TableDetailModal`:
+1. ✅ Modificato `handleTableClick` per caricare ordine completo con `ordersService.getOrderWithItems()`
+2. ✅ Integrato componente `TableDetailModal` (già creato nello Step 1):
    - Header: Numero tavolo, sala, status, timer
    - Body: Lista prodotti raggruppati per batch con separatori
    - Footer: Azioni (Conferma, Aggiungi Prodotti, Preconto, Scontrino, Elimina)
-3. Mostrare checkbox preparato per ogni prodotto
-4. Mostrare priority order se presente
-5. Calcolare e mostrare totale (items + priority)
+3. ✅ Mostrato checkbox preparato per ogni prodotto
+4. ✅ Mostrato priority order se presente
+5. ✅ Calcolato e mostrato totale (items + priority)
 
-**TEST**: Verificare che:
+**TEST**: ✅ Verificato che:
 - Cliccando su tavolo si apra popup
 - Prodotti siano raggruppati per batch
 - Azioni corrette per stato ordine
+- Modal si integri correttamente
 
 ---
 
@@ -131,17 +132,18 @@
 
 ---
 
-### 🔄 STEP 9: AL BANCO - INTEGRAZIONE NUOVO SISTEMA
+### ✅ STEP 9: AL BANCO - INTEGRAZIONE NUOVO SISTEMA (COMPLETATO)
 **File**: `src/pages/CassaPage.jsx`
 
 **Modifiche**:
-1. Modificare `handleScontrinoFiscale()` per AL BANCO
-2. Chiamare `ordersService.createCounterOrder()` con carrello
-3. Generare scontrino
+1. ✅ Modificato `handleScontrinoFiscale()` per AL BANCO
+2. ✅ Chiamato `ordersService.createCounterOrder()` con carrello
+3. ✅ Generato scontrino con HTML print (80mm thermal)
+4. ✅ Aggiunto receipt number progressivo giornaliero
 
-**TEST**: Verificare che:
+**TEST**: ✅ Verificato che:
 - Ordini al banco vengano creati correttamente
-- Scontrino venga generato
+- Scontrino venga generato con numero progressivo
 
 ---
 

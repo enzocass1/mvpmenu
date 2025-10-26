@@ -4,6 +4,7 @@ import { tokens } from '../styles/tokens'
 import { Card, Button, Badge, Modal, Select, Input, Spinner, EmptyState } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import CreateOrderModal from '../components/CreateOrderModal'
+import TableDetailModal from '../components/TableDetailModal'
 import * as ordersService from '../lib/ordersService'
 import { trackEvent } from '../utils/analytics'
 import '../styles/cassa-animations.css'
@@ -32,6 +33,7 @@ function CassaPage({ session }) {
   const [tables, setTables] = useState([]) // Tavoli dal database
   const [activeOrders, setActiveOrders] = useState([]) // Ordini attivi (v_active_orders)
   const [pendingCount, setPendingCount] = useState(0) // Badge conteggio pending
+  const [tableStats, setTableStats] = useState({}) // Stats for each table (missing state variable)
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [selectedTable, setSelectedTable] = useState(null)
   const [selectedOrder, setSelectedOrder] = useState(null) // Ordine selezionato per popup
@@ -74,6 +76,18 @@ function CassaPage({ session }) {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // STEP 2: Auto-refresh active orders every 30 seconds
+  useEffect(() => {
+    if (!restaurant?.id) return
+
+    const interval = setInterval(() => {
+      loadActiveOrders(restaurant.id)
+      loadPendingCount(restaurant.id)
+    }, 30000) // 30 seconds
+
+    return () => clearInterval(interval)
+  }, [restaurant?.id, tables])
 
   const loadData = async () => {
     try {
@@ -189,10 +203,9 @@ function CassaPage({ session }) {
 
       setTables(tablesData || [])
 
-      // Load stats for all tables
-      if (tablesData && tablesData.length > 0) {
-        await loadTableStats(restaurantData.id, tablesData)
-      }
+      // Load active orders and pending count using new ordersService
+      await loadActiveOrders(restaurantData.id)
+      await loadPendingCount(restaurantData.id)
     } catch (error) {
       console.error('Errore caricamento dati:', error)
     } finally {
@@ -200,6 +213,96 @@ function CassaPage({ session }) {
     }
   }
 
+  // STEP 2: Load active orders using ordersService
+  const loadActiveOrders = async (restaurantId) => {
+    try {
+      const result = await ordersService.getActiveOrders(restaurantId)
+      if (result.success) {
+        setActiveOrders(result.orders || [])
+
+        // Calculate table stats from active orders
+        const stats = {}
+        tables.forEach(table => {
+          const tableOrders = result.orders.filter(
+            order => order.table_id === table.id
+          )
+
+          if (tableOrders.length === 0) {
+            stats[table.id] = {
+              status: 'closed',
+              revenue: 0,
+              productsCount: 0,
+              openedAt: null,
+              products: [],
+              hasPendingItems: false
+            }
+          } else {
+            const revenue = tableOrders.reduce((sum, order) =>
+              sum + parseFloat(order.total_amount || 0), 0)
+
+            const allItems = tableOrders.flatMap(order => order.items || [])
+            const productsCount = allItems.reduce((sum, item) =>
+              sum + item.quantity, 0)
+
+            const openedAt = tableOrders[0]?.opened_at || tableOrders[0]?.created_at
+
+            // Aggregate products
+            const productsMap = {}
+            allItems.forEach(item => {
+              const key = `${item.product_name}_${item.variant_title || ''}`
+              if (productsMap[key]) {
+                productsMap[key].quantity += item.quantity
+              } else {
+                productsMap[key] = {
+                  name: item.variant_title
+                    ? `${item.product_name} (${item.variant_title})`
+                    : item.product_name,
+                  quantity: item.quantity
+                }
+              }
+            })
+            const products = Object.values(productsMap)
+
+            // Determine status
+            const hasPending = tableOrders.some(o => o.status === 'pending')
+            const hasPreparing = tableOrders.some(o => o.status === 'preparing')
+            const hasPendingItems = allItems.some(item => !item.prepared)
+
+            let status = 'closed'
+            if (hasPending) status = 'pending'
+            else if (hasPreparing) status = 'open'
+
+            stats[table.id] = {
+              status,
+              revenue,
+              productsCount,
+              openedAt,
+              products,
+              hasPendingItems
+            }
+          }
+        })
+
+        setTableStats(stats)
+      }
+    } catch (error) {
+      console.error('Errore caricamento ordini attivi:', error)
+    }
+  }
+
+  // STEP 2: Load pending orders count using ordersService
+  const loadPendingCount = async (restaurantId) => {
+    try {
+      const result = await ordersService.getPendingOrdersCount(restaurantId)
+      if (result.success) {
+        setPendingCount(result.count || 0)
+      }
+    } catch (error) {
+      console.error('Errore caricamento conteggio pending:', error)
+    }
+  }
+
+  // Old loadTableStats function - DEPRECATED, keeping for compatibility
   const loadTableStats = async (restaurantId, tablesData) => {
     try {
       const stats = {}
@@ -386,13 +489,133 @@ function CassaPage({ session }) {
     return cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   }
 
+  // STEP 9: AL BANCO - Integration with new ordersService
   const handleScontrinoFiscale = async () => {
     if (cart.length === 0) {
       alert('Carrello vuoto')
       return
     }
-    alert('Funzione Scontrino Fiscale - Coming soon')
-    // TODO: Integrate fiscal printer API
+
+    try {
+      // Transform cart items to order items format
+      const items = cart.map(item => ({
+        product_id: item.id,
+        product_name: item.name,
+        product_price: item.price,
+        quantity: item.quantity,
+        variant_id: item.variant_id || null,
+        variant_title: item.variant_title || null,
+        notes: item.notes || null
+      }))
+
+      // Create counter order using ordersService
+      const result = await ordersService.createCounterOrder({
+        restaurantId: restaurant.id,
+        items,
+        staffId: null // TODO: Add staff authentication
+      })
+
+      if (result.success) {
+        // Generate and print scontrino
+        const printWindow = window.open('', '_blank')
+        const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Scontrino #${result.order.order_number}</title>
+            <style>
+              body {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                line-height: 1.4;
+                width: 80mm;
+                margin: 0;
+                padding: 8mm;
+              }
+              .header {
+                text-align: center;
+                font-weight: bold;
+                margin-bottom: 8px;
+                border-bottom: 1px dashed #000;
+                padding-bottom: 8px;
+              }
+              .line {
+                display: flex;
+                justify-content: space-between;
+                margin: 2px 0;
+              }
+              .separator {
+                border-top: 1px dashed #000;
+                margin: 8px 0;
+              }
+              .total {
+                font-weight: bold;
+                font-size: 14px;
+                border-top: 2px solid #000;
+                padding-top: 8px;
+                margin-top: 8px;
+              }
+              .footer {
+                text-align: center;
+                margin-top: 16px;
+                font-size: 10px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div>SCONTRINO FISCALE</div>
+              <div>N° ${result.receiptNumber}</div>
+              <div>Ordine #${result.order.order_number}</div>
+              <div>${new Date().toLocaleString('it-IT')}</div>
+            </div>
+
+            <div class="separator"></div>
+
+            ${result.order.items.map(item => `
+              <div class="line">
+                <span>${item.quantity}x ${item.product_name}${item.variant_title ? ` (${item.variant_title})` : ''}</span>
+                <span>€${parseFloat(item.subtotal).toFixed(2)}</span>
+              </div>
+              ${item.notes ? `<div style="font-size: 10px; margin-left: 20px; font-style: italic;">${item.notes}</div>` : ''}
+            `).join('')}
+
+            <div class="separator"></div>
+
+            <div class="total">
+              <div class="line">
+                <span>TOTALE:</span>
+                <span>€${parseFloat(result.order.total_amount).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="footer">
+              Grazie per la visita!
+            </div>
+
+            <script>
+              window.onload = () => {
+                window.print()
+                window.onafterprint = () => window.close()
+              }
+            </script>
+          </body>
+          </html>
+        `
+
+        printWindow.document.write(html)
+        printWindow.document.close()
+
+        // Clear cart and show success message
+        setCart([])
+        alert(`Scontrino #${result.receiptNumber} generato con successo!`)
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error('Errore generazione scontrino:', error)
+      alert('Errore durante la generazione dello scontrino: ' + error.message)
+    }
   }
 
   const handlePreconto = async () => {
@@ -404,10 +627,43 @@ function CassaPage({ session }) {
     // TODO: Generate preconto receipt
   }
 
+  // STEP 5: Updated handleTableClick to load order and show TableDetailModal
   const handleTableClick = async (table) => {
-    // Set the selected table and room, then open the create order modal
     setSelectedTable(table)
-    setShowCreateOrderModal(true)
+
+    // Check if table has active order
+    const tableOrder = activeOrders.find(order => order.table_id === table.id)
+
+    if (tableOrder) {
+      // Load complete order with items
+      const result = await ordersService.getOrderWithItems(tableOrder.id)
+      if (result.success) {
+        setSelectedOrder(result.order)
+        setShowTableDetailModal(true)
+      } else {
+        console.error('Errore caricamento ordine:', result.error)
+        alert('Errore durante il caricamento dell\'ordine')
+      }
+    } else {
+      // No active order, open create order modal
+      setShowCreateOrderModal(true)
+    }
+  }
+
+  // STEP 5: Handler when order is updated (confirm, delete, scontrino)
+  const handleOrderUpdated = async () => {
+    // Reload active orders and pending count
+    if (restaurant?.id) {
+      await loadActiveOrders(restaurant.id)
+      await loadPendingCount(restaurant.id)
+    }
+  }
+
+  // STEP 6: Handler to add products to existing order
+  const handleAddProducts = (order) => {
+    setSelectedOrder(order)
+    setShowTableDetailModal(false)
+    setShowAddProductsModal(true)
   }
 
   // Get table stats (revenue, products count, status)
@@ -994,10 +1250,21 @@ function CassaPage({ session }) {
             Al Banco
           </button>
           <button
-            style={modeButtonStyles(mode === 'tavolo')}
+            style={{
+              ...modeButtonStyles(mode === 'tavolo'),
+              position: 'relative'
+            }}
             onClick={() => setMode('tavolo')}
           >
             Al Tavolo
+            {/* STEP 3: Badge notification for pending orders */}
+            {pendingCount > 0 && (
+              <span
+                className={`badge-notification ${pendingCount > 0 ? 'badge-pulse' : ''}`}
+              >
+                {pendingCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -1277,29 +1544,26 @@ function CassaPage({ session }) {
               }}
             >
               {filteredTables.map((table) => {
-                const stats = tableStats[table.id] || { status: 'closed', revenue: 0, productsCount: 0 }
-                const bgColor =
-                  stats.status === 'pending'
-                    ? tokens.colors.warning[50]
-                    : stats.status === 'open'
-                    ? tokens.colors.info[50]
-                    : tokens.colors.white
-                const borderColor =
-                  stats.status === 'pending'
-                    ? tokens.colors.warning.DEFAULT
-                    : stats.status === 'open'
-                    ? tokens.colors.info.DEFAULT
-                    : tokens.colors.gray[300]
+                const stats = tableStats[table.id] || {
+                  status: 'closed',
+                  revenue: 0,
+                  productsCount: 0,
+                  openedAt: null,
+                  hasPendingItems: false
+                }
+
+                // STEP 4: Determine CSS classes based on status
+                let statusClass = 'table-status-closed'
+                if (stats.status === 'pending') statusClass = 'table-status-pending'
+                else if (stats.status === 'open') statusClass = 'table-status-active table-active'
 
                 return (
                   <div
                     key={table.id}
+                    className={statusClass}
                     style={{
+                      position: 'relative',
                       padding: tokens.spacing.lg,
-                      backgroundColor: bgColor,
-                      borderWidth: tokens.borders.width.medium,
-                      borderStyle: 'solid',
-                      borderColor: borderColor,
                       borderRadius: tokens.borderRadius.md,
                       textAlign: 'center',
                       minHeight: '120px',
@@ -1312,6 +1576,11 @@ function CassaPage({ session }) {
                     }}
                     onClick={() => handleTableClick(table)}
                   >
+                    {/* STEP 4: Show "+" icon if has pending items */}
+                    {stats.hasPendingItems && (
+                      <div className="icon-plus-additions">+</div>
+                    )}
+
                     <div
                       style={{
                         fontSize: tokens.typography.fontSize['2xl'],
@@ -1333,6 +1602,12 @@ function CassaPage({ session }) {
                     </div>
                     {stats.status !== 'closed' && (
                       <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.gray[700] }}>
+                        {/* STEP 4: Show real-time timer */}
+                        {stats.openedAt && (
+                          <div className="timer-display" style={{ marginBottom: tokens.spacing.xs }}>
+                            {ordersService.formatElapsedTime(stats.openedAt)}
+                          </div>
+                        )}
                         <div>€{stats.revenue.toFixed(2)}</div>
                         <div>{stats.productsCount} prodotti</div>
                       </div>
@@ -1351,46 +1626,38 @@ function CassaPage({ session }) {
               }}
             >
               {filteredTables.map((table) => {
-                const stats = tableStats[table.id] || { status: 'closed', revenue: 0, productsCount: 0, openedAt: null, products: [] }
-                const bgColor =
-                  stats.status === 'pending'
-                    ? tokens.colors.warning[50]
-                    : stats.status === 'open'
-                    ? tokens.colors.info[50]
-                    : tokens.colors.white
-                const borderColor =
-                  stats.status === 'pending'
-                    ? tokens.colors.warning.DEFAULT
-                    : stats.status === 'open'
-                    ? tokens.colors.info.DEFAULT
-                    : tokens.colors.gray[300]
-
-                // Calculate time since opened
-                let timeOpened = ''
-                if (stats.openedAt) {
-                  const minutes = Math.floor((Date.now() - new Date(stats.openedAt).getTime()) / 60000)
-                  if (minutes < 60) {
-                    timeOpened = `${minutes} min`
-                  } else {
-                    const hours = Math.floor(minutes / 60)
-                    const mins = minutes % 60
-                    timeOpened = `${hours}h ${mins}m`
-                  }
+                const stats = tableStats[table.id] || {
+                  status: 'closed',
+                  revenue: 0,
+                  productsCount: 0,
+                  openedAt: null,
+                  products: [],
+                  hasPendingItems: false
                 }
+
+                // STEP 4: Determine CSS classes based on status
+                let statusClass = 'table-status-closed'
+                if (stats.status === 'pending') statusClass = 'table-status-pending'
+                else if (stats.status === 'open') statusClass = 'table-status-active table-active'
 
                 return (
                   <Card
                     key={table.id}
                     onClick={() => handleTableClick(table)}
+                    className={statusClass}
                     style={{
-                      backgroundColor: bgColor,
-                      borderColor: borderColor,
+                      position: 'relative',
                       cursor: 'pointer',
                       transition: tokens.transitions.base,
                       minHeight: '180px',
                     }}
                     hoverable
                   >
+                    {/* STEP 4: Show "+" icon if has pending items */}
+                    {stats.hasPendingItems && (
+                      <div className="icon-plus-additions">+</div>
+                    )}
+
                     <div style={{ padding: tokens.spacing.lg }}>
                       {/* Header: Numero tavolo */}
                       <div style={{
@@ -1420,13 +1687,10 @@ function CassaPage({ session }) {
                           flexDirection: 'column',
                           gap: tokens.spacing.sm,
                         }}>
-                          {/* Tempo apertura */}
-                          {timeOpened && (
-                            <div style={{
-                              fontSize: tokens.typography.fontSize.sm,
-                              color: tokens.colors.gray[600],
-                            }}>
-                              🕐 Aperto da {timeOpened}
+                          {/* STEP 4: Show real-time timer using ordersService */}
+                          {stats.openedAt && (
+                            <div className="timer-display">
+                              {ordersService.formatElapsedTime(stats.openedAt)}
                             </div>
                           )}
 
@@ -1964,23 +2228,32 @@ function CassaPage({ session }) {
           onClose={() => {
             setShowCreateOrderModal(false)
             setSelectedTable(null)
-            // Reload table stats after creating order
-            if (restaurant) {
-              loadTableStats(restaurant.id, tables)
-            }
+            // Reload active orders after creating order
+            handleOrderUpdated()
           }}
           onOrderCreated={() => {
-            // Reload table stats after creating order
-            if (restaurant) {
-              loadTableStats(restaurant.id, tables)
-            }
+            // Reload active orders after creating order
+            handleOrderUpdated()
           }}
           session={session}
           restaurantId={restaurant?.id}
           preselectedRoomId={selectedRoom?.id}
-          preselectedTableNumber={selectedTable.number}
+          preselectedTableNumber={selectedTable?.number}
         />
       )}
+
+      {/* STEP 5: Table Detail Modal - Show order details and actions */}
+      <TableDetailModal
+        isOpen={showTableDetailModal}
+        onClose={() => {
+          setShowTableDetailModal(false)
+          setSelectedOrder(null)
+        }}
+        order={selectedOrder}
+        onOrderUpdated={handleOrderUpdated}
+        onAddProducts={handleAddProducts}
+        restaurantId={restaurant?.id}
+      />
     </DashboardLayout>
   )
 }
