@@ -23,53 +23,65 @@ ADD COLUMN IF NOT EXISTS order_number INTEGER;
 
 COMMENT ON COLUMN orders.order_number IS 'Numero ordine progressivo globale per ristorante (es. #1, #2, #3...)';
 
--- 1.3 Aggiungi riferimento alla stanza (per ordini al tavolo)
+-- 1.3 Aggiungi riferimento al tavolo (foreign key alla tabella tables)
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS table_id UUID REFERENCES tables(id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN orders.table_id IS 'Riferimento al tavolo specifico (foreign key a tables)';
+
+-- 1.4 Aggiungi riferimento alla stanza (per ordini al tavolo)
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS room_id UUID REFERENCES rooms(id) ON DELETE SET NULL;
 
 COMMENT ON COLUMN orders.room_id IS 'Sala/stanza in cui si trova il tavolo (per ordini al tavolo)';
 
--- 1.4 Aggiungi timestamp di apertura tavolo (quando passa da pending ad active)
+-- 1.5 Aggiungi timestamp di apertura tavolo (quando passa da pending ad active)
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS opened_at TIMESTAMP WITH TIME ZONE;
 
 COMMENT ON COLUMN orders.opened_at IS 'Timestamp quando il tavolo viene aperto (conferma ordine e passa ad active)';
 
--- 1.5 Aggiungi timestamp di chiusura tavolo
+-- 1.6 Aggiungi timestamp di chiusura tavolo
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE;
 
 COMMENT ON COLUMN orders.closed_at IS 'Timestamp quando il tavolo viene chiuso (scontrino emesso)';
 
--- 1.6 Aggiungi soft delete
+-- 1.7 Aggiungi soft delete
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
 
 COMMENT ON COLUMN orders.deleted_at IS 'Timestamp di eliminazione logica (soft delete) - NULL se attivo';
 
--- 1.7 Aggiungi tracking staff - chi ha creato l'ordine
+-- 1.8 Aggiungi tracking staff - chi ha creato l'ordine
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS created_by_staff_id UUID REFERENCES restaurant_staff(id) ON DELETE SET NULL;
 
 COMMENT ON COLUMN orders.created_by_staff_id IS 'Staff che ha creato l''ordine (per ordini da staff o al banco)';
 
--- 1.8 Aggiungi tracking staff - chi ha confermato l'ordine
+-- 1.9 Aggiungi tracking staff - chi ha confermato l'ordine
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS confirmed_by_staff_id UUID REFERENCES restaurant_staff(id) ON DELETE SET NULL;
 
 COMMENT ON COLUMN orders.confirmed_by_staff_id IS 'Staff che ha confermato l''ordine (passa da pending ad active)';
 
--- 1.9 Aggiungi tracking staff - ultima modifica
+-- 1.10 Aggiungi tracking staff - ultima modifica
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS modified_by_staff_id UUID REFERENCES restaurant_staff(id) ON DELETE SET NULL;
 
 COMMENT ON COLUMN orders.modified_by_staff_id IS 'Ultimo staff che ha modificato l''ordine (aggiunte, eliminazioni)';
 
--- 1.10 Aggiungi timestamp di ultima modifica
+-- 1.11 Aggiungi timestamp di ultima modifica
 -- (già esiste come updated_at, ma assicuriamoci)
 -- ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
--- 1.11 Aggiungi metadati aggiuntivi in JSONB
+-- 1.12 Aggiungi importo priority order (costo servizio priority accumulato)
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS priority_order_amount DECIMAL(10,2) DEFAULT 0;
+
+COMMENT ON COLUMN orders.priority_order_amount IS 'Importo totale del servizio priority order (accumula se richiesto più volte)';
+
+-- 1.13 Aggiungi metadati aggiuntivi in JSONB
 ALTER TABLE orders
 ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
 
@@ -272,8 +284,8 @@ SELECT
   COUNT(DISTINCT CASE WHEN o.status = 'pending' THEN o.id END) as pending_orders,
   COUNT(DISTINCT CASE WHEN o.status = 'preparing' THEN o.id END) as active_orders,
   COUNT(DISTINCT CASE WHEN o.status = 'completed' THEN o.id END) as completed_orders,
-  COALESCE(SUM(o.total), 0) as total_revenue,
-  COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.total ELSE 0 END), 0) as completed_revenue,
+  COALESCE(SUM(o.total_amount), 0) as total_revenue,
+  COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.total_amount ELSE 0 END), 0) as completed_revenue,
   COALESCE(AVG(CASE WHEN o.closed_at IS NOT NULL AND o.opened_at IS NOT NULL
     THEN EXTRACT(EPOCH FROM (o.closed_at - o.opened_at)) END), 0) as avg_service_time_seconds
 FROM orders o
@@ -302,7 +314,7 @@ SELECT
   o.room_id,
   r.name as room_name,
   o.customer_name,
-  o.total,
+  o.total_amount,
   o.created_at,
   o.opened_at,
   o.closed_at,
@@ -451,9 +463,31 @@ CREATE POLICY "Users can soft-delete orders for their restaurant" ON orders
 -- PARTE 14: AGGIORNAMENTO CALCOLO TOTALE
 -- ============================================
 
--- La funzione calculate_order_total esistente già include priority_order_amount
--- Assicuriamoci che venga ricalcolato quando cambiano order_items
+-- Aggiorna la funzione calculate_order_total per includere priority_order_amount
+CREATE OR REPLACE FUNCTION calculate_order_total(p_order_id UUID)
+RETURNS DECIMAL(10,2) AS $$
+DECLARE
+  items_total DECIMAL(10,2);
+  priority_amount DECIMAL(10,2);
+  total DECIMAL(10,2);
+BEGIN
+  -- Somma subtotali items
+  SELECT COALESCE(SUM(subtotal), 0) INTO items_total
+  FROM order_items WHERE order_id = p_order_id;
 
+  -- Ottieni priority_order_amount
+  SELECT COALESCE(priority_order_amount, 0) INTO priority_amount
+  FROM orders WHERE id = p_order_id;
+
+  -- Calcola totale
+  total := items_total + priority_amount;
+  RETURN total;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION calculate_order_total(UUID) IS 'Calcola il totale ordine includendo items e priority_order_amount';
+
+-- Assicuriamoci che venga ricalcolato quando cambiano order_items
 CREATE OR REPLACE FUNCTION recalculate_order_total_on_items_change()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -462,10 +496,10 @@ BEGIN
   -- Ottieni order_id (da NEW se INSERT/UPDATE, da OLD se DELETE)
   IF TG_OP = 'DELETE' THEN
     SELECT calculate_order_total(OLD.order_id) INTO order_total;
-    UPDATE orders SET total = order_total WHERE id = OLD.order_id;
+    UPDATE orders SET total_amount = order_total WHERE id = OLD.order_id;
   ELSE
     SELECT calculate_order_total(NEW.order_id) INTO order_total;
-    UPDATE orders SET total = order_total WHERE id = NEW.order_id;
+    UPDATE orders SET total_amount = order_total WHERE id = NEW.order_id;
   END IF;
 
   IF TG_OP = 'DELETE' THEN
@@ -476,12 +510,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+COMMENT ON FUNCTION recalculate_order_total_on_items_change() IS 'Ricalcola automaticamente total_amount quando cambiano order_items';
+
 -- Crea trigger su order_items
 DROP TRIGGER IF EXISTS trigger_recalculate_total_on_items ON order_items;
 CREATE TRIGGER trigger_recalculate_total_on_items
   AFTER INSERT OR UPDATE OR DELETE ON order_items
   FOR EACH ROW
   EXECUTE FUNCTION recalculate_order_total_on_items_change();
+
+-- Trigger per ricalcolare totale quando cambia priority_order_amount
+CREATE OR REPLACE FUNCTION recalculate_order_total_on_priority_change()
+RETURNS TRIGGER AS $$
+DECLARE
+  order_total DECIMAL(10,2);
+BEGIN
+  -- Se priority_order_amount è cambiato, ricalcola il totale
+  IF OLD.priority_order_amount IS DISTINCT FROM NEW.priority_order_amount THEN
+    SELECT calculate_order_total(NEW.id) INTO order_total;
+    NEW.total_amount = order_total;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION recalculate_order_total_on_priority_change() IS 'Ricalcola automaticamente total_amount quando cambia priority_order_amount';
+
+DROP TRIGGER IF EXISTS trigger_recalculate_total_on_priority ON orders;
+CREATE TRIGGER trigger_recalculate_total_on_priority
+  BEFORE UPDATE ON orders
+  FOR EACH ROW
+  EXECUTE FUNCTION recalculate_order_total_on_priority_change();
 
 
 -- ============================================
@@ -546,9 +606,9 @@ SELECT
 FROM information_schema.columns
 WHERE table_name = 'orders'
   AND column_name IN (
-    'order_type', 'order_number', 'room_id', 'opened_at', 'closed_at',
+    'order_type', 'order_number', 'table_id', 'room_id', 'opened_at', 'closed_at',
     'deleted_at', 'created_by_staff_id', 'confirmed_by_staff_id',
-    'modified_by_staff_id', 'metadata'
+    'modified_by_staff_id', 'priority_order_amount', 'metadata'
   )
 ORDER BY column_name;
 
@@ -605,7 +665,9 @@ WHERE routine_name IN (
   'get_next_batch_number',
   'soft_delete_order',
   'restore_order',
-  'recalculate_order_total_on_items_change'
+  'calculate_order_total',
+  'recalculate_order_total_on_items_change',
+  'recalculate_order_total_on_priority_change'
 )
 ORDER BY routine_name;
 
