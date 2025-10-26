@@ -15,7 +15,7 @@ function ThemeCustomizer({ restaurantId }) {
     textPrimaryColor: '#ffffff',  // Testo su sfondo scuro
     textSecondaryColor: '#111827', // Testo su sfondo chiaro
 
-    // Colori funzionali (NUOVI)
+    // Colori funzionali
     borderColor: '#e0e0e0',        // Bordi card, input, separatori
     textTertiaryColor: '#999999',  // Testo disabilitato/placeholder
     errorColor: '#f44336',         // Messaggi errore
@@ -24,6 +24,20 @@ function ThemeCustomizer({ restaurantId }) {
     backgroundTertiary: '#f9f9f9', // Background sezioni espanse
     favoriteActiveColor: '#e74c3c', // Cuore preferiti attivo
     deleteColor: '#f44336',        // Pulsanti elimina
+
+    // Colori Input (NUOVI - Fase 1)
+    inputBackground: '#ffffff',    // Background input/select/textarea
+    inputBorder: '#e0e0e0',       // Bordo input normale
+    inputBorderFocus: '#000000',  // Bordo input in focus
+    inputText: '#111827',         // Testo input
+
+    // Colori UI Aggiuntivi (NUOVI - Fase 1)
+    overlayBackground: 'rgba(0,0,0,0.5)', // Overlay modal/sidebar
+    cardBackground: '#ffffff',     // Background card generiche
+    cardBorder: '#e0e0e0',        // Bordo card
+    emptyStateText: '#999999',    // Testo stati vuoti
+    linkColor: '#4CAF50',         // Colore link
+    linkHoverColor: '#000000',    // Colore link hover
 
     // Font
     fontFamily: 'system',          // system, serif, sans-serif, cursive
@@ -54,6 +68,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#f9f9f9',
         favoriteActiveColor: '#e74c3c',
         deleteColor: '#f44336',
+        inputBackground: '#ffffff',
+        inputBorder: '#e0e0e0',
+        inputBorderFocus: '#000000',
+        inputText: '#111827',
+        overlayBackground: 'rgba(0,0,0,0.5)',
+        cardBackground: '#ffffff',
+        cardBorder: '#e0e0e0',
+        emptyStateText: '#999999',
+        linkColor: '#4CAF50',
+        linkHoverColor: '#000000',
         fontFamily: 'system',
         cardStyle: 'modern',
         borderRadius: '16',
@@ -76,6 +100,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#e0f2fe',
         favoriteActiveColor: '#f43f5e',
         deleteColor: '#dc2626',
+        inputBackground: '#f0f9ff',
+        inputBorder: '#bae6fd',
+        inputBorderFocus: '#0ea5e9',
+        inputText: '#0f172a',
+        overlayBackground: 'rgba(15,23,42,0.6)',
+        cardBackground: '#f0f9ff',
+        cardBorder: '#bae6fd',
+        emptyStateText: '#7dd3fc',
+        linkColor: '#0ea5e9',
+        linkHoverColor: '#0f172a',
         fontFamily: 'sans-serif',
         cardStyle: 'modern',
         borderRadius: '24',
@@ -98,6 +132,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#fef08a',
         favoriteActiveColor: '#dc2626',
         deleteColor: '#b91c1c',
+        inputBackground: '#fef3c7',
+        inputBorder: '#fbbf24',
+        inputBorderFocus: '#f59e0b',
+        inputText: '#7c2d12',
+        overlayBackground: 'rgba(124,45,18,0.6)',
+        cardBackground: '#fef3c7',
+        cardBorder: '#fbbf24',
+        emptyStateText: '#d97706',
+        linkColor: '#f59e0b',
+        linkHoverColor: '#7c2d12',
         fontFamily: 'serif',
         cardStyle: 'classic',
         borderRadius: '8',
@@ -120,6 +164,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#f3f4f6',
         favoriteActiveColor: '#ef4444',
         deleteColor: '#dc2626',
+        inputBackground: '#f9fafb',
+        inputBorder: '#d1d5db',
+        inputBorderFocus: '#3b82f6',
+        inputText: '#374151',
+        overlayBackground: 'rgba(255,255,255,0.7)',
+        cardBackground: '#f9fafb',
+        cardBorder: '#d1d5db',
+        emptyStateText: '#9ca3af',
+        linkColor: '#3b82f6',
+        linkHoverColor: '#111827',
         fontFamily: 'system',
         cardStyle: 'minimal',
         borderRadius: '0',
@@ -142,6 +196,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#f3e8ff',
         favoriteActiveColor: '#f43f5e',
         deleteColor: '#dc2626',
+        inputBackground: '#faf5ff',
+        inputBorder: '#e9d5ff',
+        inputBorderFocus: '#a855f7',
+        inputText: '#581c87',
+        overlayBackground: 'rgba(88,28,135,0.6)',
+        cardBackground: '#faf5ff',
+        cardBorder: '#e9d5ff',
+        emptyStateText: '#c084fc',
+        linkColor: '#a855f7',
+        linkHoverColor: '#581c87',
         fontFamily: 'serif',
         cardStyle: 'modern',
         borderRadius: '24',
@@ -164,6 +228,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#ffebee',
         favoriteActiveColor: '#d32f2f',
         deleteColor: '#c62828',
+        inputBackground: '#fff5f5',
+        inputBorder: '#fcd5d5',
+        inputBorderFocus: '#008c45',
+        inputText: '#1a1a1a',
+        overlayBackground: 'rgba(200,16,46,0.6)',
+        cardBackground: '#fff5f5',
+        cardBorder: '#fcd5d5',
+        emptyStateText: '#e57373',
+        linkColor: '#008c45',
+        linkHoverColor: '#1a1a1a',
         fontFamily: 'serif',
         cardStyle: 'classic',
         borderRadius: '8',
@@ -186,6 +260,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#f5f5f5',
         favoriteActiveColor: '#d32f2f',
         deleteColor: '#b71c1c',
+        inputBackground: '#fafafa',
+        inputBorder: '#e0e0e0',
+        inputBorderFocus: '#d32f2f',
+        inputText: '#212121',
+        overlayBackground: 'rgba(26,26,26,0.7)',
+        cardBackground: '#fafafa',
+        cardBorder: '#e0e0e0',
+        emptyStateText: '#757575',
+        linkColor: '#d32f2f',
+        linkHoverColor: '#212121',
         fontFamily: 'sans-serif',
         cardStyle: 'minimal',
         borderRadius: '0',
@@ -208,6 +292,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#faf3e8',
         favoriteActiveColor: '#d32f2f',
         deleteColor: '#b71c1c',
+        inputBackground: '#fef9f3',
+        inputBorder: '#e8d4a6',
+        inputBorderFocus: '#d4af37',
+        inputText: '#2c1810',
+        overlayBackground: 'rgba(139,21,56,0.6)',
+        cardBackground: '#fef9f3',
+        cardBorder: '#e8d4a6',
+        emptyStateText: '#b8956a',
+        linkColor: '#d4af37',
+        linkHoverColor: '#2c1810',
         fontFamily: 'serif',
         cardStyle: 'classic',
         borderRadius: '16',
@@ -230,6 +324,16 @@ function ThemeCustomizer({ restaurantId }) {
         backgroundTertiary: '#e8f5e9',
         favoriteActiveColor: '#d32f2f',
         deleteColor: '#c62828',
+        inputBackground: '#f1f8f4',
+        inputBorder: '#a5d6a7',
+        inputBorderFocus: '#4caf50',
+        inputText: '#1b5e20',
+        overlayBackground: 'rgba(27,94,32,0.6)',
+        cardBackground: '#f1f8f4',
+        cardBorder: '#a5d6a7',
+        emptyStateText: '#66bb6a',
+        linkColor: '#4caf50',
+        linkHoverColor: '#1b5e20',
         fontFamily: 'system',
         cardStyle: 'modern',
         borderRadius: '24',
