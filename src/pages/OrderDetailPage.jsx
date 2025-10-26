@@ -29,13 +29,19 @@ function OrderDetailPage({ session }) {
   }, [session, orderId])
 
   // Timer per aggiornare il tempo di attesa in tempo reale
+  // SOLO per ordini NON completed
   useEffect(() => {
+    if (!order || order.status === 'completed') {
+      // Se completed, non aggiornare il timer
+      return
+    }
+
     const interval = setInterval(() => {
       setCurrentTime(Date.now())
     }, 1000) // Aggiorna ogni secondo
 
     return () => clearInterval(interval)
-  }, [])
+  }, [order?.status])
 
   const loadData = async () => {
     try {
@@ -260,8 +266,14 @@ function OrderDetailPage({ session }) {
   const calculateWaitTime = () => {
     if (!order) return '00:00:00'
 
-    const startTime = new Date(order.created_at).getTime()
-    const endTime = order.completed_at ? new Date(order.completed_at).getTime() : currentTime
+    // Usa opened_at (quando tavolo aperto/confermato) invece di created_at
+    const startTime = new Date(order.opened_at || order.created_at).getTime()
+
+    // Per ordini completed: usa closed_at (fisso)
+    // Per ordini pending/preparing: usa currentTime (real-time)
+    const endTime = order.status === 'completed' && order.closed_at
+      ? new Date(order.closed_at).getTime()
+      : currentTime
 
     const diffMs = endTime - startTime
     const diffSeconds = Math.floor(diffMs / 1000)
@@ -498,10 +510,10 @@ function OrderDetailPage({ session }) {
           <div style={infoValueStyles}>{formatDateTime(order.created_at)}</div>
         </Card>
         <Card padding="md">
-          <div style={infoLabelStyles}>Tempo di Attesa</div>
+          <div style={infoLabelStyles}>Durata Tavolo</div>
           <div style={{
             ...infoValueStyles,
-            color: order.completed_at ? tokens.colors.success.base : tokens.colors.warning.base,
+            color: order.status === 'completed' ? tokens.colors.success.base : tokens.colors.warning.base,
             fontFamily: tokens.typography.fontFamily.mono
           }}>
             {calculateWaitTime()}
