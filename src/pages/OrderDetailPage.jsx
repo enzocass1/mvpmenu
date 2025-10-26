@@ -57,16 +57,7 @@ function OrderDetailPage({ session }) {
         .select(`
           *,
           table:tables (id, number),
-          room:rooms (id, name),
-          table_change_logs (
-            id,
-            changed_at,
-            changed_by_name,
-            old_room_name,
-            old_table_number,
-            new_room_name,
-            new_table_number
-          )
+          room:rooms (id, name)
         `)
         .eq('id', orderId)
         .single()
@@ -113,33 +104,7 @@ function OrderDetailPage({ session }) {
         console.error('Errore caricamento timeline:', timelineError)
       }
 
-      // Merge timeline events with table changes
-      const timelineEvents = (timelineData || []).map(event => ({
-        ...event,
-        event_type: 'timeline'
-      }))
-
-      // Add table change events to timeline
-      const tableChangeEvents = (orderData.table_change_logs || []).map(change => ({
-        id: change.id,
-        order_id: orderId,
-        action: 'table_changed',
-        staff_name: change.changed_by_name,
-        created_at: change.changed_at,
-        changes: {
-          old_room_name: change.old_room_name,
-          old_table_number: change.old_table_number,
-          new_room_name: change.new_room_name,
-          new_table_number: change.new_table_number
-        },
-        event_type: 'table_change'
-      }))
-
-      // Combine and sort by date
-      const allEvents = [...timelineEvents, ...tableChangeEvents]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-
-      setTimeline(allEvents)
+      setTimeline(timelineData || [])
     } catch (error) {
       console.error('Errore caricamento ordine:', error)
     } finally {
@@ -658,14 +623,13 @@ function OrderDetailPage({ session }) {
                 <div style={timelineDotStyles}></div>
                 <div style={timelineContentStyles}>
                   <div style={timelineActionStyles}>{getStatusLabel(event.action)}</div>
-                  {event.event_type === 'table_change' && event.changes && (
+                  {event.action === 'table_changed' && event.changes && (
                     <div style={{
                       ...timelineStaffStyles,
                       color: tokens.colors.gray[700],
                       marginTop: tokens.spacing.xs
                     }}>
-                      Da: {event.changes.old_room_name} - Tavolo {event.changes.old_table_number} →
-                      A: {event.changes.new_room_name} - Tavolo {event.changes.new_table_number}
+                      {event.changes.old_room_name} T{event.changes.old_table_number} → {event.changes.new_room_name} T{event.changes.new_table_number}
                     </div>
                   )}
                   {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (

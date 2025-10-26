@@ -556,3 +556,85 @@ Database popola tutti i campi ✅
 Sistema end-to-end funzionante ✅
 
 ---
+
+
+---
+
+
+## [2025-10-26T19:00:00+01:00] - Fix Tracking Cambio Tavolo in Timeline
+
+### 📝 Prompt Utente
+```
+analizza la timeline, attualmente cosa traccia? perchè dal test cambio tavolo non funziona.
+```
+
+### 📝 Prompt Follow-up
+```
+non chiedere più i fix, fallo direttamente
+```
+
+### ⚙️ Azioni Eseguite
+
+#### Analisi Problema
+- ✅ Analizzato ChangeTableModal.jsx (lines 102-182)
+- ✅ Identificato bug: insert solo in table_change_logs, NON in order_timeline
+- ✅ Analizzato OrderDetailPage.jsx: merging manuale table_change_logs
+- ✅ Analizzato OrderDetail.jsx: timeline da order_timeline
+
+#### Fix Implementati
+
+**1. ChangeTableModal.jsx** (lines 149-195)
+- ✅ Aggiunto insert in order_timeline con action=table_changed
+- ✅ Aggiunto changes JSONB (old/new room/table)
+- ✅ Aggiunto user_id per trigger auto-population
+- ✅ Aggiunto notes descrittivo
+- ✅ Mantenuto insert in table_change_logs per analytics
+
+**2. OrderDetailPage.jsx** (3 modifiche)
+- ✅ Rimossa query table_change_logs da order select (lines 54-63)
+- ✅ Rimosso merging manuale timeline + table_change_logs (lines 103-107)
+- ✅ Aggiornato display: action===table_changed con changes (lines 626-633)
+
+**3. OrderDetail.jsx** (2 modifiche)
+- ✅ Aggiunto table_changed a getStatusLabel (line 231)
+- ✅ Aggiornato display timeline con changes JSON (lines 436-439)
+
+### 📊 Risultato
+**Status:** ✅ Completato
+
+**File Modificati:** 3
+- src/components/ChangeTableModal.jsx
+- src/pages/OrderDetailPage.jsx
+- src/pages/OrderDetail.jsx
+
+**Funzionalità Implementata:**
+- ✅ Cambio tavolo tracciato in order_timeline
+- ✅ Display automatico "Cambio Tavolo" con dettagli "Sala1 T3 → Sala2 T5"
+- ✅ Auto-population staff_name, staff_role_display, created_by_type via trigger
+- ✅ Display format: "da Admin - Proprietario" sotto cambio tavolo
+- ✅ Analytics table_change_logs mantenuta per KPI separati
+
+**Architettura:**
+```
+ChangeTableModal
+  └─ handleChangeTable()
+      ├─ UPDATE orders (table_id, room_id)
+      ├─ INSERT order_timeline (action=table_changed, changes JSONB) ← NEW
+      │   └─ trigger populate_timeline_staff_info() auto-popola campi
+      └─ INSERT table_change_logs (analytics) ← EXISTING
+```
+
+**Display Timeline:**
+```
+Cambio Tavolo
+Sala Principale T3 → Terrazza T7
+da Admin - Proprietario
+26/10/2025, 19:00
+```
+
+### 🎯 Prossimi Step
+- [ ] Test cambio tavolo UI
+- [ ] Verifica timeline mostra evento correttamente
+- [ ] Verifica formato display completo
+
+---

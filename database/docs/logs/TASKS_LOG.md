@@ -394,3 +394,55 @@ Registro di tutte le task completate, in corso e pianificate.
 **Total: 38/38 task completate (100%)** ✅
 
 ---
+
+
+## [2025-10-26T19:00:00+01:00] - Fix Tracking Cambio Tavolo in Timeline
+
+### ✅ Task Completate
+- [x] Analizzato ChangeTableModal.jsx per identificare problema
+- [x] Modificato ChangeTableModal.jsx: aggiunto insert in order_timeline
+- [x] Modificato OrderDetailPage.jsx: rimosso merging manuale, aggiunto display table_changed
+- [x] Modificato OrderDetail.jsx: aggiunto table_changed a getStatusLabel, aggiunto display
+- [x] Update CONVERSATION_LOG.md
+- [x] Update DEVELOPMENT_LOG.md
+- [x] Update TASKS_LOG.md (questo)
+- [ ] Update CURRENT_CONTEXT.md
+- [ ] Git commit modifiche
+- [ ] Slack notification
+
+### 📊 Stato Fix Cambio Tavolo
+
+**Implementation: 100% ✅**
+- ChangeTableModal insert timeline: 100% ✅
+- OrderDetailPage display: 100% ✅
+- OrderDetail display: 100% ✅
+- Trigger auto-population: 100% ✅ (già esistente)
+
+**Testing: 0% ⏳**
+- Test UI cambio tavolo: 0% ⏳ (da testare)
+- Verifica timeline display: 0% ⏳ (da verificare)
+
+**Blockers:** Nessuno
+
+### 🎯 Prossime Task
+
+#### Testing UI (Immediate)
+- [ ] Cambiare tavolo di un ordine da UI
+- [ ] Verificare evento "Cambio Tavolo" appare in timeline
+- [ ] Verificare display "Sala1 T3 → Sala2 T5"
+- [ ] Verificare display "da Admin - Proprietario"
+
+#### Altre Feature del Progetto
+- [ ] Proseguire con altre feature richieste
+- [ ] Ottimizzazioni performance
+- [ ] Testing completo sistema
+
+### 📊 Progress Totale
+
+**Sistema Timeline Cambio Tavolo:**
+- Implementation: 3/3 file (100%) ✅
+- Testing: 0/3 test (0%) ⏳
+
+**Status:** ✅ Implementato - Pronto per Test UI
+
+---

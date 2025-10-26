@@ -6,50 +6,49 @@
 
 ---
 
-**Last Updated:** 2025-10-26T18:30:00+01:00
-**Session Status:** ✅ Sistema Ruoli Timeline COMPLETATO E FUNZIONANTE
+**Last Updated:** 2025-10-26T19:00:00+01:00
+**Session Status:** ✅ Fix Tracking Cambio Tavolo - COMPLETATO
 
 ---
 
 ## 🎯 COSA STIAMO FACENDO ORA
 
-**Focus Corrente:** Sistema Ruoli Timeline - COMPLETATO AL 100% ✅
+**Focus Corrente:** Tracking Cambio Tavolo in Timeline - COMPLETATO ✅
 
 **Descrizione:**
-Sistema ruoli + timeline tracking COMPLETATO e TESTATO end-to-end. Trigger popola automaticamente staff_role_display e staff_name. UI mostra "da Admin - Proprietario". Tutti i bug risolti. Sistema production-ready.
+Implementato tracking cambio tavolo in order_timeline. ChangeTableModal ora inserisce eventi con action='table_changed' e changes JSONB. UI mostra "Cambio Tavolo" con dettagli "Sala1 T3 → Sala2 T5" e attore "da Admin - Proprietario". Trigger auto-population funzionante.
 
-**Pronto per:** Nuove task/feature del progetto
+**Pronto per:** Test UI cambio tavolo
 
 ---
 
 ## 📍 DOVE SIAMO
 
 **Ultima Azione Completata:**
-- ✅ Fix Completo Sistema Ruoli Timeline [2025-10-26T18:30:00]
-- ✅ Fix frontend: user_id in staffSession (4 file)
-- ✅ Fix trigger: schema owner corretto (permission auth.users risolto)
-- ✅ Fix display UI: "da Admin - Proprietario" (2 file)
-- ✅ Rimossi debug logs
-- ✅ Testato end-to-end: FUNZIONANTE 100%
+- ✅ Fix Tracking Cambio Tavolo in Timeline [2025-10-26T19:00:00]
+- ✅ Modificato ChangeTableModal.jsx: insert in order_timeline
+- ✅ Modificato OrderDetailPage.jsx: rimosso merging, display table_changed
+- ✅ Modificato OrderDetail.jsx: getStatusLabel + display
+- ✅ Logs aggiornati (CONVERSATION, DEVELOPMENT, TASKS, CURRENT_CONTEXT)
 
 **Task Corrente:**
-- ✅ Tutti i fix completati
-- ✅ Logs aggiornati
+- ✅ Implementation completata (3/3 file)
+- ✅ Logs aggiornati (4/4)
 - 🚧 Git commit in corso
 - 🚧 Slack notification in corso
 
 **Prossimi Step:**
-1. Git commit fix completo
+1. Git commit modifiche
 2. Slack notification
-3. **CHIEDERE ALL'UTENTE quale task fare dopo**
+3. **Test UI:** Cambiare tavolo e verificare timeline
 
 ---
 
 ## 📊 ULTIMI 3 CAMBIAMENTI
 
-1. **[2025-10-26T18:30:00]** - ✅ Sistema Ruoli Timeline COMPLETATO (6 file fix, funzionante 100%)
-2. **[2025-10-26T18:00:00]** - ✅ Verifica Fix Trigger first_name/last_name
-3. **[2025-10-26T17:50:00]** - ✅ Fix Trigger First Name - FIX_TRIGGER_FIRST_NAME.sql
+1. **[2025-10-26T19:00:00]** - ✅ Fix Tracking Cambio Tavolo (3 file, insert timeline, display UI)
+2. **[2025-10-26T18:30:00]** - ✅ Sistema Ruoli Timeline COMPLETATO (6 file fix, funzionante 100%)
+3. **[2025-10-26T18:00:00]** - ✅ Verifica Fix Trigger first_name/last_name
 
 ---
 

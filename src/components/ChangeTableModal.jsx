@@ -146,7 +146,31 @@ function ChangeTableModal({
 
       if (updateError) throw updateError
 
-      // Log the table change
+      // Insert into order_timeline for tracking
+      const { error: timelineError } = await supabase
+        .from('order_timeline')
+        .insert({
+          order_id: order.id,
+          action: 'table_changed',
+          user_id: user.id,
+          staff_id: null,
+          created_by_type: 'owner',
+          changes: {
+            old_room_name: oldRoomName,
+            old_table_number: oldTable,
+            new_room_name: newRoomName,
+            new_table_number: newTable?.number
+          },
+          notes: `Tavolo cambiato da ${oldRoomName} T${oldTable} → ${newRoomName} T${newTable?.number}`,
+          created_at: new Date().toISOString()
+        })
+
+      if (timelineError) {
+        console.error('Error inserting timeline entry:', timelineError)
+        // Don't fail the operation if timeline insert fails
+      }
+
+      // Log the table change in analytics table
       const { error: logError } = await supabase
         .from('table_change_logs')
         .insert({

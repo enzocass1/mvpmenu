@@ -228,6 +228,7 @@ function OrderDetail() {
       case 'item_added': return 'Prodotto Aggiunto'
       case 'item_removed': return 'Prodotto Rimosso'
       case 'item_updated': return 'Quantità Aggiornata'
+      case 'table_changed': return 'Cambio Tavolo'
       default: return status
     }
   }
@@ -432,6 +433,11 @@ function OrderDetail() {
                 <div style={styles.timelineDot}></div>
                 <div style={styles.timelineContent}>
                   <div style={styles.timelineAction}>{getStatusLabel(event.action)}</div>
+                  {event.action === 'table_changed' && event.changes && (
+                    <div style={{ ...styles.timelineStaff, color: '#64748B', marginTop: '4px' }}>
+                      {event.changes.old_room_name} T{event.changes.old_table_number} → {event.changes.new_room_name} T{event.changes.new_table_number}
+                    </div>
+                  )}
                   {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (
                     <div style={styles.timelineStaff}>
                       {event.created_by_type === 'customer'
