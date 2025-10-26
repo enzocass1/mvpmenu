@@ -678,7 +678,8 @@ function OrdersPage({ session }) {
             displayRole: 'Admin',
             restaurant_id: restaurant.id,
             staff_id: null,
-            isOwner: true
+            isOwner: true,
+            user_id: session.user.id
           } : null}
           onClose={() => setShowCreateOrder(false)}
           onOrderCreated={() => {

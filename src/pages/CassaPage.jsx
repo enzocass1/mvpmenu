@@ -2018,7 +2018,8 @@ function CassaPage({ session }) {
             displayRole: 'Admin',
             restaurant_id: restaurant.id,
             staff_id: null,
-            isOwner: true
+            isOwner: true,
+            user_id: session.user.id
           } : null}
           session={session}
           restaurantId={restaurant?.id}
@@ -2061,7 +2062,8 @@ function CassaPage({ session }) {
             displayRole: 'Admin',
             restaurant_id: restaurant.id,
             staff_id: null,
-            isOwner: true
+            isOwner: true,
+            user_id: session.user.id
           }}
           existingOrder={selectedOrder}
           preselectedRoomId={selectedOrder?.room_id}

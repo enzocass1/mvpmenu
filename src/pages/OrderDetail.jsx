@@ -434,7 +434,11 @@ function OrderDetail() {
                   <div style={styles.timelineAction}>{getStatusLabel(event.action)}</div>
                   {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (
                     <div style={styles.timelineStaff}>
-                      {event.staff_role_display || event.staff_name || (event.created_by_type === 'customer' ? 'Cliente Incognito' : null)}
+                      {event.created_by_type === 'customer'
+                        ? 'Cliente Incognito'
+                        : event.staff_role_display && event.staff_name
+                          ? `da ${event.staff_role_display} - ${event.staff_name}`
+                          : event.staff_role_display || event.staff_name || null}
                     </div>
                   )}
                   <div style={styles.timelineDate}>{formatDateTime(event.created_at)}</div>

@@ -670,7 +670,11 @@ function OrderDetailPage({ session }) {
                   )}
                   {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (
                     <div style={timelineStaffStyles}>
-                      {event.staff_role_display || event.staff_name || (event.created_by_type === 'customer' ? 'Cliente Incognito' : null)}
+                      {event.created_by_type === 'customer'
+                        ? 'Cliente Incognito'
+                        : event.staff_role_display && event.staff_name
+                          ? `da ${event.staff_role_display} - ${event.staff_name}`
+                          : event.staff_role_display || event.staff_name || null}
                     </div>
                   )}
                   <div style={timelineDateStyles}>{formatDateTime(event.created_at)}</div>
@@ -709,7 +713,8 @@ function OrderDetailPage({ session }) {
             displayRole: 'Admin',
             restaurant_id: restaurant.id,
             staff_id: null,
-            isOwner: true
+            isOwner: true,
+            user_id: session.user.id
           } : null}
           existingOrder={order}
           preselectedRoomId={order?.room_id}
