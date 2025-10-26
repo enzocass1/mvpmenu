@@ -599,7 +599,7 @@ const getStyles = (theme = {}) => ({
     top: 0,
     right: 0,
     width: '100%',
-    maxWidth: '480px',
+    maxWidth: 'min(480px, 100vw)',
     height: '100%',
     backgroundColor: theme.secondaryColor || '#fff',
     zIndex: 1000,
@@ -681,7 +681,7 @@ const getStyles = (theme = {}) => ({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: '8px',
-    paddingRight: '130px'
+    paddingRight: 'clamp(100px, 30vw, 130px)'
   },
   itemInfo: {
     flex: 1

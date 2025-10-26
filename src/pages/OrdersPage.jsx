@@ -18,7 +18,8 @@ function OrdersPage({ session }) {
   const [activeFilter, setActiveFilter] = useState('all')
   const [selectedOrders, setSelectedOrders] = useState([]) // Array di order IDs selezionati
   const [selectionMode, setSelectionMode] = useState(false) // Modalità selezione attiva
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768) // Desktop detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768) // Mobile detection
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024) // Desktop detection
   const [showCreateOrder, setShowCreateOrder] = useState(false) // Modal per creare ordine
 
   useEffect(() => {
@@ -34,7 +35,8 @@ function OrdersPage({ session }) {
   // Desktop/mobile detection
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768)
+      setIsMobile(window.innerWidth < 768)
+      setIsDesktop(window.innerWidth >= 1024)
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
@@ -240,7 +242,7 @@ function OrdersPage({ session }) {
 
   const titleStyles = {
     margin: 0,
-    fontSize: tokens.typography.fontSize['3xl'],
+    fontSize: isMobile ? tokens.typography.fontSize['2xl'] : tokens.typography.fontSize['3xl'],
     fontWeight: tokens.typography.fontWeight.bold,
     color: tokens.colors.black,
   }
@@ -253,6 +255,24 @@ function OrdersPage({ session }) {
     { label: 'In Preparazione', value: 'preparing' },
     { label: 'Completati', value: 'completed' },
   ]
+
+  const dropdownStyles = {
+    width: '100%',
+    padding: tokens.spacing.md,
+    fontSize: tokens.typography.fontSize.base,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: tokens.colors.black,
+    backgroundColor: tokens.colors.white,
+    border: `${tokens.borders.width.thin} solid ${tokens.colors.gray[300]}`,
+    borderRadius: tokens.borderRadius.md,
+    outline: 'none',
+    cursor: 'pointer',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23000' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 12px center',
+    paddingRight: '40px',
+  }
 
   const orderCardStyles = {
     marginBottom: tokens.spacing.md,
@@ -276,8 +296,8 @@ function OrdersPage({ session }) {
 
   const orderDetailsStyles = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: tokens.spacing.md,
+    gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: isMobile ? tokens.spacing.sm : tokens.spacing.md,
     marginBottom: tokens.spacing.md,
   }
 
@@ -364,6 +384,7 @@ function OrdersPage({ session }) {
 
   const footerContentStyles = {
     display: 'flex',
+    flexDirection: isMobile ? 'column' : 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     maxWidth: '1200px',
@@ -407,9 +428,23 @@ function OrdersPage({ session }) {
         </Button>
       </div>
 
-      {/* Filters Tabs */}
-      <div style={{ marginBottom: tokens.spacing.xl }}>
-        <Tabs tabs={tabsData} activeTab={activeFilter} onChange={setActiveFilter} />
+      {/* Filters Tabs / Dropdown */}
+      <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>
+        {isMobile ? (
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value)}
+            style={dropdownStyles}
+          >
+            {tabsData.map(tab => (
+              <option key={tab.value} value={tab.value}>
+                {tab.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <Tabs tabs={tabsData} activeTab={activeFilter} onChange={setActiveFilter} />
+        )}
       </div>
 
       {/* Orders List */}

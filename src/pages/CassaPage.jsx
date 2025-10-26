@@ -861,7 +861,7 @@ function CassaPage({ session }) {
 
   const layoutStyles = {
     display: 'grid',
-    gridTemplateColumns: window.innerWidth >= 1024 ? '1fr 400px' : '1fr',
+    gridTemplateColumns: !isMobile ? '1fr 400px' : '1fr',
     gap: tokens.spacing.lg,
     height: 'calc(100vh - 200px)',
   }
@@ -898,7 +898,7 @@ function CassaPage({ session }) {
 
   const productsGridStyles = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 120px), 1fr))',
     gap: tokens.spacing.md,
     overflowY: 'auto',
     padding: tokens.spacing.sm,
@@ -1333,7 +1333,7 @@ function CassaPage({ session }) {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
                 gap: tokens.spacing.md,
               }}
             >

@@ -143,6 +143,17 @@ function OpeningHoursManager({ restaurantId }) {
     <div style={{
       fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
     }}>
+      {/* Responsive CSS */}
+      <style>{`
+        @media (max-width: 767px) {
+          .hours-card {
+            padding: 16px !important;
+          }
+          .hours-empty {
+            padding: 40px 16px !important;
+          }
+        }
+      `}</style>
       {/* Bottone Nuovo Orario */}
       {!showForm && (
         <div style={{ marginBottom: '25px' }}>
@@ -177,7 +188,7 @@ function OpeningHoursManager({ restaurantId }) {
           borderRadius: '8px',
           padding: '25px',
           marginBottom: '25px'
-        }}>
+        }} className="hours-card">
           <h3 style={{
             margin: '0 0 20px 0',
             fontSize: '16px',
@@ -191,7 +202,7 @@ function OpeningHoursManager({ restaurantId }) {
             {/* Giorni */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
               gap: '15px',
               marginBottom: '20px'
             }}>
@@ -278,7 +289,7 @@ function OpeningHoursManager({ restaurantId }) {
               borderRadius: '6px',
               border: '1px solid #E0E0E0',
               marginBottom: '15px'
-            }}>
+            }} className="hours-card">
               <h4 style={{
                 margin: '0 0 15px 0',
                 fontSize: '14px',
@@ -289,7 +300,7 @@ function OpeningHoursManager({ restaurantId }) {
               </h4>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
                 gap: '15px'
               }}>
                 <div>
@@ -360,7 +371,7 @@ function OpeningHoursManager({ restaurantId }) {
               borderRadius: '6px',
               border: '1px solid #E0E0E0',
               marginBottom: '25px'
-            }}>
+            }} className="hours-card">
               <h4 style={{
                 margin: '0 0 15px 0',
                 fontSize: '14px',
@@ -371,7 +382,7 @@ function OpeningHoursManager({ restaurantId }) {
               </h4>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
                 gap: '15px'
               }}>
                 <div>
@@ -510,8 +521,8 @@ function OpeningHoursManager({ restaurantId }) {
           gap: '12px'
         }}>
           {hours.map((hour) => (
-            <div 
-              key={hour.id} 
+            <div
+              key={hour.id}
               style={{
                 background: '#FFFFFF',
                 border: '1px solid #E0E0E0',
@@ -519,6 +530,7 @@ function OpeningHoursManager({ restaurantId }) {
                 padding: '20px',
                 transition: 'all 0.2s ease'
               }}
+              className="hours-card"
             >
               <div style={{
                 display: 'flex',
@@ -614,7 +626,7 @@ function OpeningHoursManager({ restaurantId }) {
             background: '#F9F9F9',
             border: '1px dashed #E0E0E0',
             borderRadius: '8px'
-          }}>
+          }} className="hours-empty">
             <p style={{
               margin: 0,
               fontSize: '14px',

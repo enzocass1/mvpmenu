@@ -12,6 +12,17 @@ function Tabs({
   onChange,
   fullWidth = false,
 }) {
+  const [hoveredTab, setHoveredTab] = React.useState(null)
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768)
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   const containerStyles = {
     display: 'flex',
     borderBottom: `${tokens.borders.width.thin} solid ${tokens.colors.gray[200]}`,
@@ -21,8 +32,8 @@ function Tabs({
   }
 
   const tabStyles = (isActive) => ({
-    padding: `${tokens.spacing.md} ${tokens.spacing.lg}`,
-    fontSize: tokens.typography.fontSize.sm,
+    padding: isMobile ? '8px 12px' : `${tokens.spacing.md} ${tokens.spacing.lg}`,
+    fontSize: isMobile ? '11px' : tokens.typography.fontSize.sm,
     fontWeight: isActive ? tokens.typography.fontWeight.semibold : tokens.typography.fontWeight.medium,
     color: isActive ? tokens.colors.black : tokens.colors.gray[600],
     backgroundColor: 'transparent',
@@ -39,33 +50,44 @@ function Tabs({
     }),
   })
 
-  const [hoveredTab, setHoveredTab] = React.useState(null)
-
   return (
-    <div style={containerStyles}>
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.value
-        const isHovered = hoveredTab === tab.value
+    <>
+      {/* Hide scrollbar styles */}
+      <style>{`
+        /* Hide scrollbar but keep functionality */}
+        .tabs-container::-webkit-scrollbar {
+          display: none;
+        }
+        .tabs-container {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE/Edge */
+        }
+      `}</style>
+      <div style={containerStyles} className="tabs-container">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.value
+          const isHovered = hoveredTab === tab.value
 
-        return (
-          <button
-            key={tab.value}
-            onClick={() => onChange(tab.value)}
-            style={{
-              ...tabStyles(isActive),
-              ...(isHovered && !isActive && {
-                color: tokens.colors.black,
-                backgroundColor: tokens.colors.gray[50],
-              }),
-            }}
-            onMouseEnter={() => setHoveredTab(tab.value)}
-            onMouseLeave={() => setHoveredTab(null)}
-          >
-            {tab.label}
-          </button>
-        )
-      })}
-    </div>
+          return (
+            <button
+              key={tab.value}
+              onClick={() => onChange(tab.value)}
+              style={{
+                ...tabStyles(isActive),
+                ...(isHovered && !isActive && {
+                  color: tokens.colors.black,
+                  backgroundColor: tokens.colors.gray[50],
+                }),
+              }}
+              onMouseEnter={() => setHoveredTab(tab.value)}
+              onMouseLeave={() => setHoveredTab(null)}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+    </>
   )
 }
 

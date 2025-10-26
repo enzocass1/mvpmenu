@@ -30,11 +30,26 @@ function RestaurantForm({ restaurant, onSave }) {
 
   // Carica lo script di Google Maps
   useEffect(() => {
+    // Verifica se Google Maps è già caricato
     if (window.google && window.google.maps) {
       setScriptLoaded(true)
       return
     }
 
+    // Verifica se lo script è già stato aggiunto al DOM (evita duplicati)
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
+    if (existingScript) {
+      // Script già presente, aspetta il caricamento
+      const checkLoaded = setInterval(() => {
+        if (window.google && window.google.maps) {
+          setScriptLoaded(true)
+          clearInterval(checkLoaded)
+        }
+      }, 100)
+      return () => clearInterval(checkLoaded)
+    }
+
+    // Aggiungi style per nascondere le icone
     const style = document.createElement('style')
     style.innerHTML = `
       .pac-icon, .pac-icon-marker {
@@ -45,6 +60,7 @@ function RestaurantForm({ restaurant, onSave }) {
     `
     document.head.appendChild(style)
 
+    // Aggiungi script Google Maps
     const script = document.createElement('script')
     script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&language=it`
     script.async = true
@@ -57,6 +73,7 @@ function RestaurantForm({ restaurant, onSave }) {
     document.head.appendChild(script)
 
     return () => {
+      // Cleanup solo dello style, non dello script (viene riutilizzato)
       if (style.parentNode) {
         style.parentNode.removeChild(style)
       }
@@ -167,6 +184,8 @@ function RestaurantForm({ restaurant, onSave }) {
     <div style={{
       maxWidth: '800px',
       margin: '0 auto',
+      width: '100%',
+      boxSizing: 'border-box',
       fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif'
     }}>
       <div onSubmit={handleSubmit} style={{

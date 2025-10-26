@@ -33,6 +33,7 @@ function FiscalSettings() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('company') // company, rt, tax, payments, closures
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
   // Dati aziendali e RT
   const [rtConfig, setRtConfig] = useState({
@@ -77,6 +78,14 @@ function FiscalSettings() {
   useEffect(() => {
     loadAll()
   }, [restaurant?.id])
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const loadAll = async () => {
     setLoading(true)
@@ -365,6 +374,37 @@ function FiscalSettings() {
 
   return (
     <div style={styles.container}>
+      {/* Responsive CSS */}
+      <style>{`
+        @media (max-width: 767px) {
+          .fiscal-section {
+            padding: 16px !important;
+          }
+          .fiscal-header {
+            padding: 20px 16px !important;
+          }
+          .fiscal-tabs {
+            padding: 0 16px !important;
+            border-bottom: none !important;
+          }
+          .fiscal-content {
+            padding: 16px !important;
+          }
+
+          /* Prevent horizontal overflow */
+          * {
+            max-width: 100%;
+            box-sizing: border-box;
+          }
+
+          input, select, textarea {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+        }
+      `}</style>
+
       {/* Messaggio toast */}
       {message.text && (
         <div style={{
@@ -376,7 +416,7 @@ function FiscalSettings() {
       )}
 
       {/* Header */}
-      <div style={styles.header}>
+      <div style={styles.header} className="fiscal-header">
         <button
           onClick={() => navigate('/dashboard', { state: { restaurant } })}
           style={styles.backButton}
@@ -391,45 +431,61 @@ function FiscalSettings() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={styles.tabs}>
-        <button
-          style={{...styles.tab, ...(activeTab === 'company' ? styles.tabActive : {})}}
-          onClick={() => setActiveTab('company')}
-        >
-          Dati Aziendali
-        </button>
-        <button
-          style={{...styles.tab, ...(activeTab === 'rt' ? styles.tabActive : {})}}
-          onClick={() => setActiveTab('rt')}
-        >
-          Registratore Telematico
-        </button>
-        <button
-          style={{...styles.tab, ...(activeTab === 'tax' ? styles.tabActive : {})}}
-          onClick={() => setActiveTab('tax')}
-        >
-          Aliquote IVA
-        </button>
-        <button
-          style={{...styles.tab, ...(activeTab === 'payments' ? styles.tabActive : {})}}
-          onClick={() => setActiveTab('payments')}
-        >
-          Metodi di Pagamento
-        </button>
-        <button
-          style={{...styles.tab, ...(activeTab === 'closures' ? styles.tabActive : {})}}
-          onClick={() => setActiveTab('closures')}
-        >
-          Chiusure Fiscali
-        </button>
+      {/* Tabs / Dropdown */}
+      <div style={styles.tabs} className="fiscal-tabs">
+        {isMobile ? (
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            style={styles.dropdown}
+          >
+            <option value="company">Dati Aziendali</option>
+            <option value="rt">Registratore Telematico</option>
+            <option value="tax">Aliquote IVA</option>
+            <option value="payments">Metodi di Pagamento</option>
+            <option value="closures">Chiusure Fiscali</option>
+          </select>
+        ) : (
+          <>
+            <button
+              style={{...styles.tab, ...(activeTab === 'company' ? styles.tabActive : {})}}
+              onClick={() => setActiveTab('company')}
+            >
+              Dati Aziendali
+            </button>
+            <button
+              style={{...styles.tab, ...(activeTab === 'rt' ? styles.tabActive : {})}}
+              onClick={() => setActiveTab('rt')}
+            >
+              Registratore Telematico
+            </button>
+            <button
+              style={{...styles.tab, ...(activeTab === 'tax' ? styles.tabActive : {})}}
+              onClick={() => setActiveTab('tax')}
+            >
+              Aliquote IVA
+            </button>
+            <button
+              style={{...styles.tab, ...(activeTab === 'payments' ? styles.tabActive : {})}}
+              onClick={() => setActiveTab('payments')}
+            >
+              Metodi di Pagamento
+            </button>
+            <button
+              style={{...styles.tab, ...(activeTab === 'closures' ? styles.tabActive : {})}}
+              onClick={() => setActiveTab('closures')}
+            >
+              Chiusure Fiscali
+            </button>
+          </>
+        )}
       </div>
 
       {/* CONTENT */}
-      <div style={styles.content}>
+      <div style={styles.content} className="fiscal-content">
         {/* TAB 1: DATI AZIENDALI */}
         {activeTab === 'company' && (
-          <div style={styles.section}>
+          <div style={styles.section} className="fiscal-section">
             <h2 style={styles.sectionTitle}>Dati Aziendali</h2>
             <p style={styles.sectionDesc}>
               Questi dati verranno stampati su tutti gli scontrini fiscali
@@ -530,7 +586,7 @@ function FiscalSettings() {
 
         {/* TAB 2: REGISTRATORE TELEMATICO */}
         {activeTab === 'rt' && (
-          <div style={styles.section}>
+          <div style={styles.section} className="fiscal-section">
             <h2 style={styles.sectionTitle}>Registratore Telematico (RT)</h2>
             <p style={styles.sectionDesc}>
               Configura la connessione al registratore telematico per emettere scontrini fiscali
@@ -750,7 +806,7 @@ function FiscalSettings() {
 
         {/* TAB 3: ALIQUOTE IVA */}
         {activeTab === 'tax' && (
-          <div style={styles.section}>
+          <div style={styles.section} className="fiscal-section">
             <div style={styles.sectionHeader}>
               <div>
                 <h2 style={styles.sectionTitle}>Aliquote IVA</h2>
@@ -846,7 +902,7 @@ function FiscalSettings() {
 
         {/* TAB 4: METODI DI PAGAMENTO */}
         {activeTab === 'payments' && (
-          <div style={styles.section}>
+          <div style={styles.section} className="fiscal-section">
             <div style={styles.sectionHeader}>
               <div>
                 <h2 style={styles.sectionTitle}>Metodi di Pagamento</h2>
@@ -955,7 +1011,7 @@ function FiscalSettings() {
 
         {/* TAB 5: CHIUSURE FISCALI */}
         {activeTab === 'closures' && (
-          <div style={styles.section}>
+          <div style={styles.section} className="fiscal-section">
             <h2 style={styles.sectionTitle}>Chiusure Fiscali</h2>
             <p style={styles.sectionDesc}>
               Gestione chiusure giornaliere (Z) e intermedie (X)
@@ -1093,6 +1149,24 @@ const styles = {
     color: '#000',
     borderBottomColor: '#000'
   },
+  dropdown: {
+    width: '100%',
+    padding: '12px 16px',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#000',
+    backgroundColor: '#fff',
+    border: '1px solid #E0E0E0',
+    borderRadius: '6px',
+    outline: 'none',
+    cursor: 'pointer',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23000' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 12px center',
+    paddingRight: '40px',
+    marginBottom: '16px'
+  },
   content: {
     maxWidth: '1200px',
     margin: '0 auto',
@@ -1142,7 +1216,7 @@ const styles = {
   },
   formGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: '16px',
     marginBottom: '24px'
   },
@@ -1309,7 +1383,7 @@ const styles = {
   },
   closureInfo: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
     gap: '16px',
     marginBottom: '32px'
   },
@@ -1331,7 +1405,7 @@ const styles = {
   },
   closureActions: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
     gap: '16px',
     marginBottom: '24px'
   },

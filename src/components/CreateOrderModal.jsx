@@ -1575,7 +1575,7 @@ const styles = {
   },
   variantModal: {
     width: '90%',
-    maxWidth: '500px',
+    maxWidth: 'min(500px, 95vw)',
     backgroundColor: '#fff',
     borderRadius: '12px',
     maxHeight: '80vh',

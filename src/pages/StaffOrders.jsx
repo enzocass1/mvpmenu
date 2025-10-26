@@ -23,7 +23,8 @@ function StaffOrders() {
   const [selectedOrders, setSelectedOrders] = useState([]) // Array di order IDs selezionati
   const [selectionMode, setSelectionMode] = useState(false) // Modalità selezione attiva
   const [enableTableOrders, setEnableTableOrders] = useState(false) // Ordini al tavolo attivi
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768) // Desktop detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768) // Mobile detection
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024) // Desktop detection
   const longPressActiveRef = useRef(false) // Flag per tracciare se è attivo un long press
 
   useEffect(() => {
@@ -60,7 +61,8 @@ function StaffOrders() {
   // Detect desktop/mobile
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768)
+      setIsMobile(window.innerWidth < 768)
+      setIsDesktop(window.innerWidth >= 1024)
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)

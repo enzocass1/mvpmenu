@@ -1,82 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { checkPremiumAccess } from '../utils/subscription'
+import { tokens } from '../styles/tokens'
+import { Card } from './ui'
 
-/**
- * Componente per sezioni collassabili
- */
-function CollapsibleSection({ title, isOpen, onToggle, children }) {
-  return (
-    <div style={{ marginBottom: '20px' }}>
-      <button
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        aria-label={`${isOpen ? 'Chiudi' : 'Apri'} sezione ${title}`}
-        style={{
-          width: '100%',
-          background: 'transparent',
-          border: 'none',
-          padding: '0 0 2px 0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          cursor: 'pointer',
-          textAlign: 'left',
-          outline: 'none'
-        }}
-      >
-        <h2 style={{
-          margin: 0,
-          fontSize: '18px',
-          fontWeight: '400',
-          color: '#000000'
-        }}>
-          {title}
-        </h2>
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          style={{
-            transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            flexShrink: 0
-          }}
-        >
-          <path
-            d="M4 12h16m0 0l-6-6m6 6l-6 6"
-            stroke="#000000"
-            strokeWidth="1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-      <div style={{
-        height: '1px',
-        backgroundColor: '#000000',
-        marginBottom: '20px'
-      }} />
-
-      <div style={{
-        display: 'grid',
-        gridTemplateRows: isOpen ? '1fr' : '0fr',
-        transition: 'grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-      }}>
-        <div style={{
-          overflow: 'hidden',
-          opacity: isOpen ? 1 : 0,
-          transition: 'opacity 0.3s ease'
-        }}>
-          <div style={{ padding: '0 0 30px 0' }}>
-            {children}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 /**
  * Componente per gestione impostazioni ordini al tavolo
@@ -103,10 +30,6 @@ function OrderSettings({ restaurant }) {
     role: 'waiter'
   })
   const [message, setMessage] = useState({ text: '', type: '' })
-  const [openSections, setOpenSections] = useState({
-    tableOrdering: true,
-    priorityOrder: true
-  })
 
   useEffect(() => {
     if (restaurant?.id) {
@@ -395,13 +318,6 @@ function OrderSettings({ restaurant }) {
     )
   }
 
-  const toggleSection = (section) => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
-
   return (
     <div style={styles.container}>
       {/* Messaggio toast */}
@@ -414,14 +330,10 @@ function OrderSettings({ restaurant }) {
         </div>
       )}
 
-      {/* SEZIONE 1: Ordine al Tavolo */}
-      <CollapsibleSection
-        title="Ordine al Tavolo"
-        isOpen={openSections.tableOrdering}
-        onToggle={() => toggleSection('tableOrdering')}
-      >
-        {/* Toggle Ordini al Tavolo */}
-        <div style={styles.section}>
+      {/* Ordine al Tavolo */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <h3 style={styles.cardTitle}>Ordine al Tavolo</h3>
           <div style={styles.toggleContainer}>
             <div>
               <h3 style={styles.sectionTitle}>Attiva Ordini al Tavolo</h3>
@@ -444,11 +356,10 @@ function OrderSettings({ restaurant }) {
               }} />
             </button>
           </div>
-        </div>
 
-        {/* Link accesso per membri dello staff */}
-        {settings.orders_enabled && (
-          <div style={styles.section}>
+          {/* Link accesso per membri dello staff */}
+          {settings.orders_enabled && (
+            <div style={{ marginTop: tokens.spacing.lg }}>
             <h3 style={{
               margin: '0 0 15px 0',
               fontSize: '14px',
@@ -580,12 +491,12 @@ function OrderSettings({ restaurant }) {
                 </ul>
               </div>
             </div>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Gestione Camerieri */}
-        {settings.orders_enabled && (
-          <div style={styles.section}>
+          {/* Gestione Camerieri */}
+          {settings.orders_enabled && (
+            <div style={{ marginTop: tokens.spacing.xl }}>
             <div style={styles.staffHeader}>
               <div>
                 <h3 style={styles.sectionTitle}>Camerieri</h3>
@@ -712,17 +623,16 @@ function OrderSettings({ restaurant }) {
             ) : (
               <p style={styles.emptyMessage}>Nessun cameriere aggiunto</p>
             )}
-          </div>
-        )}
-      </CollapsibleSection>
+            </div>
+          )}
+        </div>
+      </Card>
 
-      {/* SEZIONE 2: Priority Order */}
-      <CollapsibleSection
-        title="Priority Order"
-        isOpen={openSections.priorityOrder}
-        onToggle={() => toggleSection('priorityOrder')}
-      >
-        <div style={styles.toggleContainer}>
+      {/* Priority Order */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }}>
+          <h3 style={styles.cardTitle}>Priority Order</h3>
+          <div style={styles.toggleContainer}>
           <div>
             <h3 style={styles.sectionTitle}>Attiva Priority Order</h3>
             <p style={styles.sectionDescription}>
@@ -773,15 +683,24 @@ function OrderSettings({ restaurant }) {
               </button>
             </div>
           </div>
-        )}
-      </CollapsibleSection>
+          )}
+        </div>
+      </Card>
     </div>
   )
 }
 
 const styles = {
   container: {
-    position: 'relative'
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacing.lg
+  },
+  cardTitle: {
+    margin: `0 0 ${tokens.spacing.lg} 0`,
+    fontSize: tokens.typography.fontSize.lg,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: tokens.colors.black
   },
   loading: {
     display: 'flex',
@@ -875,13 +794,6 @@ const styles = {
     zIndex: 1000,
     fontSize: '14px',
     fontWeight: '500'
-  },
-  section: {
-    marginBottom: '32px',
-    padding: '24px',
-    backgroundColor: '#fff',
-    border: '1px solid #e0e0e0',
-    borderRadius: '12px'
   },
   toggleContainer: {
     display: 'flex',
@@ -990,7 +902,7 @@ const styles = {
   },
   formRow: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
     gap: '16px',
     marginBottom: '16px'
   },

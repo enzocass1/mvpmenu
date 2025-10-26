@@ -1062,7 +1062,7 @@ const getStyles = (theme = {}) => ({
   
   carouselContainer: {
     width: '100%',
-    height: '500px',
+    height: 'clamp(300px, 60vh, 500px)',
     position: 'relative',
     perspective: '1000px',
     overflow: 'hidden',
@@ -1080,8 +1080,8 @@ const getStyles = (theme = {}) => ({
   
   categoryCard: {
     position: 'absolute',
-    width: '320px',
-    height: '420px',
+    width: 'min(320px, 85vw)',
+    height: 'clamp(360px, 70vh, 420px)',
     borderRadius: theme.borderRadius || '20px',
     overflow: 'hidden',
     border: 'none',
@@ -1304,7 +1304,7 @@ const getStyles = (theme = {}) => ({
   },
 
   variantsListContainer: {
-    padding: '8px 16px 12px 56px',
+    padding: '8px 16px 12px clamp(24px, 5vw, 56px)',
   },
 
   variantItem: {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { tokens } from '../../styles/tokens'
 import Sidebar from './Sidebar'
 import Button from './Button'
@@ -16,6 +16,17 @@ function DashboardLayout({
   onLogout,
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+      setIsDesktop(window.innerWidth >= 1024)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   const containerStyles = {
     display: 'flex',
@@ -25,14 +36,14 @@ function DashboardLayout({
 
   const mainStyles = {
     flex: 1,
-    marginLeft: window.innerWidth >= 1024 ? '240px' : '0',
+    marginLeft: isDesktop ? '240px' : '0',
     transition: tokens.transitions.base,
     display: 'flex',
     flexDirection: 'column',
   }
 
   const topBarStyles = {
-    display: window.innerWidth < 1024 ? 'flex' : 'none',
+    display: isDesktop ? 'none' : 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: tokens.spacing.md,
@@ -48,14 +59,21 @@ function DashboardLayout({
     fontWeight: tokens.typography.fontWeight.semibold,
     color: tokens.colors.black,
     margin: 0,
+    flex: 1,
+    textAlign: 'center',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    padding: `0 ${tokens.spacing.sm}`,
   }
 
   const contentStyles = {
     flex: 1,
-    padding: tokens.spacing.xl,
+    padding: isMobile ? tokens.spacing.md : tokens.spacing.xl,
     maxWidth: '1400px',
     width: '100%',
     margin: '0 auto',
+    boxSizing: 'border-box',
   }
 
   return (
@@ -73,17 +91,21 @@ function DashboardLayout({
       <main style={mainStyles}>
         {/* Mobile Top Bar */}
         <div style={topBarStyles}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(true)}
-          >
-            Menu
-          </Button>
+          <div style={{ flexShrink: 0 }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarOpen(true)}
+            >
+              Menu
+            </Button>
+          </div>
           <h1 style={topBarTitleStyles}>{restaurantName || 'MVP Menu'}</h1>
-          <Button variant="ghost" size="sm" onClick={onLogout}>
-            Esci
-          </Button>
+          <div style={{ flexShrink: 0 }}>
+            <Button variant="ghost" size="sm" onClick={onLogout}>
+              Esci
+            </Button>
+          </div>
         </div>
 
         {/* Page Content */}

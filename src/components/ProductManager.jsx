@@ -16,6 +16,8 @@ function ProductManager({ restaurantId, restaurant }) {
   const [editingProduct, setEditingProduct] = useState(null)
   const [showVariantManager, setShowVariantManager] = useState(null)
   const [variantCounts, setVariantCounts] = useState({})
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -530,6 +532,37 @@ function ProductManager({ restaurantId, restaurant }) {
           </div>
         )}
 
+        {/* Category Filter Button */}
+        {products.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <button
+              onClick={() => setShowCategoryFilter(true)}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#000000',
+                background: '#FFFFFF',
+                border: '1px solid #000000',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#000000'
+                e.target.style.color = '#FFFFFF'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#FFFFFF'
+                e.target.style.color = '#000000'
+              }}
+            >
+              Filtra per categorie
+            </button>
+          </div>
+        )}
+
         {products.length === 0 ? (
           <div style={{
             padding: '60px 20px',
@@ -560,7 +593,9 @@ function ProductManager({ restaurantId, restaurant }) {
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
             gap: '20px'
           }}>
-            {products.map((product) => {
+            {products
+              .filter(p => selectedCategory === 'all' || p.category_id === selectedCategory)
+              .map((product) => {
               const variantCount = variantCounts[product.id] || 0
               const categoryName = getCategoryName(product.category_id)
 
@@ -781,6 +816,120 @@ function ProductManager({ restaurantId, restaurant }) {
               loadData() // Ricarica prodotti dopo modifiche varianti
             }}
           />
+        )}
+
+        {/* Category Filter Modal */}
+        {showCategoryFilter && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            }}
+            onClick={() => setShowCategoryFilter(false)}
+          >
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '12px',
+                maxWidth: '400px',
+                width: '100%',
+                maxHeight: '80vh',
+                overflow: 'auto',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ padding: '24px' }}>
+                <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
+                  Filtra per categoria
+                </h3>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setSelectedCategory('all')
+                      setShowCategoryFilter(false)
+                    }}
+                    style={{
+                      padding: '12px 16px',
+                      fontSize: '14px',
+                      fontWeight: selectedCategory === 'all' ? '600' : '500',
+                      color: selectedCategory === 'all' ? '#FFFFFF' : '#000000',
+                      background: selectedCategory === 'all' ? '#000000' : '#F5F5F5',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    Tutte le categorie
+                  </button>
+
+                  {categories.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setSelectedCategory(cat.id)
+                        setShowCategoryFilter(false)
+                      }}
+                      style={{
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        fontWeight: selectedCategory === cat.id ? '600' : '500',
+                        color: selectedCategory === cat.id ? '#FFFFFF' : '#000000',
+                        background: selectedCategory === cat.id ? '#000000' : '#F5F5F5',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedCategory !== cat.id) {
+                          e.target.style.background = '#E0E0E0'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedCategory !== cat.id) {
+                          e.target.style.background = '#F5F5F5'
+                        }
+                      }}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setShowCategoryFilter(false)}
+                  style={{
+                    marginTop: '20px',
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#666666',
+                    background: 'transparent',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Chiudi
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>

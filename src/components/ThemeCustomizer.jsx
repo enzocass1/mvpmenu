@@ -367,6 +367,26 @@ function ThemeCustomizer({ restaurantId }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.lg }}>
+      {/* Responsive CSS */}
+      <style>{`
+        @media (max-width: 767px) {
+          .theme-card-padding {
+            padding: 16px !important;
+          }
+
+          /* Prevent horizontal overflow */
+          * {
+            max-width: 100%;
+            box-sizing: border-box;
+          }
+
+          input[type="text"], input[type="color"], select, textarea {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <div>
         <h2 style={{
@@ -389,11 +409,11 @@ function ThemeCustomizer({ restaurantId }) {
 
       {/* Preset Temi */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
+        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={sectionTitleStyles}>Temi Predefiniti</h3>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
             gap: tokens.spacing.md
           }}>
             {themePresets.map((preset) => (
@@ -430,11 +450,11 @@ function ThemeCustomizer({ restaurantId }) {
 
       {/* Personalizzazione Colori */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
+        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={sectionTitleStyles}>Colori Principali</h3>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
             gap: tokens.spacing.lg
           }}>
             <div>
@@ -532,7 +552,7 @@ function ThemeCustomizer({ restaurantId }) {
 
       {/* Colori Funzionali (NUOVA SEZIONE) */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
+        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={sectionTitleStyles}>Colori Funzionali</h3>
           <p style={{
             marginBottom: tokens.spacing.lg,
@@ -543,7 +563,7 @@ function ThemeCustomizer({ restaurantId }) {
           </p>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
             gap: tokens.spacing.lg
           }}>
             <div>
@@ -695,11 +715,11 @@ function ThemeCustomizer({ restaurantId }) {
 
       {/* Stili e Layout */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
+        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={sectionTitleStyles}>Stile e Layout</h3>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
             gap: tokens.spacing.lg
           }}>
             <div>
@@ -761,7 +781,7 @@ function ThemeCustomizer({ restaurantId }) {
 
       {/* Anteprima */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
+        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={sectionTitleStyles}>Anteprima Tema</h3>
 
           {/* Background principale del menu */}
@@ -944,7 +964,7 @@ function ThemeCustomizer({ restaurantId }) {
 
       {/* Azioni */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
+        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={{
             fontSize: tokens.typography.fontSize.lg,
             fontWeight: tokens.typography.fontWeight.semibold,
@@ -957,7 +977,7 @@ function ThemeCustomizer({ restaurantId }) {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
             gap: tokens.spacing.md,
           }}>
             {/* Bottone Salva */}
