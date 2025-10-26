@@ -6,14 +6,29 @@ const getThemeStyles = (themeConfig) => {
   if (!themeConfig) return {} // Usa stili default se non c'è theme_config
 
   return {
+    // Colori principali
     primaryColor: themeConfig.primaryColor || '#000000',
     secondaryColor: themeConfig.secondaryColor || '#ffffff',
     textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
     textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
     textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+
+    // Colori funzionali
     borderColor: themeConfig.borderColor || '#e0e0e0',
     errorColor: themeConfig.errorColor || '#f44336',
     backgroundTertiary: themeConfig.backgroundTertiary || '#f9f9f9',
+
+    // Nuovi colori aggiunti in Fase 1
+    inputBackground: themeConfig.inputBackground || '#ffffff',
+    inputBorder: themeConfig.inputBorder || '#e0e0e0',
+    inputBorderFocus: themeConfig.inputBorderFocus || '#000000',
+    inputText: themeConfig.inputText || '#111827',
+    overlayBackground: themeConfig.overlayBackground || 'rgba(0,0,0,0.5)',
+    cardBackground: themeConfig.cardBackground || '#ffffff',
+    cardBorder: themeConfig.cardBorder || '#e0e0e0',
+    emptyStateText: themeConfig.emptyStateText || '#999999',
+    linkColor: themeConfig.linkColor || '#4CAF50',
+    linkHoverColor: themeConfig.linkHoverColor || '#000000',
   }
 }
 
@@ -391,7 +406,7 @@ const getStyles = (theme = {}) => ({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: theme.overlayBackground || 'rgba(0,0,0,0.75)',
     zIndex: 10000,
     display: 'flex',
     alignItems: 'center',
@@ -401,7 +416,7 @@ const getStyles = (theme = {}) => ({
     overflowY: 'auto'
   },
   modal: {
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff',
     borderRadius: '20px',
     width: '100%',
     maxWidth: 'min(480px, 95vw)',
@@ -418,7 +433,7 @@ const getStyles = (theme = {}) => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '16px 20px',
-    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`,
+    borderBottom: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`,
     flexShrink: 0
   },
   title: {
@@ -452,9 +467,9 @@ const getStyles = (theme = {}) => ({
     gap: '12px',
     marginBottom: '16px',
     padding: '12px',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff',
     borderRadius: '8px',
-    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`
   },
   productImage: {
     width: '60px',
@@ -507,9 +522,9 @@ const getStyles = (theme = {}) => ({
   quantityButton: {
     width: 'clamp(36px, 10vw, 40px)',
     height: 'clamp(36px, 10vw, 40px)',
-    border: `2px solid ${theme.textSecondaryColor || '#000'}`,
+    border: `2px solid ${theme.inputBorder || theme.borderColor || '#e0e0e0'}`,
     borderRadius: '10px',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.inputBackground || theme.secondaryColor || '#fff',
     cursor: 'pointer',
     fontSize: 'clamp(18px, 5vw, 20px)',
     fontWeight: '600',
@@ -517,7 +532,7 @@ const getStyles = (theme = {}) => ({
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s',
-    color: theme.textSecondaryColor || '#000',
+    color: theme.inputText || theme.textSecondaryColor || '#000',
     lineHeight: 1
   },
   quantityInput: {
@@ -526,17 +541,17 @@ const getStyles = (theme = {}) => ({
     textAlign: 'center',
     fontSize: 'clamp(14px, 4vw, 16px)',
     fontWeight: '600',
-    border: `2px solid ${theme.borderColor || '#e0e0e0'}`,
+    border: `2px solid ${theme.inputBorder || theme.borderColor || '#e0e0e0'}`,
     borderRadius: '10px',
     outline: 'none',
-    color: theme.textSecondaryColor || '#000',
-    backgroundColor: theme.secondaryColor || '#fff'
+    color: theme.inputText || theme.textSecondaryColor || '#000',
+    backgroundColor: theme.inputBackground || theme.secondaryColor || '#fff'
   },
   textarea: {
     width: '100%',
     padding: '10px',
     fontSize: '13px',
-    border: `1px solid ${theme.borderColor || '#ddd'}`,
+    border: `1px solid ${theme.inputBorder || theme.borderColor || '#ddd'}`,
     borderRadius: '8px',
     boxSizing: 'border-box',
     outline: 'none',
@@ -544,8 +559,8 @@ const getStyles = (theme = {}) => ({
     fontFamily: 'inherit',
     lineHeight: '1.4',
     minHeight: '60px',
-    backgroundColor: theme.secondaryColor || '#fff',
-    color: theme.textSecondaryColor || '#000'
+    backgroundColor: theme.inputBackground || theme.secondaryColor || '#fff',
+    color: theme.inputText || theme.textSecondaryColor || '#000'
   },
   charCount: {
     textAlign: 'right',
@@ -558,10 +573,10 @@ const getStyles = (theme = {}) => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff',
     borderRadius: '8px',
     marginBottom: '16px',
-    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`
   },
   subtotalLabel: {
     fontSize: '14px',
@@ -582,7 +597,7 @@ const getStyles = (theme = {}) => ({
     padding: '12px',
     backgroundColor: 'transparent',
     color: theme.textTertiaryColor || '#666',
-    border: `1px solid ${theme.borderColor || '#ddd'}`,
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#ddd'}`,
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
@@ -605,7 +620,7 @@ const getStyles = (theme = {}) => ({
     padding: '16px',
     backgroundColor: theme.backgroundTertiary || '#f9f9f9',
     borderRadius: '12px',
-    border: `1px solid ${theme.borderColor || '#e0e0e0'}`
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`
   },
   variantsSectionTitle: {
     margin: '0 0 12px 0',
@@ -630,9 +645,9 @@ const getStyles = (theme = {}) => ({
   },
   optionButton: {
     padding: '8px 16px',
-    backgroundColor: theme.secondaryColor || '#fff',
-    color: theme.textSecondaryColor || '#333',
-    border: `2px solid ${theme.borderColor || '#ddd'}`,
+    backgroundColor: theme.inputBackground || theme.secondaryColor || '#fff',
+    color: theme.inputText || theme.textSecondaryColor || '#333',
+    border: `2px solid ${theme.inputBorder || theme.borderColor || '#ddd'}`,
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
@@ -648,7 +663,7 @@ const getStyles = (theme = {}) => ({
   variantInfo: {
     marginTop: '12px',
     padding: '10px',
-    backgroundColor: theme.secondaryColor || '#fff',
+    backgroundColor: theme.cardBackground || theme.secondaryColor || '#fff',
     borderRadius: '8px',
     fontSize: '13px',
     display: 'flex',
