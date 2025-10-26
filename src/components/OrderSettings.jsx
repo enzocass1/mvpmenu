@@ -320,6 +320,23 @@ function OrderSettings({ restaurant }) {
 
   return (
     <div style={styles.container}>
+      {/* Responsive CSS */}
+      <style>{`
+        @media (max-width: 767px) {
+          .order-card-padding {
+            padding: 16px !important;
+          }
+          * {
+            max-width: 100%;
+            box-sizing: border-box;
+          }
+          input[type="text"], input[type="email"], input[type="password"], input[type="number"], select {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+          }
+        }
+      `}</style>
+
       {/* Messaggio toast */}
       {message.text && (
         <div style={{
@@ -332,15 +349,12 @@ function OrderSettings({ restaurant }) {
 
       {/* Ordine al Tavolo */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
-          <h3 style={styles.cardTitle}>Ordine al Tavolo</h3>
-          <div style={styles.toggleContainer}>
-            <div>
-              <h3 style={styles.sectionTitle}>Attiva Ordini al Tavolo</h3>
-              <p style={styles.sectionDescription}>
-                Permetti ai clienti di ordinare direttamente dal menu digitale
-              </p>
-            </div>
+        <div style={{ padding: tokens.spacing.xl }} className="order-card-padding">
+          <h3 style={styles.sectionTitle}>Attiva Ordini al Tavolo</h3>
+          <p style={styles.sectionDescription}>
+            Permetti ai clienti di ordinare direttamente dal menu digitale
+          </p>
+          <div style={{ marginTop: tokens.spacing.md }}>
             <button
               onClick={() => handleToggleOrders(!settings.orders_enabled)}
               disabled={saving}
@@ -352,7 +366,7 @@ function OrderSettings({ restaurant }) {
             >
               <div style={{
                 ...styles.toggleThumb,
-                transform: settings.orders_enabled ? 'translateX(26px)' : 'translateX(0)'
+                transform: settings.orders_enabled ? 'translateX(20px)' : 'translateX(0)'
               }} />
             </button>
           </div>
@@ -580,42 +594,46 @@ function OrderSettings({ restaurant }) {
               <div style={styles.staffList}>
                 {staff.map((member) => (
                   <div key={member.id} style={styles.staffCard}>
-                    <div style={styles.staffInfo}>
-                      <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <p style={styles.staffName}>{member.name}</p>
-                        <p style={styles.staffEmail}>{member.email}</p>
-                        {member.password && (
-                          <p style={styles.staffPassword}>
-                            <strong>Password:</strong> {member.password}
-                          </p>
-                        )}
+                        <span style={{
+                          ...styles.roleBadge,
+                          backgroundColor: member.role === 'manager' ? '#FF9800' : '#2196F3'
+                        }}>
+                          {member.role === 'manager' ? 'Manager' : 'Cameriere'}
+                        </span>
                       </div>
-                      <span style={{
-                        ...styles.roleBadge,
-                        backgroundColor: member.role === 'manager' ? '#FF9800' : '#2196F3'
-                      }}>
-                        {member.role === 'manager' ? 'Manager' : 'Cameriere'}
-                      </span>
-                    </div>
-                    <div style={styles.staffActions}>
-                      <button
-                        onClick={() => handleToggleStaffActive(member.id, member.is_active)}
-                        style={{
-                          ...styles.actionButton,
-                          backgroundColor: member.is_active ? '#4CAF50' : '#999'
-                        }}
-                      >
-                        {member.is_active ? 'Attivo' : 'Disattivo'}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStaff(member.id)}
-                        style={{
-                          ...styles.actionButton,
-                          backgroundColor: '#f44336'
-                        }}
-                      >
-                        Elimina
-                      </button>
+                      <p style={styles.staffEmail}>{member.email}</p>
+                      {member.password && (
+                        <p style={styles.staffPassword}>
+                          <strong>Password:</strong> {member.password}
+                        </p>
+                      )}
+                      <div style={styles.staffActions}>
+                        <button
+                          onClick={() => handleToggleStaffActive(member.id, member.is_active)}
+                          style={{
+                            ...styles.actionButton,
+                            backgroundColor: member.is_active ? '#000' : '#fff',
+                            color: member.is_active ? '#fff' : '#000',
+                            border: member.is_active ? 'none' : '1px solid #000'
+                          }}
+                        >
+                          {member.is_active ? 'Attivo' : 'Disattivo'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStaff(member.id)}
+                          style={{
+                            ...styles.actionButton,
+                            backgroundColor: '#fff',
+                            color: '#f44336',
+                            border: '1px solid #f44336'
+                          }}
+                        >
+                          Elimina
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -630,30 +648,27 @@ function OrderSettings({ restaurant }) {
 
       {/* Priority Order */}
       <Card>
-        <div style={{ padding: tokens.spacing.xl }}>
-          <h3 style={styles.cardTitle}>Priority Order</h3>
-          <div style={styles.toggleContainer}>
-          <div>
-            <h3 style={styles.sectionTitle}>Attiva Priority Order</h3>
-            <p style={styles.sectionDescription}>
-              Permetti ai clienti di pagare per avere il proprio ordine preparato prioritariamente
-            </p>
+        <div style={{ padding: tokens.spacing.xl }} className="order-card-padding">
+          <h3 style={styles.sectionTitle}>Attiva Priority Order</h3>
+          <p style={styles.sectionDescription}>
+            Permetti ai clienti di pagare per avere il proprio ordine preparato prioritariamente
+          </p>
+          <div style={{ marginTop: tokens.spacing.md }}>
+            <button
+              onClick={() => handleTogglePriorityOrder(!settings.priority_order_enabled)}
+              disabled={saving}
+              style={{
+                ...styles.toggle,
+                backgroundColor: settings.priority_order_enabled ? '#34C759' : '#e0e0e0'
+              }}
+              aria-label={settings.priority_order_enabled ? 'Disattiva Priority Order' : 'Attiva Priority Order'}
+            >
+              <div style={{
+                ...styles.toggleThumb,
+                transform: settings.priority_order_enabled ? 'translateX(20px)' : 'translateX(0)'
+              }} />
+            </button>
           </div>
-          <button
-            onClick={() => handleTogglePriorityOrder(!settings.priority_order_enabled)}
-            disabled={saving}
-            style={{
-              ...styles.toggle,
-              backgroundColor: settings.priority_order_enabled ? '#34C759' : '#e0e0e0'
-            }}
-            aria-label={settings.priority_order_enabled ? 'Disattiva Priority Order' : 'Attiva Priority Order'}
-          >
-            <div style={{
-              ...styles.toggleThumb,
-              transform: settings.priority_order_enabled ? 'translateX(26px)' : 'translateX(0)'
-            }} />
-          </button>
-        </div>
 
         {settings.priority_order_enabled && (
           <div style={{ marginTop: '20px' }}>
@@ -662,7 +677,7 @@ function OrderSettings({ restaurant }) {
               Imposta il prezzo che i clienti devono pagare per il servizio Priority Order
             </p>
             <div style={styles.inputGroup}>
-              <div style={{ position: 'relative', flex: 1 }}>
+              <div style={{ position: 'relative', flex: 1, maxWidth: '200px' }}>
                 <span style={styles.currencySymbol}>€</span>
                 <input
                   type="number"
@@ -670,7 +685,7 @@ function OrderSettings({ restaurant }) {
                   step="0.50"
                   value={settings.priority_order_price}
                   onChange={(e) => setSettings({ ...settings, priority_order_price: parseFloat(e.target.value) || 0 })}
-                  style={{ ...styles.input, paddingLeft: '32px' }}
+                  style={{ ...styles.input, paddingLeft: '32px', width: '100%' }}
                   placeholder="Es. 2.00"
                 />
               </div>
@@ -695,12 +710,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacing.lg
-  },
-  cardTitle: {
-    margin: `0 0 ${tokens.spacing.lg} 0`,
-    fontSize: tokens.typography.fontSize.lg,
-    fontWeight: tokens.typography.fontWeight.semibold,
-    color: tokens.colors.black
   },
   loading: {
     display: 'flex',
@@ -795,28 +804,22 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500'
   },
-  toggleContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '20px'
-  },
   sectionTitle: {
-    margin: '0 0 4px 0',
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#000'
+    margin: 0,
+    fontSize: tokens.typography.fontSize.lg,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: tokens.colors.black
   },
   sectionDescription: {
-    margin: 0,
-    fontSize: '14px',
-    color: '#666'
+    margin: `${tokens.spacing.xs} 0 0 0`,
+    fontSize: tokens.typography.fontSize.sm,
+    color: tokens.colors.gray[600]
   },
   subsectionTitle: {
-    margin: '0 0 8px 0',
-    fontSize: '15px',
-    fontWeight: '600',
-    color: '#000'
+    margin: `${tokens.spacing.md} 0 ${tokens.spacing.sm} 0`,
+    fontSize: tokens.typography.fontSize.base,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: tokens.colors.black
   },
   currencySymbol: {
     position: 'absolute',
@@ -829,33 +832,34 @@ const styles = {
   },
   toggle: {
     position: 'relative',
-    width: '60px',
-    height: '34px',
-    border: '2px solid rgba(0,0,0,0.1)',
-    borderRadius: '17px',
+    width: '52px',
+    height: '32px',
+    border: 'none',
+    borderRadius: '16px',
     cursor: 'pointer',
-    transition: 'all 0.3s ease',
+    transition: 'background-color 0.2s ease',
     flexShrink: 0,
     outline: 'none'
   },
   toggleThumb: {
     position: 'absolute',
-    top: '3px',
-    left: '3px',
-    width: '26px',
-    height: '26px',
+    top: '2px',
+    left: '2px',
+    width: '28px',
+    height: '28px',
     backgroundColor: '#fff',
     borderRadius: '50%',
-    transition: 'transform 0.3s ease',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+    transition: 'transform 0.2s ease',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
   },
   inputGroup: {
     display: 'flex',
     gap: '12px',
-    marginTop: '16px'
+    marginTop: '16px',
+    flexWrap: 'wrap',
+    alignItems: 'center'
   },
   input: {
-    flex: 1,
     padding: '12px',
     fontSize: '14px',
     border: '1px solid #ddd',
@@ -944,21 +948,10 @@ const styles = {
   staffCard: {
     padding: '16px',
     backgroundColor: '#f9f9f9',
-    borderRadius: '8px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '16px',
-    flexWrap: 'wrap'
-  },
-  staffInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    flex: 1
+    borderRadius: '8px'
   },
   staffName: {
-    margin: '0 0 4px 0',
+    margin: 0,
     fontSize: '15px',
     fontWeight: '500',
     color: '#000'
@@ -983,7 +976,9 @@ const styles = {
   },
   staffActions: {
     display: 'flex',
-    gap: '8px'
+    gap: '8px',
+    flexWrap: 'wrap',
+    marginTop: '12px'
   },
   actionButton: {
     padding: '8px 16px',

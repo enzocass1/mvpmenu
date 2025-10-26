@@ -163,6 +163,7 @@ function SettingsPage({ session }) {
         <div>
           <RestaurantForm
             userId={session.user.id}
+            restaurant={restaurant}
             onSave={handleRestaurantUpdate}
           />
         </div>
