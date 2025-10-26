@@ -23,6 +23,23 @@ function TableDetailModal({
   useEffect(() => {
     if (!order) return
 
+    // Per completed: calcola SOLO UNA VOLTA la durata fissa
+    if (order.status === 'completed') {
+      const start = new Date(order.opened_at || order.created_at)
+      const end = new Date(order.closed_at || Date.now())
+      const durationSeconds = Math.floor((end.getTime() - start.getTime()) / 1000)
+      const hours = Math.floor(durationSeconds / 3600).toString().padStart(2, '0')
+      const minutes = Math.floor((durationSeconds % 3600) / 60).toString().padStart(2, '0')
+      const seconds = (durationSeconds % 60).toString().padStart(2, '0')
+      setTimeDisplay({
+        type: 'fixed',
+        duration: `${hours}:${minutes}:${seconds}`,
+        durationSeconds // Per analytics/KPI
+      })
+      return // NON aggiornare più
+    }
+
+    // Per pending e preparing: aggiorna dinamicamente
     const updateTimeDisplay = () => {
       const now = Date.now()
 
@@ -51,21 +68,6 @@ function TableDetailModal({
           setTimeDisplay({
             type: 'realtime',
             elapsed: ordersService.formatElapsedTime(startTime)
-          })
-          break
-        }
-
-        case 'completed': {
-          // Durata totale fissa: closed_at - opened_at
-          const start = new Date(order.opened_at || order.created_at)
-          const end = new Date(order.closed_at)
-          const durationSeconds = Math.floor((end.getTime() - start.getTime()) / 1000)
-          const hours = Math.floor(durationSeconds / 3600).toString().padStart(2, '0')
-          const minutes = Math.floor((durationSeconds % 3600) / 60).toString().padStart(2, '0')
-          const seconds = (durationSeconds % 60).toString().padStart(2, '0')
-          setTimeDisplay({
-            type: 'fixed',
-            duration: `${hours}:${minutes}:${seconds}`
           })
           break
         }
@@ -358,7 +360,7 @@ function TableDetailModal({
                       color: tokens.colors.gray[600],
                       marginBottom: tokens.spacing.xs
                     }}>
-                      Tempo
+                      Durata tavolo
                     </div>
                     <div style={{
                       fontSize: tokens.typography.fontSize.xl,
@@ -378,7 +380,7 @@ function TableDetailModal({
                       color: tokens.colors.gray[600],
                       marginBottom: tokens.spacing.xs
                     }}>
-                      Durata totale
+                      Durata tavolo
                     </div>
                     <div style={{
                       fontSize: tokens.typography.fontSize.lg,
