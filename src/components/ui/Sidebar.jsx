@@ -72,30 +72,35 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium }) {
   }
 
   // Styles
-  const overlayStyles = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: tokens.zIndex.modalBackdrop,
-    display: window.innerWidth < 1024 && isOpen ? 'block' : 'none',
-  }
+  const isMobile = window.innerWidth < 1024
 
   const sidebarStyles = {
     position: 'fixed',
     top: 0,
     left: 0,
     bottom: 0,
-    width: '240px',
+    width: isMobile ? '100%' : '240px',
     backgroundColor: tokens.colors.white,
-    borderRight: `${tokens.borders.width.thin} solid ${tokens.colors.gray[200]}`,
+    borderRight: isMobile ? 'none' : `${tokens.borders.width.thin} solid ${tokens.colors.gray[200]}`,
     display: 'flex',
     flexDirection: 'column',
-    zIndex: tokens.zIndex.sticky,
-    transform: window.innerWidth < 1024 && !isOpen ? 'translateX(-100%)' : 'translateX(0)',
+    zIndex: tokens.zIndex.modal,
+    transform: isMobile && !isOpen ? 'translateX(-100%)' : 'translateX(0)',
     transition: tokens.transitions.base,
+  }
+
+  const closeButtonStyles = {
+    position: 'absolute',
+    top: tokens.spacing.md,
+    right: tokens.spacing.md,
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    cursor: 'pointer',
+    color: tokens.colors.gray[600],
+    padding: tokens.spacing.xs,
+    lineHeight: 1,
+    display: isMobile ? 'block' : 'none',
   }
 
   const headerStyles = {
@@ -164,13 +169,13 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium }) {
 
   return (
     <>
-      {/* Overlay for mobile */}
-      {window.innerWidth < 1024 && isOpen && (
-        <div style={overlayStyles} onClick={onClose} />
-      )}
-
       {/* Sidebar */}
       <aside style={sidebarStyles}>
+        {/* Close button (mobile only) */}
+        <button style={closeButtonStyles} onClick={onClose}>
+          ×
+        </button>
+
         {/* Header */}
         <div style={headerStyles}>
           <h2 style={restaurantNameStyles}>{restaurantName || 'MVP Menu'}</h2>
