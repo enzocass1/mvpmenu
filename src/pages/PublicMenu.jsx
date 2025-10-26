@@ -42,6 +42,18 @@ const getThemeStyles = (themeConfig) => {
     favoriteActiveColor: themeConfig.favoriteActiveColor || '#e74c3c',
     deleteColor: themeConfig.deleteColor || '#f44336',
 
+    // Nuovi colori aggiunti in Fase 1
+    inputBackground: themeConfig.inputBackground || '#ffffff',
+    inputBorder: themeConfig.inputBorder || '#e0e0e0',
+    inputBorderFocus: themeConfig.inputBorderFocus || '#000000',
+    inputText: themeConfig.inputText || '#111827',
+    overlayBackground: themeConfig.overlayBackground || 'rgba(0,0,0,0.5)',
+    cardBackground: themeConfig.cardBackground || '#ffffff',
+    cardBorder: themeConfig.cardBorder || '#e0e0e0',
+    emptyStateText: themeConfig.emptyStateText || '#999999',
+    linkColor: themeConfig.linkColor || '#4CAF50',
+    linkHoverColor: themeConfig.linkHoverColor || '#000000',
+
     // Font e stili
     fontFamily: getFontFamily(themeConfig.fontFamily || 'system'),
     borderRadius: getBorderRadius(themeConfig.borderRadius || '16'),
@@ -1158,10 +1170,10 @@ const getStyles = (theme = {}) => ({
   productsHeader: {
     width: '100%',
     padding: '20px 5%',
-    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`,
+    borderBottom: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`,
     position: 'sticky',
     top: 0,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBackground || '#ffffff',
     zIndex: 100,
   },
   
@@ -1243,6 +1255,7 @@ const getStyles = (theme = {}) => ({
     fontSize: 'clamp(15px, 4vw, 17px)',
     fontWeight: '500',
     overflowWrap: 'break-word',
+    color: theme.textSecondaryColor || '#000',
   },
 
   variantTitle: {
@@ -1289,7 +1302,7 @@ const getStyles = (theme = {}) => ({
     width: '100%',
     maxHeight: '250px',
     objectFit: 'cover',
-    borderRadius: '8px',
+    borderRadius: theme.borderRadius || '8px',
     marginBottom: '12px',
     display: 'block',
   },
@@ -1305,6 +1318,8 @@ const getStyles = (theme = {}) => ({
 
   variantsListContainer: {
     padding: '8px 16px 12px clamp(24px, 5vw, 56px)',
+    backgroundColor: theme.backgroundTertiary || '#f9f9f9',
+    borderTop: `1px solid ${theme.borderColor || '#e0e0e0'}`,
   },
 
   variantItem: {
@@ -1361,7 +1376,7 @@ const getStyles = (theme = {}) => ({
   singleProductPrice: {
     fontSize: 'clamp(15px, 4vw, 17px)',
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
   },
 
   emptyState: {
@@ -1389,7 +1404,7 @@ const getStyles = (theme = {}) => ({
   
   infoLabel: {
     fontSize: '13px',
-    color: '#666',
+    color: theme.textTertiaryColor || '#666',
     marginBottom: '4px',
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -1402,13 +1417,13 @@ const getStyles = (theme = {}) => ({
     overflowWrap: 'break-word',
     lineHeight: '1.5',
   },
-  
+
   phoneLink: {
-    color: '#000',
+    color: theme.linkColor || theme.textSecondaryColor || '#000',
     textDecoration: 'none',
     fontSize: '16px',
     fontWeight: '500',
-    borderBottom: '1px solid rgba(0,0,0,0.3)',
+    borderBottom: `1px solid ${theme.linkColor || theme.textSecondaryColor || 'rgba(0,0,0,0.3)'}`,
     paddingBottom: '2px',
   },
   
@@ -1568,8 +1583,8 @@ const getStyles = (theme = {}) => ({
     position: 'absolute',
     top: '2px',
     right: '2px',
-    backgroundColor: '#000',
-    color: '#fff',
+    backgroundColor: theme.accentColor || theme.primaryColor || '#000',
+    color: theme.textPrimaryColor || '#fff',
     borderRadius: '50%',
     width: '18px',
     height: '18px',
@@ -1605,7 +1620,7 @@ const getStyles = (theme = {}) => ({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.overlayBackground || 'rgba(0, 0, 0, 0.5)',
     zIndex: 9998,
     backdropFilter: 'blur(2px)',
   },
@@ -1617,7 +1632,7 @@ const getStyles = (theme = {}) => ({
     bottom: 0,
     width: '90%',
     maxWidth: '400px',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.cardBackground || '#ffffff',
     boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.15)',
     zIndex: 9999,
     display: 'flex',
@@ -1630,15 +1645,15 @@ const getStyles = (theme = {}) => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '20px',
-    borderBottom: `1px solid ${theme.borderColor || '#e0e0e0'}`,
-    backgroundColor: '#ffffff',
+    borderBottom: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`,
+    backgroundColor: theme.cardBackground || '#ffffff',
   },
 
   sidebarTitle: {
     margin: 0,
     fontSize: '20px',
     fontWeight: '600',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
   },
 
   sidebarCloseButton: {
@@ -1686,7 +1701,7 @@ const getStyles = (theme = {}) => ({
   favoriteItemName: {
     fontSize: '16px',
     fontWeight: '500',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     marginBottom: '4px',
   },
 
@@ -1699,7 +1714,7 @@ const getStyles = (theme = {}) => ({
   favoriteItemPrice: {
     fontSize: '15px',
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.textSecondaryColor || '#000',
     marginBottom: '8px',
   },
 
