@@ -5,6 +5,7 @@
 
 import { supabase } from '../supabaseClient'
 import { trackEvent } from '../utils/analytics'
+import { addTimelineEntry } from '../utils/orderTimeline'
 
 // ============================================
 // ORDINI - CRUD BASE
@@ -69,6 +70,17 @@ export const createTableOrder = async ({
     if (isPriority) {
       await addPriorityToOrder(order.id)
     }
+
+    // Timeline: Ordine creato da cliente
+    await addTimelineEntry(order.id, 'created', null, {
+      createdByType: 'customer',
+      newStatus: 'pending',
+      notes: `Ordine creato dal cliente${customerName ? ` - ${customerName}` : ''}`,
+      changes: {
+        items_count: items.length,
+        is_priority: isPriority
+      }
+    })
 
     // Analytics
     await trackEvent('table_order_pending', {
@@ -151,6 +163,16 @@ export const createTableOrderByStaff = async ({
     if (isPriority) {
       await addPriorityToOrder(order.id)
     }
+
+    // Timeline: Ordine creato e confermato da staff (direttamente in preparazione)
+    await addTimelineEntry(order.id, 'created', staffId, {
+      newStatus: 'preparing',
+      notes: `Tavolo aperto dallo staff${customerName ? ` per ${customerName}` : ''}`,
+      changes: {
+        items_count: items.length,
+        is_priority: isPriority
+      }
+    })
 
     // Analytics
     await trackEvent('table_opened', {
@@ -281,6 +303,13 @@ export const confirmOrder = async (orderId, staffId) => {
 
     if (itemsError) throw itemsError
 
+    // Timeline: Evento "confermato" → "preparazione"
+    await addTimelineEntry(orderId, 'confirmed', staffId, {
+      previousStatus: 'pending',
+      newStatus: 'preparing',
+      notes: 'Ordine confermato e messo in preparazione'
+    })
+
     // Analytics
     await trackEvent('table_order_confirmed', {
       restaurant_id: order.restaurant_id,
@@ -321,6 +350,16 @@ export const closeTableOrder = async (orderId, staffId, receiptNumber = null) =>
 
     if (error) throw error
 
+    // Timeline: Ordine completato
+    await addTimelineEntry(orderId, 'completed', staffId, {
+      previousStatus: 'preparing',
+      newStatus: 'completed',
+      notes: receiptNumber ? `Scontrino fiscale N. ${receiptNumber}` : 'Tavolo chiuso',
+      changes: {
+        receipt_number: receiptNumber
+      }
+    })
+
     // Analytics
     await trackEvent('table_closed', {
       restaurant_id: order.restaurant_id,
@@ -343,6 +382,13 @@ export const closeTableOrder = async (orderId, staffId, receiptNumber = null) =>
  */
 export const deleteOrder = async (orderId, staffId) => {
   try {
+    // Get previous status before deleting
+    const { data: currentOrder } = await supabase
+      .from('orders')
+      .select('status')
+      .eq('id', orderId)
+      .single()
+
     const { data: order, error } = await supabase
       .from('orders')
       .update({
@@ -356,6 +402,13 @@ export const deleteOrder = async (orderId, staffId) => {
       .single()
 
     if (error) throw error
+
+    // Timeline: Ordine annullato
+    await addTimelineEntry(orderId, 'cancelled', staffId, {
+      previousStatus: currentOrder?.status,
+      newStatus: 'cancelled',
+      notes: 'Ordine annullato e rimosso'
+    })
 
     // Analytics
     await trackEvent('order_cancelled', {
@@ -449,6 +502,16 @@ export const addProductsToOrder = async (orderId, items, staffId) => {
       .update({ modified_by_staff_id: staffId })
       .eq('id', orderId)
 
+    // Timeline: Prodotti aggiunti
+    await addTimelineEntry(orderId, 'item_added', staffId, {
+      notes: `Aggiunti ${items.length} prodotti (Batch #${batchNumber})`,
+      changes: {
+        batch_number: batchNumber,
+        items_count: items.length,
+        products: items.map(i => ({ name: i.product_name, qty: i.quantity }))
+      }
+    })
+
     // Analytics
     await trackEvent('table_products_added', {
       restaurant_id: order.restaurant_id,
@@ -502,12 +565,14 @@ export const confirmNewProducts = async (orderId, batchNumber, staffId) => {
  */
 export const removeProductFromOrder = async (orderItemId, staffId) => {
   try {
-    // Ottieni info item
+    // Ottieni info item completa PRIMA di eliminarlo
     const { data: item } = await supabase
       .from('order_items')
-      .select('order_id, batch_number')
+      .select('order_id, batch_number, product_name, quantity')
       .eq('id', orderItemId)
       .single()
+
+    if (!item) throw new Error('Prodotto non trovato')
 
     // Elimina item
     const { error } = await supabase
@@ -518,12 +583,20 @@ export const removeProductFromOrder = async (orderItemId, staffId) => {
     if (error) throw error
 
     // Aggiorna modified_by
-    if (item) {
-      await supabase
-        .from('orders')
-        .update({ modified_by_staff_id: staffId })
-        .eq('id', item.order_id)
-    }
+    await supabase
+      .from('orders')
+      .update({ modified_by_staff_id: staffId })
+      .eq('id', item.order_id)
+
+    // Timeline: Prodotto rimosso
+    await addTimelineEntry(item.order_id, 'item_removed', staffId, {
+      notes: `Rimosso: ${item.product_name} (x${item.quantity})`,
+      changes: {
+        batch_number: item.batch_number,
+        product_name: item.product_name,
+        quantity: item.quantity
+      }
+    })
 
     return { success: true }
   } catch (error) {

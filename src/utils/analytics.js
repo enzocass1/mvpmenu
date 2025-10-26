@@ -19,13 +19,37 @@ export const EVENT_TYPES = {
 
 /**
  * Traccia un evento analytics
- * @param {string} restaurantId - ID del ristorante
- * @param {string} eventType - Tipo di evento (usa EVENT_TYPES)
- * @param {object} options - Opzioni aggiuntive
+ *
+ * SUPPORTA DUE FIRME:
+ * 1. trackEvent(eventType, {restaurant_id, ...metadata}) - Per ordersService
+ * 2. trackEvent(restaurantId, eventType, options) - Legacy
+ *
+ * @param {string} eventTypeOrRestaurantId - Tipo evento o restaurantId
+ * @param {object|string} dataOrEventType - Data completa o eventType
+ * @param {object} options - Opzioni aggiuntive (solo per firma legacy)
  * @returns {Promise<boolean>} - True se successo
  */
-export const trackEvent = async (restaurantId, eventType, options = {}) => {
+export const trackEvent = async (eventTypeOrRestaurantId, dataOrEventType, options = {}) => {
   try {
+    let restaurantId, eventType, metadata = {}
+
+    // Firma 1: trackEvent(eventType, {restaurant_id, ...})
+    if (typeof dataOrEventType === 'object' && dataOrEventType !== null) {
+      eventType = eventTypeOrRestaurantId
+      restaurantId = dataOrEventType.restaurant_id
+      metadata = dataOrEventType
+    }
+    // Firma 2: trackEvent(restaurantId, eventType, options)
+    else if (typeof dataOrEventType === 'string') {
+      restaurantId = eventTypeOrRestaurantId
+      eventType = dataOrEventType
+      metadata = options
+    }
+    else {
+      console.warn('trackEvent: firma non valida')
+      return false
+    }
+
     if (!restaurantId) {
       console.warn('trackEvent: restaurantId mancante')
       return false
@@ -34,16 +58,27 @@ export const trackEvent = async (restaurantId, eventType, options = {}) => {
     const eventData = {
       restaurant_id: restaurantId,
       event_type: eventType,
-      product_id: options.productId || null,
-      category_id: options.categoryId || null,
-      session_duration: options.sessionDuration || null,
+      product_id: metadata.productId || metadata.product_id || null,
+      category_id: metadata.categoryId || metadata.category_id || null,
+      session_duration: metadata.sessionDuration || metadata.session_duration || null,
       metadata: {
-        user_agent: navigator.userAgent,
-        source: options.source || 'web',
-        referrer: document.referrer || null,
-        screen_width: window.innerWidth,
-        screen_height: window.innerHeight,
-        ...options.metadata
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        source: metadata.source || 'web',
+        referrer: typeof document !== 'undefined' ? document.referrer : null,
+        screen_width: typeof window !== 'undefined' ? window.innerWidth : null,
+        screen_height: typeof window !== 'undefined' ? window.innerHeight : null,
+        ...metadata.metadata,
+        // Include all other metadata fields
+        order_id: metadata.order_id,
+        table_id: metadata.table_id,
+        room_id: metadata.room_id,
+        staff_id: metadata.staff_id,
+        user_id: metadata.user_id,
+        items_count: metadata.items_count,
+        is_priority: metadata.is_priority,
+        receipt_number: metadata.receipt_number,
+        batch_number: metadata.batch_number,
+        total: metadata.total
       }
     }
 
