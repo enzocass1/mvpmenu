@@ -36,6 +36,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
   const [error, setError] = useState('')
   const [orderSettings, setOrderSettings] = useState(null)
   const [loadingSettings, setLoadingSettings] = useState(true)
+  const [occupiedTables, setOccupiedTables] = useState([])
 
   // Calcola stili dinamici basati sul theme_config del ristorante
   const themeStyles = useMemo(() => {
@@ -51,6 +52,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
     if (restaurant?.id && isOpen) {
       loadOrderSettings()
       loadRoomsAndTables()
+      loadOccupiedTables()
     }
     // Reset to step 1 when opening cart
     if (isOpen) {
@@ -108,10 +110,40 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
     }
   }
 
+  const loadOccupiedTables = async () => {
+    try {
+      // Carica ordini aperti (status: pending, preparing)
+      const { data, error } = await supabase
+        .from('orders')
+        .select('table_number, room_id')
+        .eq('restaurant_id', restaurant.id)
+        .in('status', ['pending', 'preparing'])
+
+      if (error) throw error
+
+      // Estrai numeri tavolo occupati con le sale
+      const occupied = data?.map(order => ({
+        table_number: order.table_number,
+        room_id: order.room_id
+      })) || []
+
+      setOccupiedTables(occupied)
+    } catch (err) {
+      console.error('Errore caricamento tavoli occupati:', err)
+    }
+  }
+
   // Filtra i tavoli disponibili in base alla sala selezionata
   const getAvailableTables = () => {
     if (!selectedRoomId) return []
     return tables.filter(table => table.room_id === selectedRoomId)
+  }
+
+  // Controlla se un tavolo è occupato
+  const isTableOccupied = (tableNumber) => {
+    return occupiedTables.some(
+      occupied => occupied.table_number === tableNumber && occupied.room_id === selectedRoomId
+    )
   }
 
   const calculateTotal = () => {
@@ -425,11 +457,18 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
                     <option value="">
                       {rooms.length > 1 && !selectedRoomId ? 'Prima seleziona una sala' : 'Seleziona un tavolo'}
                     </option>
-                    {getAvailableTables().map(table => (
-                      <option key={table.id} value={table.table_number}>
-                        Tavolo {table.table_number}
-                      </option>
-                    ))}
+                    {getAvailableTables().map(table => {
+                      const occupied = isTableOccupied(table.table_number)
+                      return (
+                        <option
+                          key={table.id}
+                          value={table.table_number}
+                          disabled={occupied}
+                        >
+                          Tavolo {table.table_number} {occupied ? '(Occupato)' : ''}
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
 
@@ -505,24 +544,24 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
               <div style={styles.progressStep}>
                 <div style={{
                   ...styles.stepCircle,
-                  backgroundColor: currentStep === 1 ? '#000' : '#e0e0e0',
-                  color: currentStep === 1 ? '#fff' : '#999'
+                  backgroundColor: currentStep === 1 ? themeStyles.primaryColor : themeStyles.borderColor,
+                  color: currentStep === 1 ? themeStyles.textPrimaryColor : themeStyles.textTertiaryColor
                 }}>1</div>
                 <span style={{
                   ...styles.stepLabel,
-                  color: currentStep === 1 ? '#000' : '#999'
+                  color: currentStep === 1 ? themeStyles.textSecondaryColor : themeStyles.textTertiaryColor
                 }}>Carrello</span>
               </div>
               <div style={styles.stepLine}></div>
               <div style={styles.progressStep}>
                 <div style={{
                   ...styles.stepCircle,
-                  backgroundColor: currentStep === 2 ? '#000' : '#e0e0e0',
-                  color: currentStep === 2 ? '#fff' : '#999'
+                  backgroundColor: currentStep === 2 ? themeStyles.primaryColor : themeStyles.borderColor,
+                  color: currentStep === 2 ? themeStyles.textPrimaryColor : themeStyles.textTertiaryColor
                 }}>2</div>
                 <span style={{
                   ...styles.stepLabel,
-                  color: currentStep === 2 ? '#000' : '#999'
+                  color: currentStep === 2 ? themeStyles.textSecondaryColor : themeStyles.textTertiaryColor
                 }}>Dettagli</span>
               </div>
             </div>
