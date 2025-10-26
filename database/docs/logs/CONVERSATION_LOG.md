@@ -330,3 +330,45 @@ Continue updating /src/utils/orderTimeline.js to integrate with new roles system
 
 ---
 
+
+## [2025-10-26T17:30:00+01:00] - Fix Schema Migration + Script Helper
+
+### 📝 Prompt Utente
+```
+Errore migrazione: ERROR: 42703: column s.first_name does not exist
+Script usavano first_name/last_name ma restaurant_staff ha solo 'name'
+```
+
+### ⚙️ Azioni Eseguite
+- ✅ Identificato problema schema: restaurant_staff ha solo 'name' (non first_name/last_name)
+- ✅ Corretto create_roles_system.sql (2 trigger)
+- ✅ Corretto migrate_existing_staff_to_roles.sql
+- ✅ Corretto README_MIGRAZIONE_RUOLI.md
+- ✅ Creato populate_default_roles_all_restaurants.sql (script automatico)
+- ✅ Creato README completo con guida step-by-step
+- ✅ Git commit (1c8052e)
+- 🚧 Update log in corso
+
+### 📊 Risultato
+**Status:** ✅ Schema Corretto - Script Pronti per Esecuzione
+
+**File Corretti:**
+1. create_roles_system.sql - Trigger usano s.name direttamente
+2. migrate_existing_staff_to_roles.sql - Rimossi first_name/last_name
+3. README_MIGRAZIONE_RUOLI.md - Query corrette
+
+**File Creati:**
+1. populate_default_roles_all_restaurants.sql - Loop automatico su tutti i ristoranti
+2. README_MIGRAZIONE_RUOLI.md - Guida completa 3 step
+3. migrate_existing_staff_to_roles.sql - Migrazione staff automatica
+
+**Benefici:**
+- No più errori schema
+- Migrazione completamente automatica
+- Sostituisce SELECT create_default_roles_for_restaurant() manuale
+- Documentazione chiara per utente
+
+**Commit:** 1c8052e - "Fix: Correggi schema migration ruoli + aggiungi script helper"
+
+---
+

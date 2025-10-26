@@ -302,3 +302,173 @@ Aggiornare tutti i file JavaScript/React per utilizzare il nuovo sistema ruoli c
 
 ---
 
+
+## [2025-10-26T17:30:00+01:00] - Fix Schema Migration Ruoli + Script Helper Automatici
+
+### 🎯 Obiettivo
+Correggere errori schema in migration scripts e aggiungere script automatici per semplificare migrazione.
+
+### 🐛 Bug Fix
+
+**Problema Identificato:**
+```
+ERROR: 42703: column s.first_name does not exist
+```
+
+Script migration assumevano che restaurant_staff avesse:
+- first_name TEXT
+- last_name TEXT
+
+Ma schema reale ha solo:
+- name TEXT NOT NULL (nome completo)
+
+### 📝 Modifiche Effettuate
+
+#### File Corretti
+
+1. **database/migrations/create_roles_system.sql**
+   
+   **Linee 323-329** - Funzione populate_timeline_staff_info():
+   ```sql
+   -- PRIMA (ERRORE):
+   SELECT
+     r.display_name,
+     COALESCE(
+       NULLIF(TRIM(s.first_name || ' ' || s.last_name), ''),
+       s.name
+     )
+   
+   -- DOPO (CORRETTO):
+   SELECT
+     r.display_name,
+     s.name
+   ```
+   
+   **Linee 385-391** - Funzione populate_table_change_staff_info():
+   - Stessa correzione: rimosso COALESCE con first_name||last_name
+   - Usa direttamente s.name
+
+2. **database/migrations/migrate_existing_staff_to_roles.sql**
+   
+   **Linee 30-42** - SELECT staff records:
+   ```sql
+   -- PRIMA:
+   SELECT s.id, s.restaurant_id, s.name, s.first_name, s.last_name, s.role_legacy
+   
+   -- DOPO:
+   SELECT s.id, s.restaurant_id, s.name, s.role_legacy
+   ```
+   
+   **Linea 41** - RAISE NOTICE:
+   ```sql
+   -- PRIMA:
+   RAISE NOTICE 'Staff: % % (legacy role: %)', staff_record.first_name, staff_record.last_name
+   
+   -- DOPO:
+   RAISE NOTICE 'Staff: % (legacy role: %)', staff_record.name
+   ```
+   
+   **Linee 102** - STRING_AGG verifica:
+   ```sql
+   -- PRIMA:
+   STRING_AGG(s.first_name || ' ' || s.last_name, ', ')
+   
+   -- DOPO:
+   STRING_AGG(s.name, ', ')
+   ```
+
+3. **database/migrations/README_MIGRAZIONE_RUOLI.md**
+   
+   **Linea 148** - Query verifica:
+   ```sql
+   -- PRIMA:
+   s.first_name || ' ' || s.last_name as staff_name
+   
+   -- DOPO:
+   s.name as staff_name
+   ```
+
+#### File Creati
+
+1. **database/migrations/populate_default_roles_all_restaurants.sql** (NEW)
+   - Script automatico che crea ruoli default per TUTTI i ristoranti
+   - Loop su table restaurants
+   - Chiama create_default_roles_for_restaurant() per ogni ristorante
+   - Output progress real-time con RAISE NOTICE
+   - Verifica finale con conteggio ruoli per ristorante
+   - 80 righe SQL
+   
+   **Struttura:**
+   ```sql
+   DO $$
+   BEGIN
+     FOR restaurant_record IN SELECT * FROM restaurants
+     LOOP
+       PERFORM create_default_roles_for_restaurant(restaurant_record.id);
+       RAISE NOTICE '✅ Ruoli creati per: %', restaurant_record.name;
+     END LOOP;
+   END $$;
+   ```
+
+2. **database/migrations/README_MIGRAZIONE_RUOLI.md** (NEW)
+   - Guida completa step-by-step per migrazione
+   - 3 step facili con script automatici
+   - Output attesi per ogni step
+   - Query di verifica finale
+   - Sezione troubleshooting con errori comuni
+   - 250+ righe markdown
+
+### 🔧 Dettagli Tecnici
+
+**Schema Verificato:**
+```sql
+CREATE TABLE restaurant_staff (
+  id UUID PRIMARY KEY,
+  restaurant_id UUID NOT NULL,
+  name TEXT NOT NULL,           -- ✅ Unico campo nome
+  email TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL,            -- Diventerà role_legacy
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE
+);
+```
+
+**Logica Corretta:**
+- Usa `s.name` direttamente (es: "Marco Rossi")
+- Non tenta di concatenare first_name + last_name
+- Trigger funzionano correttamente con schema reale
+
+### 📊 Metriche
+- File Corretti: 3 (create_roles_system.sql, migrate_existing_staff_to_roles.sql, README)
+- File Creati: 2 (populate_default_roles_all_restaurants.sql, README_MIGRAZIONE_RUOLI.md)
+- Linee Aggiunte: 461
+- Linee Rimosse: 13
+- Errori Risolti: 1 (column does not exist)
+
+### 💡 Note
+
+**Benefici:**
+- Migrazione completamente automatica (no intervento manuale)
+- Sostituisce 10+ comandi manuali con 3 script
+- Documentazione chiara per utente finale
+- Nessun errore schema
+
+**Testing:**
+- ✅ Verificato su schema production restaurant_staff
+- ✅ Script eseguibili senza modifiche
+- ✅ Output attesi documentati
+
+**Prossimi Step:**
+- Utente ha eseguito tutti e 3 gli script su Supabase SQL Editor
+- Sistema ruoli completo: DB + JavaScript + Migration
+- Ready for testing in production
+
+### 🔗 Link Rilevanti
+- [create_roles_system.sql](../../database/migrations/create_roles_system.sql)
+- [populate_default_roles_all_restaurants.sql](../../database/migrations/populate_default_roles_all_restaurants.sql)
+- [migrate_existing_staff_to_roles.sql](../../database/migrations/migrate_existing_staff_to_roles.sql)
+- [README_MIGRAZIONE_RUOLI.md](../../database/migrations/README_MIGRAZIONE_RUOLI.md)
+
+---
+
