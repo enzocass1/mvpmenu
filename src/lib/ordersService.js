@@ -5,7 +5,33 @@
 
 import { supabase } from '../supabaseClient'
 import { trackEvent } from '../utils/analytics'
-import { addTimelineEntry } from '../utils/orderTimeline'
+
+// Inline addTimelineEntry per evitare problemi di import con JSX
+const addTimelineEntry = async (orderId, action, staffId = null, data = {}) => {
+  try {
+    const entry = {
+      order_id: orderId,
+      staff_id: staffId,
+      user_id: data.userId || null,
+      created_by_type: data.createdByType || (staffId ? 'staff' : 'system'),
+      action: action,
+      previous_status: data.previousStatus || null,
+      new_status: data.newStatus || null,
+      changes: data.changes || null,
+      notes: data.notes || null
+    }
+
+    const { error } = await supabase
+      .from('order_timeline')
+      .insert(entry)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Errore aggiunta timeline:', error)
+    return false
+  }
+}
 
 // ============================================
 // ORDINI - CRUD BASE
