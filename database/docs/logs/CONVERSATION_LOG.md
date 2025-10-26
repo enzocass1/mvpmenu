@@ -439,3 +439,46 @@ ok testiamo i ruoli
 
 ---
 
+
+## [2025-10-26T17:50:00+01:00] - Fix Trigger first_name/last_name su Supabase
+
+### 📝 Prompt Utente
+```
+Errore test: ERROR: 42703: column s.first_name does not exist
+CONTEXT: PL/pgSQL function populate_timeline_staff_info()
+```
+
+### 🚨 Problema Identificato
+Utente ha eseguito create_roles_system.sql su Supabase PRIMA della correzione schema.
+Trigger su Supabase contengono ancora codice con first_name/last_name.
+
+### ⚙️ Azioni Eseguite
+- ✅ Creato FIX_TRIGGER_FIRST_NAME.sql - script fix trigger
+- ✅ Creato README_FIX_TRIGGER.md - guida fix
+- 🚧 Update log
+- 🚧 Git commit
+
+### 📊 Risultato
+**Status:** ✅ Fix Pronto
+
+**File Creati:**
+1. FIX_TRIGGER_FIRST_NAME.sql (120 righe)
+   - Fix populate_timeline_staff_info()
+   - Fix populate_table_change_staff_info()
+   - Verifica fix applicato
+
+2. README_FIX_TRIGGER.md (100 righe)
+   - Spiegazione problema
+   - Soluzione 1 minuto
+   - Come verificare fix
+
+**Causa:** Timing esecuzione script (prima della correzione)
+**Soluzione:** Eseguire FIX_TRIGGER_FIRST_NAME.sql su Supabase
+
+**Prossimi Step:**
+1. Utente esegue FIX_TRIGGER_FIRST_NAME.sql
+2. Ri-esegue test_roles_system.sql
+3. Verifica ✅ PASS
+
+---
+
