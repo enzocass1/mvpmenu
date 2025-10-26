@@ -1,12 +1,55 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+
+// Helper functions for theme styling (must be defined before component)
+const getThemeStyles = (themeConfig) => {
+  if (!themeConfig) return {} // Usa stili default se non c'è theme_config
+
+  return {
+    // Colori principali
+    primaryColor: themeConfig.primaryColor || '#000000',
+    secondaryColor: themeConfig.secondaryColor || '#ffffff',
+    textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
+    textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
+    textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+
+    // Colori funzionali
+    borderColor: themeConfig.borderColor || '#e0e0e0',
+    errorColor: themeConfig.errorColor || '#f44336',
+    successColor: themeConfig.successColor || '#10B981',
+    warningColor: themeConfig.warningColor || '#ff9800',
+    backgroundTertiary: themeConfig.backgroundTertiary || '#f9f9f9',
+
+    // Nuovi colori aggiunti in Fase 1
+    inputBackground: themeConfig.inputBackground || '#ffffff',
+    inputBorder: themeConfig.inputBorder || '#e0e0e0',
+    inputBorderFocus: themeConfig.inputBorderFocus || '#000000',
+    inputText: themeConfig.inputText || '#111827',
+    overlayBackground: themeConfig.overlayBackground || 'rgba(0,0,0,0.5)',
+    cardBackground: themeConfig.cardBackground || '#ffffff',
+    cardBorder: themeConfig.cardBorder || '#e0e0e0',
+    emptyStateText: themeConfig.emptyStateText || '#999999',
+    linkColor: themeConfig.linkColor || '#4CAF50',
+    linkHoverColor: themeConfig.linkHoverColor || '#000000',
+  }
+}
 
 function OrderConfirmation() {
   const { orderId } = useParams()
   const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // Calcola stili dinamici basati sul theme_config del ristorante
+  const themeStyles = useMemo(() => {
+    return getThemeStyles(order?.restaurant?.theme_config)
+  }, [order])
+
+  // Genera stili completi con il tema applicato
+  const styles = useMemo(() => {
+    return getStyles(themeStyles)
+  }, [themeStyles])
 
   useEffect(() => {
     loadOrder()
@@ -22,7 +65,7 @@ function OrderConfirmation() {
             *,
             product:products (name, price)
           ),
-          restaurant:restaurants (name, subdomain)
+          restaurant:restaurants (name, subdomain, theme_config)
         `)
         .eq('id', orderId)
         .single()
@@ -145,10 +188,10 @@ function OrderConfirmation() {
   )
 }
 
-const styles = {
+const getStyles = (theme = {}) => ({
   container: {
     minHeight: '100vh',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.backgroundTertiary || '#F9FAFB',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -158,14 +201,14 @@ const styles = {
   loadingBox: {
     textAlign: 'center',
     fontSize: '18px',
-    color: '#666'
+    color: theme.textTertiaryColor || '#666'
   },
   errorBox: {
     textAlign: 'center',
     maxWidth: '400px'
   },
   confirmationBox: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.cardBackground || '#fff',
     borderRadius: '16px',
     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
     padding: '40px',
@@ -177,7 +220,7 @@ const styles = {
     width: '80px',
     height: '80px',
     borderRadius: '50%',
-    backgroundColor: '#10B981',
+    backgroundColor: theme.successColor || '#10B981',
     color: '#fff',
     fontSize: '48px',
     display: 'flex',
@@ -189,46 +232,48 @@ const styles = {
   title: {
     fontSize: '28px',
     fontWeight: '600',
-    color: '#111827',
+    color: theme.textSecondaryColor || '#111827',
     margin: '0 0 8px 0'
   },
   subtitle: {
     fontSize: '16px',
-    color: '#6B7280',
+    color: theme.textTertiaryColor || '#6B7280',
     margin: '0 0 32px 0'
   },
   detailsCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.backgroundTertiary || '#F9FAFB',
     borderRadius: '12px',
     padding: '20px',
     marginBottom: '24px',
-    textAlign: 'left'
+    textAlign: 'left',
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#E5E7EB'}`
   },
   detailRow: {
     display: 'flex',
     justifyContent: 'space-between',
     padding: '12px 0',
-    borderBottom: '1px solid #E5E7EB'
+    borderBottom: `1px solid ${theme.borderColor || '#E5E7EB'}`
   },
   detailLabel: {
     fontSize: '14px',
-    color: '#6B7280',
+    color: theme.textTertiaryColor || '#6B7280',
     fontWeight: '500'
   },
   detailValue: {
     fontSize: '14px',
-    color: '#111827',
+    color: theme.textSecondaryColor || '#111827',
     fontWeight: '600'
   },
   priorityBadge: {
     marginTop: '12px',
     padding: '8px 16px',
-    backgroundColor: '#FEF3C7',
-    color: '#92400E',
+    backgroundColor: `${theme.warningColor || '#ff9800'}20`,
+    color: theme.warningColor || '#92400E',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
-    textAlign: 'center'
+    textAlign: 'center',
+    border: `1px solid ${theme.warningColor || '#FEF3C7'}`
   },
   itemsSection: {
     marginBottom: '24px',
@@ -237,7 +282,7 @@ const styles = {
   itemsTitle: {
     fontSize: '16px',
     fontWeight: '600',
-    color: '#111827',
+    color: theme.textSecondaryColor || '#111827',
     margin: '0 0 16px 0'
   },
   itemsList: {
@@ -250,13 +295,14 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     padding: '12px',
-    backgroundColor: '#F9FAFB',
-    borderRadius: '8px'
+    backgroundColor: theme.backgroundTertiary || '#F9FAFB',
+    borderRadius: '8px',
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#E5E7EB'}`
   },
   itemQuantity: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#6B7280',
+    color: theme.textTertiaryColor || '#6B7280',
     minWidth: '30px'
   },
   itemNameContainer: {
@@ -267,50 +313,51 @@ const styles = {
   },
   itemName: {
     fontSize: '14px',
-    color: '#111827'
+    color: theme.textSecondaryColor || '#111827'
   },
   variantBadge: {
     padding: '2px 8px',
     fontSize: '11px',
     fontWeight: '500',
-    backgroundColor: '#E5E7EB',
-    color: '#6B7280',
+    backgroundColor: theme.backgroundTertiary || '#E5E7EB',
+    color: theme.textTertiaryColor || '#6B7280',
     borderRadius: '4px',
     alignSelf: 'flex-start'
   },
   itemPrice: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#111827'
+    color: theme.textSecondaryColor || '#111827'
   },
   notesSection: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: theme.backgroundTertiary || '#EFF6FF',
     borderRadius: '8px',
     padding: '16px',
     marginBottom: '24px',
-    textAlign: 'left'
+    textAlign: 'left',
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#BFDBFE'}`
   },
   notesTitle: {
     fontSize: '14px',
     fontWeight: '600',
-    color: '#1E40AF',
+    color: theme.textSecondaryColor || '#1E40AF',
     margin: '0 0 8px 0'
   },
   notesText: {
     fontSize: '14px',
-    color: '#1E40AF',
+    color: theme.textSecondaryColor || '#1E40AF',
     margin: 0
   },
   infoBox: {
-    backgroundColor: '#F0FDF4',
-    border: '1px solid #BBF7D0',
+    backgroundColor: `${theme.successColor || '#10B981'}15`,
+    border: `1px solid ${theme.successColor || '#BBF7D0'}`,
     borderRadius: '8px',
     padding: '16px',
     marginBottom: '24px'
   },
   infoText: {
     fontSize: '14px',
-    color: '#166534',
+    color: theme.textSecondaryColor || '#166534',
     margin: 0,
     lineHeight: '1.5'
   },
@@ -319,13 +366,13 @@ const styles = {
     padding: '14px',
     fontSize: '16px',
     fontWeight: '600',
-    color: '#fff',
-    backgroundColor: '#000',
+    color: theme.textPrimaryColor || '#fff',
+    backgroundColor: theme.primaryColor || '#000',
     border: 'none',
     borderRadius: '8px',
     cursor: 'pointer',
     transition: 'opacity 0.2s'
   }
-}
+})
 
 export default OrderConfirmation
