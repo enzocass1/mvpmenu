@@ -638,3 +638,166 @@ da Admin - Proprietario
 - [ ] Verifica formato display completo
 
 ---
+
+
+
+---
+
+
+## [2025-10-26T19:45:00+01:00] - Step 1: Fix Visualizzazione Tempo Ordini
+
+### 📝 Prompt Utente
+\
+### ⚙️ Azioni Eseguite
+
+#### Problema Identificato
+**CRITICO**: Ordini \ mostravano timer real-time invece di tempo statico
+
+**Comportamento Atteso per Stati:**
+- **PENDING**: Data/ora statica + "In attesa da X minuti"
+- **PREPARING**: Timer real-time aggiornato ogni secondo
+- **COMPLETED**: Durata totale fissa
+
+#### Fix Implementati
+
+**1. TableDetailModal.jsx** (lines 19-85)
+✅ Sostituito \ con \ state object
+✅ Implementato \ con switch su ✅ Interval aggiornato SOLO per ordini 
+**Logica Tempo:**
+\In attesa da \ minuti\:\:\
+**2. TableDetailModal.jsx - Display UI** (lines 327-392)
+✅ Rendering condizionale per 3 tipi: static/realtime/fixed
+✅ Static: Mostra "Aperto alle" + data/ora + "In attesa da X minuti" (giallo)
+✅ Realtime: Mostra "Tempo" + HH:MM:SS monospace (verde)
+✅ Fixed: Mostra "Durata totale" + HH:MM:SS monospace
+
+**3. CassaPage.jsx - tableStats** (lines 266-305)
+✅ Aggiunto \ e \ a tableStats object
+✅ Passati in stats di ogni tavolo per calcolo tempo
+
+**4. CassaPage.jsx - Helper Function** (lines 722-747)
+✅ Creato \ helper
+✅ Logica identica a TableDetailModal ma per card tavolo
+
+**5. CassaPage.jsx - Card Tavolo Mobile** (lines 1614-1638)
+✅ Sostituito \ con ✅ Colore dinamico: giallo per pending, verde per preparing
+✅ Font monospace per timer real-time
+
+**6. CassaPage.jsx - Card Tavolo Desktop** (lines 1707-1735)
+✅ Same fix con dimensioni font maggiori
+✅ Pending: fontSize.sm
+✅ Preparing: fontSize.lg
+
+### 📊 Risultato
+**Status:** ✅ Completato
+
+**File Modificati:** 2
+- src/components/TableDetailModal.jsx
+- src/pages/CassaPage.jsx
+
+**Funzionalità Implementata:**
+- ✅ PENDING: Mostra "Aperto alle 26/10/2025, 18:30" + "In attesa da 5 minuti" (statico, no timer)
+- ✅ PREPARING: Mostra "Tempo: 01:23:45" (timer real-time, aggiornato ogni 1s)
+- ✅ COMPLETED: Mostra "Durata totale: 02:15:30" (fisso, non cambia)
+- ✅ Interval setInterval SOLO per preparing (performance ottimizzata)
+- ✅ Card tavolo griglia: stesso comportamento dinamico
+- ✅ Colori: giallo warning per pending, verde success per preparing
+
+**Display Format:**
+
+**TableDetailModal - Ordine Pending:**
+\
+**TableDetailModal - Ordine Preparing:**
+\
+**Card Tavolo - Pending:**
+\
+**Card Tavolo - Preparing:**
+\
+### 🎯 Benefici
+- ✅ Performance: NO interval per pending/completed (solo preparing)
+- ✅ UX: Pending mostra tempo attesa fisso (no distrazione timer)
+- ✅ UX: Preparing mostra timer attivo (urgenza)
+- ✅ Consistenza: Stessa logica TableDetailModal + CassaPage card
+
+### 🔗 Spec Reference
+- [SISTEMA_CASSA_TAVOLI_SPEC.md](../../SISTEMA_CASSA_TAVOLI_SPEC.md) lines 80-239
+
+---
+
+
+
+---
+
+## [2025-10-26T19:45:00+01:00] - Step 1: Fix Visualizzazione Tempo Ordini
+
+### 📝 Prompt Utente
+```
+partiamo dallo step 1
+```
+
+### ⚙️ Azioni Eseguite
+
+#### Problema Identificato
+**CRITICO**: Ordini `pending` mostravano timer real-time invece di tempo statico
+
+**Comportamento Atteso:**
+- **PENDING**: Data/ora statica + "In attesa da X minuti"
+- **PREPARING**: Timer real-time aggiornato ogni secondo
+- **COMPLETED**: Durata totale fissa
+
+#### Fix Implementati
+
+**1. TableDetailModal.jsx** (lines 19-85)
+- ✅ Sostituito `elapsedTime` con `timeDisplay` state object
+- ✅ Implementato `useEffect` con switch su `order.status`
+- ✅ Interval aggiornato SOLO per ordini `preparing`
+
+**2. TableDetailModal.jsx - Display UI** (lines 327-392)
+- ✅ Rendering condizionale per 3 tipi: static/realtime/fixed
+- ✅ Static: "Aperto alle" + data/ora + "In attesa da X minuti" (giallo)
+- ✅ Realtime: "Tempo" + HH:MM:SS monospace (verde)
+- ✅ Fixed: "Durata totale" + HH:MM:SS monospace
+
+**3. CassaPage.jsx - tableStats** (lines 266-305)
+- ✅ Aggiunto `createdAt` e `orderStatus` a tableStats object
+- ✅ Passati in stats di ogni tavolo per calcolo tempo
+
+**4. CassaPage.jsx - Helper Function** (lines 722-747)
+- ✅ Creato `getTimeDisplayForTable(stats)` helper
+- ✅ Logica identica a TableDetailModal ma per card tavolo
+
+**5. CassaPage.jsx - Card Tavolo Mobile** (lines 1614-1638)
+- ✅ Sostituito `formatElapsedTime(stats.openedAt)` con `getTimeDisplayForTable(stats)`
+- ✅ Colore dinamico: giallo per pending, verde per preparing
+- ✅ Font monospace per timer real-time
+
+**6. CassaPage.jsx - Card Tavolo Desktop** (lines 1707-1735)
+- ✅ Same fix con dimensioni font maggiori
+- ✅ Pending: fontSize.sm
+- ✅ Preparing: fontSize.lg
+
+### 📊 Risultato
+**Status:** ✅ Completato
+
+**File Modificati:** 2
+- src/components/TableDetailModal.jsx
+- src/pages/CassaPage.jsx
+
+**Funzionalità Implementata:**
+- ✅ PENDING: "Aperto alle 26/10/2025, 18:30" + "In attesa da 5 minuti" (statico, no timer)
+- ✅ PREPARING: "Tempo: 01:23:45" (timer real-time, aggiornato ogni 1s)
+- ✅ COMPLETED: "Durata totale: 02:15:30" (fisso, non cambia)
+- ✅ Interval setInterval SOLO per preparing (performance ottimizzata)
+- ✅ Card tavolo griglia: stesso comportamento dinamico
+- ✅ Colori: giallo warning per pending, verde success per preparing
+
+### 🎯 Benefici
+- ✅ Performance: NO interval per pending/completed (solo preparing)
+- ✅ UX: Pending mostra tempo attesa fisso (no distrazione timer)
+- ✅ UX: Preparing mostra timer attivo (urgenza)
+- ✅ Consistenza: Stessa logica TableDetailModal + CassaPage card
+
+### 🔗 Spec Reference
+- SISTEMA_CASSA_TAVOLI_SPEC.md lines 80-239
+
+---

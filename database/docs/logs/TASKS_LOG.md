@@ -446,3 +446,62 @@ Registro di tutte le task completate, in corso e pianificate.
 **Status:** ✅ Implementato - Pronto per Test UI
 
 ---
+
+
+## [2025-10-26T19:45:00+01:00] - Step 1: Fix Visualizzazione Tempo Ordini
+
+### ✅ Task Completate
+- [x] Analizzare implementazione tempo corrente in TableDetailModal.jsx
+- [x] Implementare getOrderTimeDisplay() con logica pending/preparing/completed
+- [x] Modificare TableDetailModal.jsx per usare nuova logica tempo
+- [x] Modificare CassaPage.jsx card tavolo per tempo corretto
+- [x] Update CONVERSATION_LOG.md
+- [x] Update TASKS_LOG.md (questo)
+- [ ] Update DEVELOPMENT_LOG.md
+- [ ] Update CURRENT_CONTEXT.md
+- [ ] Git commit modifiche
+- [ ] Slack notification
+
+### 📊 Stato Step 1: Visualizzazione Tempo
+
+**Implementation: 100% ✅**
+- TableDetailModal logica tempo: 100% ✅
+- CassaPage tableStats: 100% ✅
+- CassaPage helper function: 100% ✅
+- Card tavolo mobile: 100% ✅
+- Card tavolo desktop: 100% ✅
+
+**Testing: 0% ⏳**
+- Test UI ordine pending: 0% ⏳ (da testare)
+- Test UI ordine preparing: 0% ⏳ (da testare)
+- Test UI ordine completed: 0% ⏳ (da testare)
+
+**Blockers:** Nessuno
+
+### 🎯 Prossime Task (Step 2-8 Roadmap)
+
+#### Step 2: Badge Notifiche (Prossimo)
+- [ ] Implementare badge rosso su tasto "AL TAVOLO"
+- [ ] Mostrare conteggio ordini pending
+- [ ] Animazione pulse per badge
+
+#### Step 3: Animazione Heartbeat
+- [ ] Applicare classe .table-active a tavoli preparing
+- [ ] Verifica CSS animation in cassa-animations.css
+
+#### Step 4-8: Feature Avanzate
+- [ ] Icona "+" aggiunte non confermate
+- [ ] Modal aggiungi prodotti
+- [ ] Template stampa preconto/scontrino
+- [ ] Tab & filtri sezione ordini
+- [ ] Dashboard analytics
+
+### 📊 Progress Totale Sistema Cassa
+
+**Step 1: Visualizzazione Tempo**
+- Implementation: 2/2 file (100%) ✅
+- Testing: 0/3 test (0%) ⏳
+
+**Status:** ✅ Step 1 Completato - Pronto per Test UI
+
+---

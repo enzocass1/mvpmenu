@@ -264,6 +264,8 @@ function CassaPage({ session }) {
               sum + item.quantity, 0)
 
             const openedAt = tableOrders[0]?.opened_at || tableOrders[0]?.created_at
+            const createdAt = tableOrders[0]?.created_at
+            const orderStatus = tableOrders[0]?.status
 
             // Aggregate products
             const productsMap = {}
@@ -296,6 +298,8 @@ function CassaPage({ session }) {
               revenue,
               productsCount,
               openedAt,
+              createdAt,
+              orderStatus,
               products,
               hasPendingItems
             }
@@ -713,6 +717,33 @@ function CassaPage({ session }) {
   const handleAssignTableToOrphan = (order) => {
     setSelectedOrder(order)
     setShowChangeTableModal(true)
+  }
+
+  // Helper: Calculate time display based on order status
+  const getTimeDisplayForTable = (stats) => {
+    if (!stats || stats.status === 'closed') return null
+
+    const now = Date.now()
+
+    if (stats.status === 'pending' && stats.createdAt) {
+      // PENDING: Tempo statico - mostra minuti in attesa
+      const createdAt = new Date(stats.createdAt)
+      const minutesWaiting = Math.floor((now - createdAt.getTime()) / 60000)
+      return {
+        type: 'pending',
+        text: `In attesa da ${minutesWaiting} min`
+      }
+    }
+
+    if (stats.status === 'open' && stats.openedAt) {
+      // PREPARING: Timer real-time
+      return {
+        type: 'realtime',
+        text: ordersService.formatElapsedTime(stats.openedAt)
+      }
+    }
+
+    return null
   }
 
   // Get table stats (revenue, products count, status)
@@ -1582,12 +1613,25 @@ function CassaPage({ session }) {
                     </div>
                     {stats.status !== 'closed' && (
                       <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.gray[700] }}>
-                        {/* STEP 4: Show real-time timer */}
-                        {stats.openedAt && (
-                          <div className="timer-display" style={{ marginBottom: tokens.spacing.xs }}>
-                            {ordersService.formatElapsedTime(stats.openedAt)}
-                          </div>
-                        )}
+                        {/* Tempo dinamico in base allo stato */}
+                        {(() => {
+                          const timeDisplay = getTimeDisplayForTable(stats)
+                          if (timeDisplay) {
+                            return (
+                              <div style={{
+                                marginBottom: tokens.spacing.xs,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                color: timeDisplay.type === 'pending'
+                                  ? tokens.colors.warning.DEFAULT
+                                  : tokens.colors.success.DEFAULT,
+                                fontFamily: timeDisplay.type === 'realtime' ? 'monospace' : 'inherit'
+                              }}>
+                                {timeDisplay.text}
+                              </div>
+                            )
+                          }
+                          return null
+                        })()}
                         <div>€{stats.revenue.toFixed(2)}</div>
                         <div>{stats.productsCount} prodotti</div>
                       </div>
@@ -1667,12 +1711,28 @@ function CassaPage({ session }) {
                           flexDirection: 'column',
                           gap: tokens.spacing.sm,
                         }}>
-                          {/* STEP 4: Show real-time timer using ordersService */}
-                          {stats.openedAt && (
-                            <div className="timer-display">
-                              {ordersService.formatElapsedTime(stats.openedAt)}
-                            </div>
-                          )}
+                          {/* Tempo dinamico in base allo stato */}
+                          {(() => {
+                            const timeDisplay = getTimeDisplayForTable(stats)
+                            if (timeDisplay) {
+                              return (
+                                <div style={{
+                                  fontSize: timeDisplay.type === 'pending'
+                                    ? tokens.typography.fontSize.sm
+                                    : tokens.typography.fontSize.lg,
+                                  fontWeight: tokens.typography.fontWeight.bold,
+                                  color: timeDisplay.type === 'pending'
+                                    ? tokens.colors.warning.DEFAULT
+                                    : tokens.colors.success.DEFAULT,
+                                  fontFamily: timeDisplay.type === 'realtime' ? 'monospace' : 'inherit',
+                                  marginBottom: tokens.spacing.xs
+                                }}>
+                                  {timeDisplay.text}
+                                </div>
+                              )
+                            }
+                            return null
+                          })()}
 
                           {/* Revenue */}
                           <div style={{

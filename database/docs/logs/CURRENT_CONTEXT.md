@@ -6,49 +6,51 @@
 
 ---
 
-**Last Updated:** 2025-10-26T19:00:00+01:00
-**Session Status:** ✅ Fix Tracking Cambio Tavolo - COMPLETATO
+**Last Updated:** 2025-10-26T19:50:00+01:00
+**Session Status:** ✅ Step 1 Sistema Cassa - Fix Tempo Ordini COMPLETATO
 
 ---
 
 ## 🎯 COSA STIAMO FACENDO ORA
 
-**Focus Corrente:** Tracking Cambio Tavolo in Timeline - COMPLETATO ✅
+**Focus Corrente:** Sistema Cassa - Step 1: Visualizzazione Tempo Ordini ✅
 
 **Descrizione:**
-Implementato tracking cambio tavolo in order_timeline. ChangeTableModal ora inserisce eventi con action='table_changed' e changes JSONB. UI mostra "Cambio Tavolo" con dettagli "Sala1 T3 → Sala2 T5" e attore "da Admin - Proprietario". Trigger auto-population funzionante.
+Implementato fix visualizzazione tempo ordini in base allo stato. PENDING mostra tempo statico (data/ora + minuti attesa), PREPARING mostra timer real-time (aggiornato ogni 1s), COMPLETED mostra durata totale fissa. Fix applicato sia a TableDetailModal che card tavolo in griglia CassaPage.
 
-**Pronto per:** Test UI cambio tavolo
+**Pronto per:** Test UI tutti stati + Step 2 (Badge Notifiche)
 
 ---
 
 ## 📍 DOVE SIAMO
 
 **Ultima Azione Completata:**
-- ✅ Fix Tracking Cambio Tavolo in Timeline [2025-10-26T19:00:00]
-- ✅ Modificato ChangeTableModal.jsx: insert in order_timeline
-- ✅ Modificato OrderDetailPage.jsx: rimosso merging, display table_changed
-- ✅ Modificato OrderDetail.jsx: getStatusLabel + display
-- ✅ Logs aggiornati (CONVERSATION, DEVELOPMENT, TASKS, CURRENT_CONTEXT)
+- ✅ Step 1: Fix Visualizzazione Tempo Ordini [2025-10-26T19:45:00]
+- ✅ Modificato TableDetailModal.jsx: logica tempo dinamica (pending/preparing/completed)
+- ✅ Modificato CassaPage.jsx: tableStats + helper + card tavolo
+- ✅ Logs aggiornati (CONVERSATION, TASKS, CURRENT_CONTEXT)
 
 **Task Corrente:**
-- ✅ Implementation completata (3/3 file)
-- ✅ Logs aggiornati (4/4)
+- ✅ Implementation completata (2/2 file)
+- ✅ Logs aggiornati parziali (3/4)
+- 🚧 Update DEVELOPMENT_LOG.md in corso
 - 🚧 Git commit in corso
 - 🚧 Slack notification in corso
 
 **Prossimi Step:**
-1. Git commit modifiche
-2. Slack notification
-3. **Test UI:** Cambiare tavolo e verificare timeline
+1. Completare DEVELOPMENT_LOG.md
+2. Git commit modifiche
+3. Slack notification
+4. **Test UI:** Verificare tempo per pending/preparing/completed
+5. **Step 2:** Badge notifiche pending su tasto "AL TAVOLO"
 
 ---
 
 ## 📊 ULTIMI 3 CAMBIAMENTI
 
-1. **[2025-10-26T19:00:00]** - ✅ Fix Tracking Cambio Tavolo (3 file, insert timeline, display UI)
-2. **[2025-10-26T18:30:00]** - ✅ Sistema Ruoli Timeline COMPLETATO (6 file fix, funzionante 100%)
-3. **[2025-10-26T18:00:00]** - ✅ Verifica Fix Trigger first_name/last_name
+1. **[2025-10-26T19:45:00]** - ✅ Step 1 Sistema Cassa: Fix Tempo Ordini (2 file, pending statico, preparing real-time)
+2. **[2025-10-26T19:00:00]** - ✅ Fix Tracking Cambio Tavolo (3 file, insert timeline, display UI)
+3. **[2025-10-26T18:30:00]** - ✅ Sistema Ruoli Timeline COMPLETATO (6 file fix, funzionante 100%)
 
 ---
 

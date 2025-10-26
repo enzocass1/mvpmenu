@@ -17,20 +17,72 @@ function TableDetailModal({
   restaurantId
 }) {
   const [loading, setLoading] = useState(false)
-  const [elapsedTime, setElapsedTime] = useState('00:00:00')
+  const [timeDisplay, setTimeDisplay] = useState({ type: 'static', text: '' })
 
-  // Aggiorna timer ogni secondo
+  // Calcola visualizzazione tempo in base allo stato ordine
   useEffect(() => {
-    if (!order || !order.opened_at) return
+    if (!order) return
 
-    const updateTimer = () => {
-      setElapsedTime(ordersService.formatElapsedTime(order.opened_at))
+    const updateTimeDisplay = () => {
+      const now = Date.now()
+
+      switch (order.status) {
+        case 'pending': {
+          // Tempo statico: mostra data/ora apertura + "In attesa da X minuti"
+          const createdAt = new Date(order.created_at)
+          const minutesWaiting = Math.floor((now - createdAt.getTime()) / 60000)
+          setTimeDisplay({
+            type: 'static',
+            openedAt: createdAt.toLocaleString('it-IT', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            waiting: `In attesa da ${minutesWaiting} minut${minutesWaiting === 1 ? 'o' : 'i'}`
+          })
+          break
+        }
+
+        case 'preparing': {
+          // Timer real-time: conta da opened_at o confirmed_at
+          const startTime = order.opened_at || order.confirmed_at || order.created_at
+          setTimeDisplay({
+            type: 'realtime',
+            elapsed: ordersService.formatElapsedTime(startTime)
+          })
+          break
+        }
+
+        case 'completed': {
+          // Durata totale fissa: closed_at - opened_at
+          const start = new Date(order.opened_at || order.created_at)
+          const end = new Date(order.closed_at)
+          const durationSeconds = Math.floor((end.getTime() - start.getTime()) / 1000)
+          const hours = Math.floor(durationSeconds / 3600).toString().padStart(2, '0')
+          const minutes = Math.floor((durationSeconds % 3600) / 60).toString().padStart(2, '0')
+          const seconds = (durationSeconds % 60).toString().padStart(2, '0')
+          setTimeDisplay({
+            type: 'fixed',
+            duration: `${hours}:${minutes}:${seconds}`
+          })
+          break
+        }
+
+        default:
+          setTimeDisplay({ type: 'static', text: '--:--:--' })
+      }
     }
 
-    updateTimer()
-    const interval = setInterval(updateTimer, 1000)
-    return () => clearInterval(interval)
-  }, [order?.opened_at])
+    updateTimeDisplay()
+
+    // Aggiorna solo per ordini preparing (real-time)
+    if (order.status === 'preparing') {
+      const interval = setInterval(updateTimeDisplay, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [order?.status, order?.created_at, order?.opened_at, order?.confirmed_at, order?.closed_at])
 
   if (!order) return null
 
@@ -271,8 +323,72 @@ function TableDetailModal({
                   </div>
                 )}
               </div>
-              <div className="timer-display">
-                {elapsedTime}
+
+              {/* Display tempo dinamico in base allo stato */}
+              <div style={{ textAlign: 'right' }}>
+                {timeDisplay.type === 'static' && timeDisplay.openedAt && (
+                  <>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.xs,
+                      color: tokens.colors.gray[600],
+                      marginBottom: tokens.spacing.xs
+                    }}>
+                      Aperto alle
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.sm,
+                      fontWeight: tokens.typography.fontWeight.semibold
+                    }}>
+                      {timeDisplay.openedAt}
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.xs,
+                      color: tokens.colors.warning.DEFAULT,
+                      marginTop: tokens.spacing.xs
+                    }}>
+                      {timeDisplay.waiting}
+                    </div>
+                  </>
+                )}
+
+                {timeDisplay.type === 'realtime' && timeDisplay.elapsed && (
+                  <>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.xs,
+                      color: tokens.colors.gray[600],
+                      marginBottom: tokens.spacing.xs
+                    }}>
+                      Tempo
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.xl,
+                      fontWeight: tokens.typography.fontWeight.bold,
+                      color: tokens.colors.success.DEFAULT,
+                      fontFamily: 'monospace'
+                    }}>
+                      {timeDisplay.elapsed}
+                    </div>
+                  </>
+                )}
+
+                {timeDisplay.type === 'fixed' && timeDisplay.duration && (
+                  <>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.xs,
+                      color: tokens.colors.gray[600],
+                      marginBottom: tokens.spacing.xs
+                    }}>
+                      Durata totale
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.lg,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      fontFamily: 'monospace'
+                    }}>
+                      {timeDisplay.duration}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
