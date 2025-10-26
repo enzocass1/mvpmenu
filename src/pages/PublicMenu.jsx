@@ -417,8 +417,8 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
       return (
         <div key={index} style={{ marginBottom: '8px' }}>
-          <span style={{ fontWeight: '600', color: '#000' }}>{dayString}:</span>{' '}
-          <span style={styles.infoText}>{timeString}</span>
+          <span style={{ fontWeight: '600', color: theme.textSecondaryColor }}>{dayString}:</span>{' '}
+          <span style={{ ...styles.infoText, color: theme.textSecondaryColor }}>{timeString}</span>
         </div>
       )
     })
@@ -1169,7 +1169,7 @@ const getStyles = (theme = {}) => ({
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    color: '#000',
+    color: theme.textSecondaryColor,
     background: 'none',
     border: 'none',
     cursor: 'pointer',
@@ -1180,7 +1180,7 @@ const getStyles = (theme = {}) => ({
   },
   
   categoryTitle: {
-    color: '#000',
+    color: theme.textSecondaryColor,
     fontSize: 'clamp(24px, 7vw, 32px)',
     margin: '0 0 8px 0',
     fontWeight: 'bold',
@@ -1252,7 +1252,7 @@ const getStyles = (theme = {}) => ({
   },
 
   productPrice: {
-    color: '#000',
+    color: theme.textSecondaryColor,
     fontWeight: 'bold',
     fontSize: 'clamp(15px, 4vw, 17px)',
     whiteSpace: 'nowrap',
@@ -1333,7 +1333,7 @@ const getStyles = (theme = {}) => ({
   variantPrice: {
     fontSize: 'clamp(14px, 4vw, 16px)',
     fontWeight: '600',
-    color: '#000',
+    color: theme.textSecondaryColor,
   },
 
   variantOrderButton: {
