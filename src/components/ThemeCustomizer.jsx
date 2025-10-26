@@ -339,6 +339,38 @@ function ThemeCustomizer({ restaurantId }) {
         borderRadius: '24',
         layoutStyle: 'grid'
       }
+    },
+    {
+      name: 'Blu Bar',
+      config: {
+        primaryColor: '#044E5A',
+        secondaryColor: '#F5F3F4',
+        accentColor: '#A68633',
+        textPrimaryColor: '#F5F3F4',
+        textSecondaryColor: '#044E5A',
+        borderColor: '#008A82',
+        textTertiaryColor: '#017175',
+        errorColor: '#dc2626',
+        successColor: '#008A82',
+        warningColor: '#A68633',
+        backgroundTertiary: '#F5F3F4',
+        favoriteActiveColor: '#A68633',
+        deleteColor: '#dc2626',
+        inputBackground: '#F5F3F4',
+        inputBorder: '#008A82',
+        inputBorderFocus: '#017175',
+        inputText: '#044E5A',
+        overlayBackground: 'rgba(4,78,90,0.7)',
+        cardBackground: '#F5F3F4',
+        cardBorder: '#008A82',
+        emptyStateText: '#017175',
+        linkColor: '#A68633',
+        linkHoverColor: '#044E5A',
+        fontFamily: 'sans-serif',
+        cardStyle: 'modern',
+        borderRadius: '16',
+        layoutStyle: 'carousel'
+      }
     }
   ]
 
