@@ -249,3 +249,56 @@ Questa policy si integra perfettamente con il loop automatico già esistente:
 
 ---
 
+
+## [2025-10-26T17:00:00+01:00] - Implementazione JavaScript: Integrazione Sistema Ruoli in Timeline
+
+### 🎯 Obiettivo
+Aggiornare tutti i file JavaScript/React per utilizzare il nuovo sistema ruoli con staff_role_display, user_id e created_by_type.
+
+### 📝 Modifiche Effettuate
+
+#### File Modificati
+
+1. **`/src/utils/orderTimeline.js`** - Utility timeline completamente aggiornata
+   - Aggiornata addTimelineEntry(): parametri userId e createdByType, rimossa query manuale
+   - Aggiornata getOrderTimeline(): select esplicito colonne nuove (user_id, created_by_type, staff_role_display)
+   - Aggiornata formatTimelineEntry(): logica per created_by_type, usa staff_role_display
+   - Aggiornata getLastStaffAction(): filtra owner+staff con created_by_type
+   - Aggiornato TimelineView: display diretto staff_role_display senza hardcoded roles
+
+2. **`/src/pages/OrderDetailPage.jsx`** - Pagina dettaglio ordine owner
+   - Query timeline aggiornata con nuove colonne
+   - Rendering timeline con staff_role_display e gestione Cliente Incognito
+
+3. **`/src/pages/OrderDetail.jsx`** - Pagina dettaglio ordine staff
+   - Stesse modifiche di OrderDetailPage per consistenza
+
+4. **`/src/components/CreateOrderModal.jsx`** - Modal creazione/modifica ordini
+   - Insert timeline aggiornati: user_id, created_by_type, rimossi staff_name/staff_role (trigger li popola)
+
+### 🔧 Dettagli Tecnici
+
+**Architettura:**
+- Trigger-based population di staff_name e staff_role_display
+- Snapshot immutabile: "da Admin - Vincenzo Cassese"
+- Dual tracking: user_id (owner) + staff_id (staff)
+- Backward compatibility con dati esistenti
+
+**Display Format:**
+- Staff/Owner: "da Admin - Vincenzo Cassese"
+- Customer: "Cliente Incognito"
+- System: "Sistema"
+
+### 📊 Metriche
+- File Modificati: 4
+- File Verificati: 3
+- Linee Modificate: ~150
+- Complessità: Media-Alta
+
+### 💡 Note
+- Breaking changes: join obsolete, staff_role -> staff_role_display
+- Compatibilità: fallback per dati vecchi
+- Prossimi step: eseguire migrazione SQL, testare con ruoli custom
+
+---
+

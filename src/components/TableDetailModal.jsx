@@ -13,6 +13,7 @@ function TableDetailModal({
   order,
   onOrderUpdated,
   onAddProducts,
+  onChangeTable,
   restaurantId
 }) {
   const [loading, setLoading] = useState(false)
@@ -408,36 +409,46 @@ function TableDetailModal({
       </Modal.Body>
 
       <Modal.Footer>
-        <div style={{ display: 'flex', gap: tokens.spacing.sm, width: '100%', flexWrap: 'wrap' }}>
-          {/* Azioni per ordine PENDING */}
-          {isPending && (
-            <>
-              <Button variant="primary" onClick={handleConfirm} disabled={loading} style={{ flex: 1 }}>
-                Conferma Ordine
-              </Button>
-              <Button variant="danger" onClick={handleDelete} disabled={loading}>
-                Elimina
-              </Button>
-            </>
-          )}
+        <div style={{ display: 'flex', gap: tokens.spacing.sm, width: '100%', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          {/* Cambia Tavolo - always visible */}
+          <Button variant="secondary" onClick={() => onChangeTable?.(order)} disabled={loading}>
+            Cambia Tavolo
+          </Button>
 
-          {/* Azioni per ordine PREPARING */}
-          {isPreparing && (
-            <>
-              <Button variant="primary" onClick={() => onAddProducts?.(order)} disabled={loading} style={{ flex: 1 }}>
-                Aggiungi Prodotti
-              </Button>
-              <Button variant="outline" onClick={handlePreconto} disabled={loading}>
-                Preconto
-              </Button>
-              <Button variant="success" onClick={handleScontrino} disabled={loading}>
-                Scontrino
-              </Button>
-              <Button variant="ghost" onClick={handleDelete} disabled={loading}>
-                Elimina
-              </Button>
-            </>
-          )}
+          <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
+            {/* Azioni per ordine PENDING */}
+            {isPending && (
+              <>
+                <Button variant="primary" onClick={handleConfirm} disabled={loading}>
+                  Conferma Ordine
+                </Button>
+                <Button variant="outline" onClick={() => onAddProducts?.(order)} disabled={loading}>
+                  Modifica
+                </Button>
+                <Button variant="danger" onClick={handleDelete} disabled={loading}>
+                  Elimina
+                </Button>
+              </>
+            )}
+
+            {/* Azioni per ordine PREPARING */}
+            {isPreparing && (
+              <>
+                <Button variant="primary" onClick={() => onAddProducts?.(order)} disabled={loading}>
+                  Aggiungi Prodotti
+                </Button>
+                <Button variant="outline" onClick={handlePreconto} disabled={loading}>
+                  Preconto
+                </Button>
+                <Button variant="success" onClick={handleScontrino} disabled={loading}>
+                  Scontrino
+                </Button>
+                <Button variant="ghost" onClick={handleDelete} disabled={loading}>
+                  Elimina
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </Modal.Footer>
     </Modal>

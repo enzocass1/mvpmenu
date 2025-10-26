@@ -1,100 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
-import { tokens } from '../styles/tokens'
-import { Card, Button, Badge, EmptyState, Spinner, Tabs } from '../components/ui'
-import DashboardLayout from '../components/ui/DashboardLayout'
-import CreateOrderModal from '../components/CreateOrderModal'
-
-/**
- * Orders Page - Shopify-like Design System
- * Lista ordini con filtri, selezione multipla ed eliminazione
- */
-function OrdersPage({ session }) {
-  const navigate = useNavigate()
-  const [restaurant, setRestaurant] = useState(null)
-  const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [activeFilter, setActiveFilter] = useState('all')
-  const [selectedOrders, setSelectedOrders] = useState([]) // Array di order IDs selezionati
-  const [selectionMode, setSelectionMode] = useState(false) // Modalità selezione attiva
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768) // Mobile detection
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024) // Desktop detection
-  const [showCreateOrder, setShowCreateOrder] = useState(false) // Modal per creare ordine
-
-  useEffect(() => {
-    if (session) {
-      loadData()
-      // Auto-reload disabilitato per non interferire con l'interazione utente
-      // L'utente può ricaricare manualmente se necessario
-      // const interval = setInterval(() => loadData(), 10000)
-      // return () => clearInterval(interval)
-    }
-  }, [session])
-
-  // Desktop/mobile detection
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
-      setIsDesktop(window.innerWidth >= 1024)
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-
-      // Load restaurant
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single()
-
-      if (restaurantError) throw restaurantError
-      setRestaurant(restaurantData)
-
-      // Load orders with explicit relationship aliases as per documentation
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            *,
-            product:products (name, price)
-          ),
-          table:tables (id, number),
-          room:rooms (id, name),
-          table_change_logs (
-            id,
-            changed_at,
-            changed_by_name,
-            old_room_name,
-            old_table_number,
-            new_room_name,
-            new_table_number
-          )
-        `)
-        .eq('restaurant_id', restaurantData.id)
-        .order('created_at', { ascending: false })
-
-      if (ordersError) {
-        console.error('Errore caricamento ordini:', ordersError)
-        throw ordersError
-      }
+﻿
+      if (ordersError) throw ordersError
 
       const active = ordersData?.filter(o => o.status !== 'completed' && o.status !== 'cancelled') || []
       const archived = ordersData?.filter(o => o.status === 'completed' || o.status === 'cancelled') || []
 
-      // Ordina gli ordini attivi: Priority prima, poi dal più vecchio al più recente
+      // Ordina gli ordini attivi: Priority prima, poi dal piÃ¹ vecchio al piÃ¹ recente
       const sortedActive = active.sort((a, b) => {
         // Prima ordina per priority (true prima di false)
         if (a.is_priority_order !== b.is_priority_order) {
           return b.is_priority_order ? 1 : -1
         }
-        // Poi ordina per data (più vecchi prima)
+        // Poi ordina per data (piÃ¹ vecchi prima)
         return new Date(a.created_at) - new Date(b.created_at)
       })
 
@@ -124,7 +40,7 @@ function OrdersPage({ session }) {
       const newSelection = selectedOrders.filter(id => id !== orderId)
       setSelectedOrders(newSelection)
       if (newSelection.length === 0) {
-        // Era l'ultimo selezionato, esci dalla modalità selezione
+        // Era l'ultimo selezionato, esci dalla modalitÃ  selezione
         setSelectionMode(false)
       }
     } else {
@@ -496,7 +412,7 @@ function OrdersPage({ session }) {
               const deltaX = currentX - touchStartX
               const deltaY = Math.abs(e.touches[0].clientY - touchStartY)
 
-              // Solo se lo swipe è più orizzontale che verticale
+              // Solo se lo swipe Ã¨ piÃ¹ orizzontale che verticale
               if (Math.abs(deltaX) > deltaY && deltaX > 20) {
                 e.currentTarget.style.transform = `translateX(${Math.min(deltaX, 100)}px)`
               }
@@ -508,7 +424,7 @@ function OrdersPage({ session }) {
 
               e.currentTarget.style.transform = 'translateX(0)'
 
-              // Swipe verso destra di almeno 80px e più orizzontale che verticale
+              // Swipe verso destra di almeno 80px e piÃ¹ orizzontale che verticale
               if (deltaX > 80 && Math.abs(deltaX) > deltaY) {
                 if (!selectionMode) {
                   setSelectionMode(true)
@@ -594,12 +510,12 @@ function OrdersPage({ session }) {
                           transition: tokens.transitions.base
                         }}>
                           {isSelected && (
-                            <span style={{ color: tokens.colors.white, fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.bold }}>✓</span>
+                            <span style={{ color: tokens.colors.white, fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.bold }}>âœ“</span>
                           )}
                         </div>
                       )}
                       <div style={orderIdStyles}>
-                        #{order.order_number || order.id.substring(0, 8).toUpperCase()}
+                        #{order.id.substring(0, 8).toUpperCase()}
                       </div>
                     </div>
                     <Badge variant={getStatusVariant(order.status)}>
@@ -610,10 +526,8 @@ function OrdersPage({ session }) {
                   {/* Order Details */}
                   <div style={orderDetailsStyles}>
                     <div>
-                      <div style={detailLabelStyles}>Sala / Tavolo</div>
-                      <div style={detailValueStyles}>
-                        {order.room?.name || 'N/A'} - Tavolo {order.table?.number || order.table_number || 'N/A'}
-                      </div>
+                      <div style={detailLabelStyles}>Tavolo</div>
+                      <div style={detailValueStyles}>{order.table_number}</div>
                     </div>
                     <div>
                       <div style={detailLabelStyles}>Data</div>
@@ -624,7 +538,7 @@ function OrdersPage({ session }) {
                     <div>
                       <div style={detailLabelStyles}>Totale</div>
                       <div style={detailValueStyles}>
-                        €{order.total_amount.toFixed(2)}
+                        â‚¬{order.total_amount.toFixed(2)}
                       </div>
                     </div>
                     <div>
@@ -634,6 +548,27 @@ function OrdersPage({ session }) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Lista Prodotti con cornici */}
+                  {order.order_items && order.order_items.length > 0 && (
+                    <div style={productsSectionStyles}>
+                      <div style={productsSectionTitleStyles}>Prodotti:</div>
+                      <div style={productsListStyles}>
+                        {order.order_items.map((item, idx) => (
+                          <div key={idx} style={productItemStyles}>
+                            <span style={productQuantityStyles}>{item.quantity}x</span>
+                            <span style={productNameStyles}>
+                              {item.product_name}
+                              {item.variant_title && (
+                                <span style={productVariantStyles}> ({item.variant_title})</span>
+                              )}
+                            </span>
+                            <span style={productPriceStyles}>â‚¬{item.subtotal.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Priority Badge */}
                   {order.is_priority_order && (
@@ -671,15 +606,6 @@ function OrdersPage({ session }) {
       {showCreateOrder && (
         <CreateOrderModal
           restaurantId={restaurant?.id}
-          staffSession={session?.user?.id === restaurant?.user_id ? {
-            name: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
-            fullName: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
-            role: 'Admin',
-            displayRole: 'Admin',
-            restaurant_id: restaurant.id,
-            staff_id: null,
-            isOwner: true
-          } : null}
           onClose={() => setShowCreateOrder(false)}
           onOrderCreated={() => {
             setShowCreateOrder(false)

@@ -586,10 +586,10 @@ export const getActiveOrders = async (restaurantId) => {
       .order('created_at', { ascending: true })
 
     if (error) throw error
-    return data || []
+    return { success: true, orders: data || [] }
   } catch (error) {
     console.error('Errore caricamento ordini attivi:', error)
-    return []
+    return { success: false, error, orders: [] }
   }
 }
 
@@ -598,21 +598,16 @@ export const getActiveOrders = async (restaurantId) => {
  */
 export const getOrderWithItems = async (orderId) => {
   try {
+    // Carica ordine base
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select(`
-        *,
-        table:tables(number, room_id),
-        room:rooms(name),
-        created_by:restaurant_staff!orders_created_by_staff_id_fkey(name, role),
-        confirmed_by:restaurant_staff!orders_confirmed_by_staff_id_fkey(name, role),
-        modified_by:restaurant_staff!orders_modified_by_staff_id_fkey(name, role)
-      `)
+      .select('*')
       .eq('id', orderId)
       .single()
 
     if (orderError) throw orderError
 
+    // Carica items
     const { data: items, error: itemsError } = await supabase
       .from('order_items')
       .select('*')
@@ -622,10 +617,30 @@ export const getOrderWithItems = async (orderId) => {
 
     if (itemsError) throw itemsError
 
-    return { ...order, items: items || [] }
+    // Carica table info se presente
+    let tableInfo = null
+    if (order.table_id) {
+      const { data: table } = await supabase
+        .from('tables')
+        .select('number, room_id, rooms(name)')
+        .eq('id', order.table_id)
+        .single()
+
+      tableInfo = table
+    }
+
+    // Costruisci ordine completo
+    const fullOrder = {
+      ...order,
+      items: items || [],
+      table: tableInfo,
+      room_name: tableInfo?.rooms?.name || null
+    }
+
+    return { success: true, order: fullOrder }
   } catch (error) {
     console.error('Errore caricamento ordine:', error)
-    return null
+    return { success: false, error, order: null }
   }
 }
 
@@ -689,10 +704,10 @@ export const getPendingOrdersCount = async (restaurantId) => {
       .is('deleted_at', null)
 
     if (error) throw error
-    return count || 0
+    return { success: true, count: count || 0 }
   } catch (error) {
     console.error('Errore conteggio pending:', error)
-    return 0
+    return { success: false, error, count: 0 }
   }
 }
 

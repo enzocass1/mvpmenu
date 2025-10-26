@@ -2,7 +2,7 @@ import { tokens, getButtonBase } from '../../styles/tokens'
 
 /**
  * Button Component - Shopify-like Design System
- * Variants: primary, secondary, outline, ghost, danger
+ * Variants: primary, secondary, outline, ghost, danger, success
  * Sizes: sm, md, lg
  * NO icons, NO emoji - Clean text only
  */
@@ -96,6 +96,19 @@ function Button({
       ':active': !disabled && {
         backgroundColor: '#7F1D1D',
         border: `${tokens.borders.width.thin} solid #7F1D1D`,
+      },
+    },
+    success: {
+      backgroundColor: tokens.colors.success.base,
+      color: tokens.colors.white,
+      border: `${tokens.borders.width.thin} solid ${tokens.colors.success.base}`,
+      ':hover': !disabled && {
+        backgroundColor: tokens.colors.success.dark,
+        border: `${tokens.borders.width.thin} solid ${tokens.colors.success.dark}`,
+      },
+      ':active': !disabled && {
+        backgroundColor: '#14532D',
+        border: `${tokens.borders.width.thin} solid #14532D`,
       },
     },
   }

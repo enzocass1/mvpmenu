@@ -7,12 +7,24 @@ import { supabase } from '../supabaseClient'
 
 /**
  * Aggiungi entry alla timeline ordine
+ * @param {string} orderId - ID ordine
+ * @param {string} action - Tipo azione (created, confirmed, etc.)
+ * @param {string|null} staffId - ID staff (se azione da staff)
+ * @param {object} data - Dati aggiuntivi
+ * @param {string|null} data.userId - ID utente owner (se azione da owner)
+ * @param {string|null} data.createdByType - Tipo attore: 'staff'|'customer'|'system'|'owner'
+ * @param {string|null} data.previousStatus - Status precedente
+ * @param {string|null} data.newStatus - Nuovo status
+ * @param {object|null} data.changes - Modifiche apportate (JSON)
+ * @param {string|null} data.notes - Note aggiuntive
  */
 export const addTimelineEntry = async (orderId, action, staffId = null, data = {}) => {
   try {
     const entry = {
       order_id: orderId,
       staff_id: staffId,
+      user_id: data.userId || null,
+      created_by_type: data.createdByType || (staffId ? 'staff' : 'system'),
       action: action,
       previous_status: data.previousStatus || null,
       new_status: data.newStatus || null,
@@ -20,18 +32,9 @@ export const addTimelineEntry = async (orderId, action, staffId = null, data = {
       notes: data.notes || null
     }
 
-    // Aggiungi nome staff se presente
-    if (staffId) {
-      const { data: staff } = await supabase
-        .from('restaurant_staff')
-        .select('name')
-        .eq('id', staffId)
-        .single()
-
-      if (staff) {
-        entry.staff_name = staff.name
-      }
-    }
+    // Nota: staff_name e staff_role_display vengono popolati automaticamente
+    // dal trigger populate_timeline_staff_info() nel database
+    // Non serve fare query qui - il trigger fa join con roles table
 
     const { error } = await supabase
       .from('order_timeline')
@@ -53,8 +56,19 @@ export const getOrderTimeline = async (orderId) => {
     const { data, error } = await supabase
       .from('order_timeline')
       .select(`
-        *,
-        staff:restaurant_staff(name, email, role)
+        id,
+        order_id,
+        staff_id,
+        user_id,
+        created_by_type,
+        action,
+        previous_status,
+        new_status,
+        changes,
+        notes,
+        staff_name,
+        staff_role_display,
+        created_at
       `)
       .eq('order_id', orderId)
       .order('created_at', { ascending: true })
@@ -80,7 +94,8 @@ export const formatTimelineEntry = (entry) => {
     updated: 'Ordine modificato',
     item_added: 'Prodotto aggiunto',
     item_removed: 'Prodotto rimosso',
-    item_updated: 'Prodotto modificato'
+    item_updated: 'Prodotto modificato',
+    table_changed: 'Tavolo modificato'
   }
 
   const statusLabels = {
@@ -97,12 +112,31 @@ export const formatTimelineEntry = (entry) => {
     description += ` (da ${statusLabels[entry.previous_status]} a ${statusLabels[entry.new_status]})`
   }
 
+  // Determina nome operatore basato su created_by_type
+  let operatorName = 'Sistema'
+  let operatorRole = null
+
+  if (entry.created_by_type === 'staff' || entry.created_by_type === 'owner') {
+    // staff_role_display contiene già "da Admin - Vincenzo Cassese"
+    // oppure solo nome se non c'è ruolo
+    operatorName = entry.staff_name || 'Staff'
+    operatorRole = entry.staff_role_display || null
+  } else if (entry.created_by_type === 'customer') {
+    operatorName = 'Cliente Incognito'
+    operatorRole = null
+  } else {
+    // system
+    operatorName = 'Sistema'
+    operatorRole = null
+  }
+
   return {
     ...entry,
     actionLabel: actionLabels[entry.action] || entry.action,
     description,
-    operatorName: entry.staff_name || entry.staff?.name || 'Sistema',
-    operatorRole: entry.staff?.role || null,
+    operatorName,
+    operatorRole,
+    operatorDisplay: operatorRole || operatorName, // Display completo: "da Admin - Vincenzo Cassese" o "Sistema"
     formattedDate: new Date(entry.created_at).toLocaleString('it-IT', {
       day: '2-digit',
       month: 'short',
@@ -114,15 +148,29 @@ export const formatTimelineEntry = (entry) => {
 }
 
 /**
- * Ottieni ultima azione da parte di staff
+ * Ottieni ultima azione da parte di staff/owner
  */
 export const getLastStaffAction = async (orderId) => {
   try {
     const { data, error } = await supabase
       .from('order_timeline')
-      .select('*, staff:restaurant_staff(name, role)')
+      .select(`
+        id,
+        order_id,
+        staff_id,
+        user_id,
+        created_by_type,
+        action,
+        previous_status,
+        new_status,
+        changes,
+        notes,
+        staff_name,
+        staff_role_display,
+        created_at
+      `)
       .eq('order_id', orderId)
-      .not('staff_id', 'is', null)
+      .in('created_by_type', ['staff', 'owner'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single()
@@ -194,11 +242,12 @@ export const TimelineView = ({ timeline }) => {
               </div>
               <div style={styles.timelineBody}>
                 <p style={styles.operator}>
-                  {formatted.operatorName}
-                  {formatted.operatorRole && (
-                    <span style={styles.roleBadge}>
-                      {formatted.operatorRole === 'manager' ? 'Manager' : 'Cameriere'}
-                    </span>
+                  {formatted.operatorRole ? (
+                    // Mostra display completo con ruolo (es: "da Admin - Vincenzo Cassese")
+                    <span>{formatted.operatorRole}</span>
+                  ) : (
+                    // Mostra solo nome/tipo (es: "Sistema" o "Cliente Incognito")
+                    <span>{formatted.operatorName}</span>
                   )}
                 </p>
                 {entry.notes && (
@@ -297,17 +346,9 @@ const styles = {
   },
   operator: {
     margin: '0 0 4px 0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  roleBadge: {
-    padding: '2px 8px',
-    backgroundColor: '#f0f0f0',
-    borderRadius: '12px',
-    fontSize: '11px',
+    fontSize: '13px',
     fontWeight: '500',
-    color: '#666'
+    color: '#333'
   },
   notes: {
     margin: '8px 0 0 0',

@@ -5,6 +5,8 @@ import { Card, Button, Badge, Modal, Select, Input, Spinner, EmptyState } from '
 import DashboardLayout from '../components/ui/DashboardLayout'
 import CreateOrderModal from '../components/CreateOrderModal'
 import TableDetailModal from '../components/TableDetailModal'
+import ChangeTableModal from '../components/ChangeTableModal'
+import OrphanOrdersAlert from '../components/OrphanOrdersAlert'
 import * as ordersService from '../lib/ordersService'
 import { trackEvent } from '../utils/analytics'
 import '../styles/cassa-animations.css'
@@ -32,6 +34,7 @@ function CassaPage({ session }) {
   const [rooms, setRooms] = useState([]) // Sale dal database
   const [tables, setTables] = useState([]) // Tavoli dal database
   const [activeOrders, setActiveOrders] = useState([]) // Ordini attivi (v_active_orders)
+  const [orphanOrders, setOrphanOrders] = useState([]) // Ordini senza tavolo (table_id = NULL)
   const [pendingCount, setPendingCount] = useState(0) // Badge conteggio pending
   const [tableStats, setTableStats] = useState({}) // Stats for each table (missing state variable)
   const [selectedRoom, setSelectedRoom] = useState(null)
@@ -39,6 +42,7 @@ function CassaPage({ session }) {
   const [selectedOrder, setSelectedOrder] = useState(null) // Ordine selezionato per popup
   const [showTableDetailModal, setShowTableDetailModal] = useState(false)
   const [showAddProductsModal, setShowAddProductsModal] = useState(false)
+  const [showChangeTableModal, setShowChangeTableModal] = useState(false)
   const [showRoomManagementModal, setShowRoomManagementModal] = useState(false)
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false)
 
@@ -79,10 +83,10 @@ function CassaPage({ session }) {
 
   // STEP 2: Auto-refresh active orders every 30 seconds
   useEffect(() => {
-    if (!restaurant?.id) return
+    if (!restaurant?.id || tables.length === 0) return
 
     const interval = setInterval(() => {
-      loadActiveOrders(restaurant.id)
+      loadActiveOrders(restaurant.id, tables)
       loadPendingCount(restaurant.id)
     }, 30000) // 30 seconds
 
@@ -204,7 +208,8 @@ function CassaPage({ session }) {
       setTables(tablesData || [])
 
       // Load active orders and pending count using new ordersService
-      await loadActiveOrders(restaurantData.id)
+      // IMPORTANTE: Passare tablesData per calcolare stats correttamente
+      await loadActiveOrders(restaurantData.id, tablesData || [])
       await loadPendingCount(restaurantData.id)
     } catch (error) {
       console.error('Errore caricamento dati:', error)
@@ -214,16 +219,30 @@ function CassaPage({ session }) {
   }
 
   // STEP 2: Load active orders using ordersService
-  const loadActiveOrders = async (restaurantId) => {
+  const loadActiveOrders = async (restaurantId, tablesData = null) => {
     try {
+      console.log('🔄 Caricamento ordini attivi...')
       const result = await ordersService.getActiveOrders(restaurantId)
+      console.log('📊 Risultato ordini attivi:', result)
       if (result.success) {
-        setActiveOrders(result.orders || [])
+        console.log('✅ Ordini attivi caricati:', result.orders?.length || 0)
+        console.log('📋 Ordini:', result.orders)
+
+        // Separate orphan orders (table_id = NULL) from regular orders
+        const orphans = result.orders.filter(order => !order.table_id)
+        const regularOrders = result.orders.filter(order => order.table_id)
+
+        console.log('⚠️ Ordini orfani (senza tavolo):', orphans.length)
+        setOrphanOrders(orphans)
+        setActiveOrders(regularOrders)
 
         // Calculate table stats from active orders
+        // Usa tablesData passato come parametro o fallback su state tables
+        const tablesToUse = tablesData || tables
+        console.log('🔍 Tables disponibili per calcolo stats:', tablesToUse.length)
         const stats = {}
-        tables.forEach(table => {
-          const tableOrders = result.orders.filter(
+        tablesToUse.forEach(table => {
+          const tableOrders = regularOrders.filter(
             order => order.table_id === table.id
           )
 
@@ -283,18 +302,25 @@ function CassaPage({ session }) {
           }
         })
 
+        console.log('📊 Table stats calcolati:', stats)
+        console.log('📊 Esempio primo tavolo:', Object.keys(stats)[0], stats[Object.keys(stats)[0]])
         setTableStats(stats)
+      } else {
+        console.warn('⚠️ Caricamento ordini fallito:', result.error)
       }
     } catch (error) {
-      console.error('Errore caricamento ordini attivi:', error)
+      console.error('❌ Errore caricamento ordini attivi:', error)
     }
   }
 
   // STEP 2: Load pending orders count using ordersService
   const loadPendingCount = async (restaurantId) => {
     try {
+      console.log('🔄 Caricamento conteggio pending...')
       const result = await ordersService.getPendingOrdersCount(restaurantId)
+      console.log('📊 Risultato pending count:', result)
       if (result.success) {
+        console.log('✅ Pending count:', result.count || 0)
         setPendingCount(result.count || 0)
       }
     } catch (error) {
@@ -637,12 +663,19 @@ function CassaPage({ session }) {
     if (tableOrder) {
       // Load complete order with items
       const result = await ordersService.getOrderWithItems(tableOrder.id)
-      if (result.success) {
+
+      if (!result) {
+        console.error('❌ Nessun risultato da getOrderWithItems')
+        alert('Errore durante il caricamento dell\'ordine')
+        return
+      }
+
+      if (result.success && result.order) {
         setSelectedOrder(result.order)
         setShowTableDetailModal(true)
       } else {
-        console.error('Errore caricamento ordine:', result.error)
-        alert('Errore durante il caricamento dell\'ordine')
+        console.error('❌ Errore caricamento ordine:', result.error)
+        alert('Errore durante il caricamento dell\'ordine: ' + (result.error?.message || 'Errore sconosciuto'))
       }
     } else {
       // No active order, open create order modal
@@ -652,10 +685,13 @@ function CassaPage({ session }) {
 
   // STEP 5: Handler when order is updated (confirm, delete, scontrino)
   const handleOrderUpdated = async () => {
+    console.log('🔄 handleOrderUpdated chiamato - Ricarico ordini...')
     // Reload active orders and pending count
     if (restaurant?.id) {
-      await loadActiveOrders(restaurant.id)
+      await loadActiveOrders(restaurant.id, tables)
       await loadPendingCount(restaurant.id)
+    } else {
+      console.warn('⚠️ restaurant.id non disponibile')
     }
   }
 
@@ -664,6 +700,19 @@ function CassaPage({ session }) {
     setSelectedOrder(order)
     setShowTableDetailModal(false)
     setShowAddProductsModal(true)
+  }
+
+  // Handler to change table for existing order
+  const handleChangeTable = (order) => {
+    setSelectedOrder(order)
+    setShowTableDetailModal(false)
+    setShowChangeTableModal(true)
+  }
+
+  // Handler to assign table to orphan order
+  const handleAssignTableToOrphan = (order) => {
+    setSelectedOrder(order)
+    setShowChangeTableModal(true)
   }
 
   // Get table stats (revenue, products count, status)
@@ -697,81 +746,7 @@ function CassaPage({ session }) {
     return { status, revenue, productsCount }
   }
 
-  // Update order status (same logic as StaffOrders)
-  const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-      const currentOrder = tableOrders.find(o => o.id === orderId)
-
-      const updates = {
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      }
-
-      if (newStatus === 'confirmed') {
-        updates.confirmed_at = new Date().toISOString()
-      } else if (newStatus === 'preparing') {
-        updates.preparing_at = new Date().toISOString()
-      } else if (newStatus === 'completed') {
-        updates.completed_at = new Date().toISOString()
-      }
-
-      const { error } = await supabase
-        .from('orders')
-        .update(updates)
-        .eq('id', orderId)
-
-      if (error) throw error
-
-      // Reload table orders
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('*, order_items(*)')
-        .eq('restaurant_id', restaurant.id)
-        .eq('table_number', selectedTable.table_number)
-        .neq('status', 'completed')
-        .neq('status', 'cancelled')
-        .order('created_at', { ascending: false })
-
-      setTableOrders(ordersData || [])
-
-      // Reload table stats to update colors and counts
-      await loadTableStats(restaurant.id, tables)
-    } catch (error) {
-      console.error('Errore aggiornamento stato:', error)
-      alert('Errore durante l\'aggiornamento dello stato')
-    }
-  }
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'pending': return 'In Attesa'
-      case 'confirmed': return 'Confermato'
-      case 'preparing': return 'In Preparazione'
-      case 'completed': return 'Completato'
-      case 'cancelled': return 'Annullato'
-      default: return status
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return tokens.colors.warning.DEFAULT
-      case 'confirmed': return tokens.colors.info.DEFAULT
-      case 'preparing': return tokens.colors.purple[500]
-      case 'completed': return tokens.colors.success.DEFAULT
-      case 'cancelled': return tokens.colors.error.DEFAULT
-      default: return tokens.colors.gray[500]
-    }
-  }
-
-  const getNextAction = (status) => {
-    switch (status) {
-      case 'pending': return { label: 'Conferma', nextStatus: 'confirmed' }
-      case 'confirmed': return { label: 'Prepara', nextStatus: 'preparing' }
-      case 'preparing': return { label: 'Completa', nextStatus: 'completed' }
-      default: return null
-    }
-  }
+  // Old functions removed - now using TableDetailModal and ordersService
 
   const handleInviaOrdine = async () => {
     if (!selectedTable || cart.length === 0) {
@@ -1526,6 +1501,11 @@ function CassaPage({ session }) {
             </Button>
           </div>
 
+          {/* Orphan Orders Alert */}
+          <OrphanOrdersAlert
+            orphanOrders={orphanOrders}
+            onAssignTable={handleAssignTableToOrphan}
+          />
 
           {/* Tables Display */}
           {filteredTables.length === 0 ? (
@@ -1825,210 +1805,6 @@ function CassaPage({ session }) {
         </Modal.Footer>
       </Modal>
 
-      {/* Table Management Modal */}
-      <Modal
-        isOpen={showTableModal}
-        onClose={() => {
-          setShowTableModal(false)
-          setSelectedTable(null)
-          setTableOrders([])
-        }}
-        size="lg"
-      >
-        <Modal.Header>
-          <Modal.Title>Tavolo {selectedTable?.table_number}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.lg }}>
-            {/* Ordini Esistenti */}
-            <div>
-              <h4
-                style={{
-                  margin: 0,
-                  marginBottom: tokens.spacing.md,
-                  fontSize: tokens.typography.fontSize.base,
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                }}
-              >
-                Ordini al Tavolo
-              </h4>
-              {tableOrders.length === 0 ? (
-                <EmptyState
-                  title="Nessun ordine"
-                  description="Non ci sono ordini aperti per questo tavolo"
-                  centered={false}
-                />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.md }}>
-                  {tableOrders.map((order) => {
-                    const nextAction = getNextAction(order.status)
-
-                    return (
-                      <div
-                        key={order.id}
-                        style={{
-                          padding: tokens.spacing.lg,
-                          backgroundColor: tokens.colors.white,
-                          border: `${tokens.borders.width.thin} solid ${tokens.colors.gray[300]}`,
-                          borderRadius: tokens.borderRadius.lg,
-                        }}
-                      >
-                        {/* Order Header */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: tokens.spacing.md,
-                            paddingBottom: tokens.spacing.md,
-                            borderBottom: `${tokens.borders.width.thin} solid ${tokens.colors.gray[200]}`,
-                          }}
-                        >
-                          <div>
-                            <div
-                              style={{
-                                fontSize: tokens.typography.fontSize.sm,
-                                color: tokens.colors.gray[600],
-                                marginBottom: tokens.spacing.xs,
-                              }}
-                            >
-                              Ordine #{order.id.slice(0, 8)}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: tokens.typography.fontSize.xs,
-                                color: tokens.colors.gray[500],
-                              }}
-                            >
-                              {new Date(order.created_at).toLocaleString('it-IT', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                day: '2-digit',
-                                month: '2-digit',
-                              })}
-                            </div>
-                          </div>
-                          <Badge
-                            variant="default"
-                            style={{
-                              backgroundColor: getStatusColor(order.status),
-                              color: tokens.colors.white,
-                            }}
-                          >
-                            {getStatusLabel(order.status)}
-                          </Badge>
-                        </div>
-
-                        {/* Order Items */}
-                        <div style={{ marginBottom: tokens.spacing.md }}>
-                          {order.order_items?.map((item, idx) => (
-                            <div
-                              key={idx}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: `${tokens.spacing.sm} 0`,
-                                fontSize: tokens.typography.fontSize.sm,
-                              }}
-                            >
-                              <div>
-                                <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-                                  {item.quantity}x
-                                </span>{' '}
-                                {item.product_name}
-                                {item.variant_title && (
-                                  <span style={{ color: tokens.colors.gray[600] }}>
-                                    {' '}
-                                    - {item.variant_title}
-                                  </span>
-                                )}
-                                {item.notes && (
-                                  <div
-                                    style={{
-                                      fontSize: tokens.typography.fontSize.xs,
-                                      color: tokens.colors.gray[500],
-                                      fontStyle: 'italic',
-                                      marginTop: tokens.spacing.xs,
-                                    }}
-                                  >
-                                    Note: {item.notes}
-                                  </div>
-                                )}
-                              </div>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
-                                €{(item.price * item.quantity).toFixed(2)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Order Footer */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            paddingTop: tokens.spacing.md,
-                            borderTop: `${tokens.borders.width.thin} solid ${tokens.colors.gray[200]}`,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.base,
-                              fontWeight: tokens.typography.fontWeight.bold,
-                            }}
-                          >
-                            Totale: €{order.total_amount?.toFixed(2) || '0.00'}
-                          </div>
-                          {nextAction && (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              onClick={() => updateOrderStatus(order.id, nextAction.nextStatus)}
-                            >
-                              {nextAction.label}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </Modal.Body>
-        <Modal.Footer>
-          <div style={{ display: 'flex', gap: tokens.spacing.md, width: '100%', flexWrap: 'wrap' }}>
-            <Button
-              variant="outline"
-              onClick={handleScontrinoFiscale}
-              disabled={tableOrders.length === 0}
-            >
-              Scontrino Fiscale
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handlePreconto}
-              disabled={tableOrders.length === 0}
-            >
-              Preconto
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                // TODO: Implement modify order functionality
-                alert('Funzionalità Modifica Ordine in arrivo')
-              }}
-              disabled={tableOrders.length === 0}
-              style={{ flex: 1 }}
-            >
-              Modifica Ordine
-            </Button>
-          </div>
-        </Modal.Footer>
-      </Modal>
-
       {/* Room Management Modal - Gestione Sale */}
       <Modal
         isOpen={showRoomManagementModal}
@@ -2235,6 +2011,15 @@ function CassaPage({ session }) {
             // Reload active orders after creating order
             handleOrderUpdated()
           }}
+          staffSession={session?.user?.id === restaurant?.user_id ? {
+            name: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
+            fullName: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
+            role: 'Admin',
+            displayRole: 'Admin',
+            restaurant_id: restaurant.id,
+            staff_id: null,
+            isOwner: true
+          } : null}
           session={session}
           restaurantId={restaurant?.id}
           preselectedRoomId={selectedRoom?.id}
@@ -2252,8 +2037,55 @@ function CassaPage({ session }) {
         order={selectedOrder}
         onOrderUpdated={handleOrderUpdated}
         onAddProducts={handleAddProducts}
+        onChangeTable={handleChangeTable}
         restaurantId={restaurant?.id}
       />
+
+      {/* STEP 6: Add Products Modal - Edit existing order */}
+      {showAddProductsModal && selectedOrder && (
+        <CreateOrderModal
+          restaurantId={restaurant?.id}
+          onClose={() => {
+            setShowAddProductsModal(false)
+            setSelectedOrder(null)
+          }}
+          onOrderCreated={() => {
+            setShowAddProductsModal(false)
+            setSelectedOrder(null)
+            handleOrderUpdated()
+          }}
+          staffSession={{
+            name: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
+            fullName: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
+            role: 'Admin',
+            displayRole: 'Admin',
+            restaurant_id: restaurant.id,
+            staff_id: null,
+            isOwner: true
+          }}
+          existingOrder={selectedOrder}
+          preselectedRoomId={selectedOrder?.room_id}
+          preselectedTableNumber={selectedOrder?.table_number}
+        />
+      )}
+
+      {/* Change Table Modal - Switch table for existing order */}
+      {showChangeTableModal && selectedOrder && (
+        <ChangeTableModal
+          isOpen={showChangeTableModal}
+          onClose={() => {
+            setShowChangeTableModal(false)
+            setSelectedOrder(null)
+          }}
+          order={selectedOrder}
+          onTableChanged={() => {
+            setShowChangeTableModal(false)
+            setSelectedOrder(null)
+            handleOrderUpdated()
+          }}
+          restaurantId={restaurant?.id}
+        />
+      )}
     </DashboardLayout>
   )
 }

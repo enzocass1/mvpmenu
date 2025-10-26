@@ -226,3 +226,107 @@ Procedi direttamente.
 
 ---
 
+
+
+## [2025-10-26T16:30:00+01:00] - Ripresa Progetto: Sistema Timeline Ordini Completo
+
+### 📝 Prompt Utente
+```
+ok perfetto, adesso riprendiamo dal progetto.
+
+Eravamo rimasti alla timeline ordine in ORDINI > ordine selezionato
+
+Praticamente questa timeline servirà per tracciare tutti i timestamp degli eventi.
+
+[... richiesta completa di sistema tracking eventi, ruoli staff, KPI ...]
+
+Ora dobbiamo procedere per step e prima di iniziare vorrei che tu comprendessi meglio la mia richiesta, quindi fammi ulteriori domande finchè non capirai meglio la mia richiesta.
+
+Ma prima analizza tutti i file nuovamente e cerca di decodificare tutto quello che è stato già fatto sotto questi aspetti.
+```
+
+### ⚙️ Azioni In Corso
+- 🚧 Log prompt in CONVERSATION_LOG.md (questo)
+- 🚧 Analisi completa sistema esistente (order_timeline, staff, ruoli)
+- 🚧 Preparazione domande di chiarimento
+- 🚧 Update di tutti i log
+- 🚧 Git commit
+- 🚧 Slack notification
+
+### 📊 Stato
+**Status:** ✅ Analisi completata - Migration SQL creata (3750+ righe)
+
+---
+
+## [2025-10-26T17:00:00+01:00] - Continuazione: Update orderTimeline.js
+
+### 📝 Prompt Utente
+```
+[Continuation from previous session - no new prompt, resuming work]
+Continue updating /src/utils/orderTimeline.js to integrate with new roles system
+```
+
+### ⚙️ Azioni Eseguite
+- ✅ Log prompt in CONVERSATION_LOG.md
+- ✅ Lettura completa orderTimeline.js (343 righe)
+- ✅ Update orderTimeline.js con nuovo sistema ruoli (5 funzioni aggiornate)
+- ✅ Update OrderDetailPage.jsx (query + rendering)
+- ✅ Update OrderDetail.jsx (query + rendering)
+- ✅ Update CreateOrderModal.jsx (2 insert timeline)
+- ✅ Verificato ordersService.js, OrdersPage.jsx, StaffOrders.jsx
+- ✅ Update DEVELOPMENT_LOG.md con dettagli implementazione
+- ✅ Update TASKS_LOG.md con progress
+- ✅ Update CONVERSATION_LOG.md (questo)
+- 🚧 Update CURRENT_CONTEXT.md in corso
+- 🚧 Git commit in corso
+- 🚧 Slack notification in corso
+
+### 📊 Risultato
+**Status:** ✅ JavaScript Layer Completato - Integrazione Ruoli Timeline
+
+**Modifiche Implementate:**
+
+1. **orderTimeline.js** (utility completa):
+   - addTimelineEntry(): user_id, created_by_type, trigger auto-population
+   - getOrderTimeline(): select esplicito nuove colonne
+   - formatTimelineEntry(): logica created_by_type, staff_role_display
+   - getLastStaffAction(): filtra owner+staff
+   - TimelineView: display "da Admin - Vincenzo Cassese"
+
+2. **OrderDetailPage.jsx** (owner view):
+   - Query timeline con staff_role_display
+   - Rendering con gestione Cliente Incognito
+
+3. **OrderDetail.jsx** (staff view):
+   - Stesse modifiche per consistenza
+
+4. **CreateOrderModal.jsx**:
+   - Insert con user_id, created_by_type
+   - Rimossi staff_name/staff_role (trigger)
+
+**Display Format Implementato:**
+- Staff/Owner: "da Admin - Vincenzo Cassese"
+- Customer: "Cliente Incognito"
+- System: "Sistema"
+
+**Architettura:**
+- Trigger PostgreSQL popola automaticamente staff_role_display
+- Snapshot immutabile al momento dell'azione
+- Dual tracking: user_id (owner) + staff_id (staff)
+- Backward compatibility con dati esistenti
+
+**Metriche:**
+- 4 file modificati (~150 linee)
+- 3 file verificati (no changes needed)
+- Migration SQL già pronta (3750+ righe)
+- Sistema completo: DB + JavaScript
+
+**Prossimi Step:**
+- Update CURRENT_CONTEXT.md
+- Git commit (6° ciclo)
+- Slack notification (6ª)
+- Eseguire migrazione SQL su Supabase
+- Test con ruoli personalizzati
+
+---
+

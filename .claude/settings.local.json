@@ -21,7 +21,10 @@
       "Bash(git checkout:*)",
       "Bash(git push:*)",
       "Bash(find:*)",
-      "Read(//c/Users/ACER/Desktop/**)"
+      "Read(//c/Users/ACER/Desktop/**)",
+      "Bash(timeout /t 2)",
+      "Bash(mkdir:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

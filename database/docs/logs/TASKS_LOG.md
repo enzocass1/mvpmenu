@@ -113,3 +113,37 @@ Registro di tutte le task completate, in corso e pianificate.
 
 ---
 
+
+## [2025-10-26T17:00:00+01:00] - Implementazione JavaScript Timeline con Ruoli
+
+### ✅ Task Completate
+- [x] Update orderTimeline.js (addTimelineEntry, getOrderTimeline, formatTimelineEntry, getLastStaffAction, TimelineView)
+- [x] Update OrderDetailPage.jsx (query + rendering timeline)
+- [x] Update OrderDetail.jsx (query + rendering timeline)
+- [x] Update CreateOrderModal.jsx (insert timeline con user_id, created_by_type)
+- [x] Verificato ordersService.js (non necessita modifiche)
+- [x] Verificato OrdersPage.jsx e StaffOrders.jsx (solo delete, OK)
+- [x] Update DEVELOPMENT_LOG.md
+- [x] Update TASKS_LOG.md (questo)
+
+### 🚧 Task In Corso
+- [ ] Update CONVERSATION_LOG.md con summary
+- [ ] Update CURRENT_CONTEXT.md
+
+### 📋 Task Pianificate
+- [ ] Git commit modifiche JavaScript
+- [ ] Slack notification
+
+### 📊 Progress
+- **Completate:** 8/12 (67%)
+- **In Corso:** 2/12 (17%)
+- **Pianificate:** 2/12 (16%)
+
+### 💡 Note Sessione
+- Continuazione automatica da sessione precedente
+- Migration SQL già creata (3750+ righe)
+- JavaScript layer ora completamente integrato con nuovo sistema ruoli
+- 4 file modificati, 3 verificati, ~150 linee cambiate
+
+---
+

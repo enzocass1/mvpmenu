@@ -409,6 +409,7 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       .insert({
         restaurant_id: restaurantId,
         room_id: selectedRoomId,
+        table_id: selectedTable.id,  // IMPORTANTE: Aggiunto table_id per nuovo sistema
         table_number: selectedTable.number,
         customer_name: customerName || null,
         customer_notes: customerNotes || null,
@@ -514,11 +515,13 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
     }
 
     // Traccia nella timeline che è stato creato manualmente
+    // Nota: staff_name e staff_role_display vengono popolati automaticamente dal trigger
     await supabase.from('order_timeline').insert({
       order_id: order.id,
       action: 'created',
       staff_id: staffSession?.staff_id || null,
-      staff_name: staffSession?.name || 'Staff',
+      user_id: staffSession?.isOwner ? staffSession?.user_id : null,
+      created_by_type: staffSession?.isOwner ? 'owner' : (staffSession?.staff_id ? 'staff' : 'system'),
       created_at: new Date().toISOString()
     })
 
@@ -648,11 +651,14 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       .eq('id', existingOrder.id)
 
     // Traccia modifica nella timeline
+    // Nota: staff_name e staff_role_display vengono popolati automaticamente dal trigger
     await supabase.from('order_timeline').insert({
       order_id: existingOrder.id,
       action: 'updated',
       staff_id: staffSession?.staff_id || null,
-      staff_name: staffSession?.name || 'Staff',
+      user_id: staffSession?.isOwner ? staffSession?.user_id : null,
+      created_by_type: staffSession?.isOwner ? 'owner' : (staffSession?.staff_id ? 'staff' : 'system'),
+      changes: { edited_manually: true },
       created_at: new Date().toISOString()
     })
 

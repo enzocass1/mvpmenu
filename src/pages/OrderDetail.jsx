@@ -114,21 +114,26 @@ function OrderDetail() {
       const { data, error } = await supabase
         .from('order_timeline')
         .select(`
-          *,
-          staff:restaurant_staff(name)
+          id,
+          order_id,
+          staff_id,
+          user_id,
+          created_by_type,
+          action,
+          previous_status,
+          new_status,
+          changes,
+          notes,
+          staff_name,
+          staff_role_display,
+          created_at
         `)
         .eq('order_id', orderId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      // Map staff name from join if not already present
-      const timelineWithStaff = (data || []).map(event => ({
-        ...event,
-        staff_name: event.staff_name || event.staff?.name || null
-      }))
-
-      setTimeline(timelineWithStaff)
+      setTimeline(data || [])
     } catch (error) {
       console.error('Errore caricamento timeline:', error)
     }
@@ -427,8 +432,10 @@ function OrderDetail() {
                 <div style={styles.timelineDot}></div>
                 <div style={styles.timelineContent}>
                   <div style={styles.timelineAction}>{getStatusLabel(event.action)}</div>
-                  {event.staff_name && (
-                    <div style={styles.timelineStaff}>da {event.staff_name}</div>
+                  {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (
+                    <div style={styles.timelineStaff}>
+                      {event.staff_role_display || event.staff_name || (event.created_by_type === 'customer' ? 'Cliente Incognito' : null)}
+                    </div>
                   )}
                   <div style={styles.timelineDate}>{formatDateTime(event.created_at)}</div>
                 </div>

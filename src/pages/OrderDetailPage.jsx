@@ -5,6 +5,7 @@ import { tokens } from '../styles/tokens'
 import { Card, Button, Badge, EmptyState, Spinner } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import CreateOrderModal from '../components/CreateOrderModal'
+import ChangeTableModal from '../components/ChangeTableModal'
 
 /**
  * Order Detail Page - Shopify-like Design System
@@ -19,6 +20,7 @@ function OrderDetailPage({ session }) {
   const [loading, setLoading] = useState(true)
   const [currentTime, setCurrentTime] = useState(Date.now())
   const [showEditOrderModal, setShowEditOrderModal] = useState(false)
+  const [showChangeTableModal, setShowChangeTableModal] = useState(false)
 
   useEffect(() => {
     if (session) {
@@ -49,10 +51,23 @@ function OrderDetailPage({ session }) {
       if (restaurantError) throw restaurantError
       setRestaurant(restaurantData)
 
-      // Load order
+      // Load order with relationships
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          table:tables (id, number),
+          room:rooms (id, name),
+          table_change_logs (
+            id,
+            changed_at,
+            changed_by_name,
+            old_room_name,
+            old_table_number,
+            new_room_name,
+            new_table_number
+          )
+        `)
         .eq('id', orderId)
         .single()
 
@@ -77,22 +92,54 @@ function OrderDetailPage({ session }) {
       const { data: timelineData, error: timelineError } = await supabase
         .from('order_timeline')
         .select(`
-          *,
-          staff:restaurant_staff(name)
+          id,
+          order_id,
+          staff_id,
+          user_id,
+          created_by_type,
+          action,
+          previous_status,
+          new_status,
+          changes,
+          notes,
+          staff_name,
+          staff_role_display,
+          created_at
         `)
         .eq('order_id', orderId)
         .order('created_at', { ascending: false })
 
       if (timelineError) {
         console.error('Errore caricamento timeline:', timelineError)
-      } else {
-        // Map staff name from join if not already present
-        const timelineWithStaff = (timelineData || []).map(event => ({
-          ...event,
-          staff_name: event.staff_name || event.staff?.name || null
-        }))
-        setTimeline(timelineWithStaff)
       }
+
+      // Merge timeline events with table changes
+      const timelineEvents = (timelineData || []).map(event => ({
+        ...event,
+        event_type: 'timeline'
+      }))
+
+      // Add table change events to timeline
+      const tableChangeEvents = (orderData.table_change_logs || []).map(change => ({
+        id: change.id,
+        order_id: orderId,
+        action: 'table_changed',
+        staff_name: change.changed_by_name,
+        created_at: change.changed_at,
+        changes: {
+          old_room_name: change.old_room_name,
+          old_table_number: change.old_table_number,
+          new_room_name: change.new_room_name,
+          new_table_number: change.new_table_number
+        },
+        event_type: 'table_change'
+      }))
+
+      // Combine and sort by date
+      const allEvents = [...timelineEvents, ...tableChangeEvents]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+
+      setTimeline(allEvents)
     } catch (error) {
       console.error('Errore caricamento ordine:', error)
     } finally {
@@ -208,7 +255,8 @@ function OrderDetailPage({ session }) {
       updated: 'Aggiornato',
       item_added: 'Prodotto Aggiunto',
       item_removed: 'Prodotto Rimosso',
-      item_updated: 'Quantità Aggiornata'
+      item_updated: 'Quantità Aggiornata',
+      table_changed: 'Cambio Tavolo',
     }
     return labels[status] || status
   }
@@ -442,12 +490,19 @@ function OrderDetailPage({ session }) {
           >
             ← Torna agli Ordini
           </Button>
-          <h1 style={titleStyles}>Ordine #{order.id.substring(0, 8).toUpperCase()}</h1>
+          <h1 style={titleStyles}>Ordine #{order.order_number || order.id.substring(0, 8).toUpperCase()}</h1>
         </div>
         <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
           <Badge variant={getStatusVariant(order.status)} size="md">
             {getStatusLabel(order.status)}
           </Badge>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowChangeTableModal(true)}
+          >
+            Cambia Tavolo
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -468,8 +523,10 @@ function OrderDetailPage({ session }) {
       {/* Order Info Grid */}
       <div style={gridStyles}>
         <Card padding="md">
-          <div style={infoLabelStyles}>Tavolo</div>
-          <div style={infoValueStyles}>{order.table_number}</div>
+          <div style={infoLabelStyles}>Sala / Tavolo</div>
+          <div style={infoValueStyles}>
+            {order.room?.name || 'N/A'} - Tavolo {order.table?.number || order.table_number || 'N/A'}
+          </div>
         </Card>
         <Card padding="md">
           <div style={infoLabelStyles}>Data Ordine</div>
@@ -479,7 +536,7 @@ function OrderDetailPage({ session }) {
           <div style={infoLabelStyles}>Tempo di Attesa</div>
           <div style={{
             ...infoValueStyles,
-            color: order.completed_at ? tokens.colors.green[600] : tokens.colors.orange[600],
+            color: order.completed_at ? tokens.colors.success.base : tokens.colors.warning.base,
             fontFamily: tokens.typography.fontFamily.mono
           }}>
             {calculateWaitTime()}
@@ -538,9 +595,9 @@ function OrderDetailPage({ session }) {
                         color: tokens.colors.gray[700],
                         fontStyle: 'italic',
                         padding: tokens.spacing.xs,
-                        backgroundColor: tokens.colors.yellow[50],
+                        backgroundColor: tokens.colors.warning.light,
                         borderRadius: tokens.borderRadius.sm,
-                        border: `1px solid ${tokens.colors.yellow[200]}`
+                        border: `1px solid ${tokens.colors.warning.base}`
                       }}
                     >
                       Note: {item.notes}
@@ -577,8 +634,8 @@ function OrderDetailPage({ session }) {
       {order.customer_notes && (
         <>
           <h2 style={sectionTitleStyles}>Note Cliente</h2>
-          <Card padding="md" style={{ marginBottom: tokens.spacing.xl, backgroundColor: tokens.colors.blue[50], border: `1px solid ${tokens.colors.blue[200]}` }}>
-            <p style={{ margin: 0, color: tokens.colors.blue[900] }}>
+          <Card padding="md" style={{ marginBottom: tokens.spacing.xl, backgroundColor: tokens.colors.info.light, border: `1px solid ${tokens.colors.info.base}` }}>
+            <p style={{ margin: 0, color: tokens.colors.info.dark }}>
               {order.customer_notes}
             </p>
           </Card>
@@ -601,8 +658,20 @@ function OrderDetailPage({ session }) {
                 <div style={timelineDotStyles}></div>
                 <div style={timelineContentStyles}>
                   <div style={timelineActionStyles}>{getStatusLabel(event.action)}</div>
-                  {event.staff_name && (
-                    <div style={timelineStaffStyles}>da {event.staff_name}</div>
+                  {event.event_type === 'table_change' && event.changes && (
+                    <div style={{
+                      ...timelineStaffStyles,
+                      color: tokens.colors.gray[700],
+                      marginTop: tokens.spacing.xs
+                    }}>
+                      Da: {event.changes.old_room_name} - Tavolo {event.changes.old_table_number} →
+                      A: {event.changes.new_room_name} - Tavolo {event.changes.new_table_number}
+                    </div>
+                  )}
+                  {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (
+                    <div style={timelineStaffStyles}>
+                      {event.staff_role_display || event.staff_name || (event.created_by_type === 'customer' ? 'Cliente Incognito' : null)}
+                    </div>
                   )}
                   <div style={timelineDateStyles}>{formatDateTime(event.created_at)}</div>
                 </div>
@@ -613,19 +682,16 @@ function OrderDetailPage({ session }) {
       </Card>
 
       {/* Actions */}
-      <div style={actionsStyles}>
-        {nextAction && (
+      {nextAction && (
+        <div style={actionsStyles}>
           <Button
             variant="primary"
             onClick={() => updateOrderStatus(nextAction.nextStatus)}
           >
             {nextAction.label}
           </Button>
-        )}
-        <Button variant="outline" onClick={() => navigate('/ordini')}>
-          Torna agli Ordini
-        </Button>
-      </div>
+        </div>
+      )}
 
       {/* Edit Order Modal */}
       {showEditOrderModal && (
@@ -636,13 +702,36 @@ function OrderDetailPage({ session }) {
             loadData()
             setShowEditOrderModal(false)
           }}
-          staffSession={{
-            name: 'Proprietario',
-            role: 'manager',
+          staffSession={session?.user?.id === restaurant?.user_id ? {
+            name: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
+            fullName: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
+            role: 'Admin',
+            displayRole: 'Admin',
             restaurant_id: restaurant.id,
-            staff_id: null
-          }}
+            staff_id: null,
+            isOwner: true
+          } : null}
           existingOrder={order}
+          preselectedRoomId={order?.room_id}
+          preselectedTableNumber={order?.table_number}
+        />
+      )}
+
+      {/* Change Table Modal */}
+      {showChangeTableModal && order && (
+        <ChangeTableModal
+          isOpen={showChangeTableModal}
+          onClose={() => setShowChangeTableModal(false)}
+          order={order}
+          onTableChanged={() => {
+            console.log('🔄 Tavolo cambiato, ricarico dati...')
+            setShowChangeTableModal(false)
+            // Piccolo delay per assicurarsi che Supabase abbia committato le modifiche
+            setTimeout(() => {
+              loadData()
+            }, 300)
+          }}
+          restaurantId={restaurant?.id}
         />
       )}
     </DashboardLayout>
