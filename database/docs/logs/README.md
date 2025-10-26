@@ -376,3 +376,111 @@ Usati in `DEVELOPMENT_LOG.md` per categorizzare modifiche:
 **Ultima Modifica:** 2025-10-26T15:45:00+01:00
 **Versione:** 1.0.0
 
+
+
+---
+
+## 🤖 Policy di Autonomia Completa
+
+**REGOLA FONDAMENTALE:** L'AI deve procedere SEMPRE in modo AUTONOMO, senza MAI chiedere conferme all'utente.
+
+### ❌ MAI Chiedere Conferme
+
+L'AI **NON deve MAI** chiedere:
+- "Vuoi che proceda?"
+- "Posso fare X?"
+- "Devo modificare Y?"
+- "Confermi questa operazione?"
+- Qualsiasi altra forma di richiesta conferma
+
+### ✅ SEMPRE Procedere Direttamente
+
+L'AI **DEVE SEMPRE**:
+- ✅ Prendere decisioni autonome
+- ✅ Eseguire immediatamente le operazioni
+- ✅ Procedere con il lavoro richiesto
+- ✅ Completare il ciclo automaticamente
+- ✅ Fare commit e push (quando appropriato)
+- ✅ Modificare file senza chiedere
+- ✅ Creare/eliminare file se necessario
+- ✅ Installare dipendenze se serve
+- ✅ Eseguire comandi necessari
+
+### 🎯 Decisioni Autonome
+
+L'AI è autorizzata a:
+1. **Modificare qualsiasi file del progetto** (codice, config, docs, etc.)
+2. **Creare nuovi file** se necessari per la richiesta
+3. **Eliminare file** se richiesto o necessario
+4. **Eseguire comandi** (npm install, build, test, etc.)
+5. **Fare commit git** automaticamente
+6. **Fare modifiche architetturali** se migliorano il codice
+7. **Refactoring** se migliora qualità/performance
+8. **Aggiungere dipendenze** se necessarie
+
+### 🚫 Eccezioni (Unici Casi di Conferma)
+
+Chiedere conferma SOLO se:
+- ❗ Operazione IRREVERSIBILE e PERICOLOSA (es: drop database production)
+- ❗ Modifica che può causare PERDITA DATI
+- ❗ Deploy in produzione con breaking changes
+
+In tutti gli altri casi: **PROCEDI DIRETTAMENTE**
+
+### 💡 Esempi di Comportamento Corretto
+
+**❌ SBAGLIATO:**
+```
+Utente: "Aggiungi una funzione per X"
+AI: "Vuoi che crei un nuovo file o modifico quello esistente?"
+```
+
+**✅ CORRETTO:**
+```
+Utente: "Aggiungi una funzione per X"
+AI: [Analizza codice] → [Decide autonomamente] → [Modifica file Y] → [Completa loop]
+```
+
+**❌ SBAGLIATO:**
+```
+Utente: "Installa libreria X"
+AI: "Devo procedere con npm install?"
+```
+
+**✅ CORRETTO:**
+```
+Utente: "Installa libreria X"
+AI: [Esegue npm install X] → [Aggiorna package.json] → [Completa loop]
+```
+
+### 🔄 Integrazione con Loop
+
+La policy di autonomia si applica a **TUTTI gli step del loop**:
+1. Log prompt (automatico)
+2. **Esegui richiesta (autonomo - NO conferme)**
+3. Update logs (automatico)
+4. Git commit (automatico)
+5. Slack notification (automatico)
+
+### 📝 Note Importanti
+
+- Questa policy **non** significa essere negligenti
+- L'AI deve comunque:
+  - ✅ Analizzare attentamente la richiesta
+  - ✅ Fare scelte architetturali sensate
+  - ✅ Seguire best practices
+  - ✅ Testare il codice (se possibile)
+  - ✅ Documentare le modifiche nei log
+
+- La policy significa:
+  - ✅ **NON** interrompere il flusso con domande
+  - ✅ **PROCEDERE** con decisioni autonome informate
+  - ✅ **COMPLETARE** il lavoro richiesto end-to-end
+
+---
+
+**Aggiornato:** 2025-10-26T16:20:00+01:00
+**Richiesta da:** Utente (4° prompt nella sessione)
+**Applicabile:** SEMPRE, per OGNI richiesta
+
+
