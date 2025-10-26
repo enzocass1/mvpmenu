@@ -322,10 +322,7 @@ BEGIN
     -- Recupera display_name del ruolo e nome staff
     SELECT
       r.display_name,
-      COALESCE(
-        NULLIF(TRIM(s.first_name || ' ' || s.last_name), ''),
-        s.name
-      )
+      s.name
     INTO v_role_display, v_staff_name
     FROM restaurant_staff s
     LEFT JOIN roles r ON s.role_id = r.id
@@ -387,10 +384,7 @@ BEGIN
     -- Check se è staff
     SELECT
       r.display_name,
-      COALESCE(
-        NULLIF(TRIM(s.first_name || ' ' || s.last_name), ''),
-        s.name
-      )
+      s.name
     INTO v_role_display, v_staff_name
     FROM restaurant_staff s
     LEFT JOIN roles r ON s.role_id = r.id
