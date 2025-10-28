@@ -14,6 +14,7 @@ function DashboardLayout({
   userName,
   isPremium = false,
   onLogout,
+  permissions = [],
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -85,6 +86,8 @@ function DashboardLayout({
         restaurantName={restaurantName}
         userName={userName}
         isPremium={isPremium}
+        permissions={permissions}
+        onLogout={onLogout}
       />
 
       {/* Main Content */}

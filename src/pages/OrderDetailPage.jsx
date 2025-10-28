@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { softDeleteOrder } from '../lib/orderOperations'
+import * as ordersService from '../lib/ordersService'
+import { loadOrderTimeline } from '../lib/timelineService'
 import { tokens } from '../styles/tokens'
 import { Card, Button, Badge, EmptyState, Spinner } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
@@ -29,10 +32,10 @@ function OrderDetailPage({ session }) {
   }, [session, orderId])
 
   // Timer per aggiornare il tempo di attesa in tempo reale
-  // SOLO per ordini NON completed
+  // SOLO per ordini NON completed e NON eliminati
   useEffect(() => {
-    if (!order || order.status === 'completed') {
-      // Se completed, non aggiornare il timer
+    if (!order || order.status === 'completed' || order.deleted_at) {
+      // Se completed o eliminato, non aggiornare il timer
       return
     }
 
@@ -41,7 +44,7 @@ function OrderDetailPage({ session }) {
     }, 1000) // Aggiorna ogni secondo
 
     return () => clearInterval(interval)
-  }, [order?.status])
+  }, [order?.status, order?.deleted_at])
 
   const loadData = async () => {
     try {
@@ -85,32 +88,15 @@ function OrderDetailPage({ session }) {
         order_items: itemsData || [],
       })
 
-      // Load timeline
-      const { data: timelineData, error: timelineError } = await supabase
-        .from('order_timeline')
-        .select(`
-          id,
-          order_id,
-          staff_id,
-          user_id,
-          created_by_type,
-          action,
-          previous_status,
-          new_status,
-          changes,
-          notes,
-          staff_name,
-          staff_role_display,
-          created_at
-        `)
-        .eq('order_id', orderId)
-        .order('created_at', { ascending: false })
-
-      if (timelineError) {
-        console.error('Errore caricamento timeline:', timelineError)
+      // Load timeline usando nuovo timelineService
+      const timelineResult = await loadOrderTimeline(orderId)
+      if (timelineResult.success) {
+        // Inverti ordine per mostrare più recenti prima
+        setTimeline(timelineResult.data.reverse())
+      } else {
+        console.error('Errore caricamento timeline:', timelineResult.error)
+        setTimeline([])
       }
-
-      setTimeline(timelineData || [])
     } catch (error) {
       console.error('Errore caricamento ordine:', error)
     } finally {
@@ -132,86 +118,65 @@ function OrderDetailPage({ session }) {
 
   const updateOrderStatus = async (newStatus) => {
     try {
-      const updates = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      }
+      // Usa il servizio centralizzato per garantire consistenza
+      // IMPORTANTE: Stessa logica usata in TableDetailModal (Cassa)
+      let result
 
-      if (newStatus === 'confirmed') {
-        updates.confirmed_at = new Date().toISOString()
-      } else if (newStatus === 'preparing') {
-        updates.preparing_at = new Date().toISOString()
+      if (newStatus === 'preparing' || newStatus === 'confirmed') {
+        // Conferma ordine (pending → preparing)
+        result = await ordersService.confirmOrder(orderId, null) // null = proprietario
       } else if (newStatus === 'completed') {
-        updates.completed_at = new Date().toISOString()
+        // Chiudi ordine (preparing → completed)
+        result = await ordersService.closeTableOrder(orderId, null) // null = proprietario
+      } else {
+        // Per altri stati, usa aggiornamento generico
+        // TODO: Quando implementeremo sistema ruoli, passare staff_id qui
+        const { data, error } = await supabase
+          .from('orders')
+          .update({
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+            modified_by_staff_id: null // Proprietario
+          })
+          .eq('id', orderId)
+          .select()
+          .single()
+
+        if (error) throw error
+        result = { success: true, order: data }
       }
 
-      const { error } = await supabase
-        .from('orders')
-        .update(updates)
-        .eq('id', orderId)
+      if (!result.success) {
+        throw new Error(result.error || 'Errore aggiornamento stato')
+      }
 
-      if (error) throw error
-
-      // Track analytics event for owner action
-      await supabase
-        .from('analytics_events')
-        .insert({
-          restaurant_id: restaurant.id,
-          event_type: 'owner_order_action',
-          metadata: {
-            order_id: orderId,
-            user_id: session.user.id,
-            action: newStatus,
-            previous_status: order?.status,
-            table_number: order?.table_number
-          }
-        })
-        .select()
-
+      console.log('✅ Status aggiornato tramite servizio centralizzato:', newStatus)
       loadData()
     } catch (error) {
-      console.error('Errore aggiornamento stato:', error)
+      console.error('❌ Errore aggiornamento stato:', error)
       alert('Errore durante l\'aggiornamento dello stato')
     }
   }
 
   const deleteOrder = async () => {
-    if (!confirm('Sei sicuro di voler eliminare questo ordine? Questa azione è irreversibile.')) {
+    if (!confirm('Sei sicuro di voler eliminare questo ordine? Verrà spostato nella sezione Eliminati.')) {
       return
     }
 
     try {
-      // Elimina tutti i dati correlati all'ordine
-      // 1. Elimina gli items dell'ordine
-      await supabase
-        .from('order_items')
-        .delete()
-        .eq('order_id', orderId)
+      // Usa il servizio centralizzato per soft delete
+      const result = await softDeleteOrder(orderId, session, restaurant)
 
-      // 2. Elimina gli eventi analytics correlati
-      await supabase
-        .from('analytics_events')
-        .delete()
-        .eq('order_id', orderId)
+      if (!result.success) {
+        throw new Error(result.error)
+      }
 
-      // 3. Elimina la timeline
-      await supabase
-        .from('order_timeline')
-        .delete()
-        .eq('order_id', orderId)
-
-      // 4. Elimina l'ordine stesso
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderId)
-
-      if (error) throw error
-
+      console.log('✅ Soft delete completato:', result.data)
+      alert('Ordine eliminato')
       navigate('/ordini')
     } catch (error) {
-      console.error('Errore eliminazione ordine:', error)
-      alert('Errore durante l\'eliminazione dell\'ordine')
+      console.error('❌ Errore eliminazione ordine:', error)
+      alert(`Errore durante l'eliminazione: ${error.message || error}`)
     }
   }
 
@@ -247,7 +212,7 @@ function OrderDetailPage({ session }) {
     const actions = {
       pending: { label: 'Conferma Ordine', nextStatus: 'confirmed' },
       confirmed: { label: 'Inizia Preparazione', nextStatus: 'preparing' },
-      preparing: { label: 'Completa Ordine', nextStatus: 'completed' },
+      // preparing: NON mostrare "Completa Ordine" - solo la Cassa può completare
     }
     return actions[status] || null
   }
@@ -420,6 +385,7 @@ function OrderDetailPage({ session }) {
         restaurantName={restaurant?.name}
         userName={session?.user?.email}
         isPremium={isPremium}
+        permissions={['*']}
         onLogout={handleLogout}
       >
         <Spinner size="lg" text="Caricamento ordine..." centered />
@@ -433,6 +399,7 @@ function OrderDetailPage({ session }) {
         restaurantName={restaurant?.name}
         userName={session?.user?.email}
         isPremium={isPremium}
+        permissions={['*']}
         onLogout={handleLogout}
       >
         <Card>
@@ -454,6 +421,7 @@ function OrderDetailPage({ session }) {
       restaurantName={restaurant?.name}
       userName={session?.user?.email}
       isPremium={isPremium}
+      permissions={['*']}
       onLogout={handleLogout}
     >
       {/* Page Header */}
@@ -470,30 +438,42 @@ function OrderDetailPage({ session }) {
           <h1 style={titleStyles}>Ordine #{order.order_number || order.id.substring(0, 8).toUpperCase()}</h1>
         </div>
         <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
-          <Badge variant={getStatusVariant(order.status)} size="md">
-            {getStatusLabel(order.status)}
+          <Badge variant={order.deleted_at ? 'error' : getStatusVariant(order.status)} size="md">
+            {order.deleted_at ? 'Eliminato' : getStatusLabel(order.status)}
           </Badge>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowChangeTableModal(true)}
-          >
-            Cambia Tavolo
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowEditOrderModal(true)}
-          >
-            Modifica Ordine
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={deleteOrder}
-          >
-            Elimina Ordine
-          </Button>
+
+          {/* Cambia Tavolo - nascosto se preparing, completed o deleted */}
+          {order.status !== 'preparing' && order.status !== 'completed' && !order.deleted_at && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowChangeTableModal(true)}
+            >
+              Cambia Tavolo
+            </Button>
+          )}
+
+          {/* Modifica Ordine (pending) / Aggiungi Prodotti (preparing) - nascosto solo se completed o deleted */}
+          {order.status !== 'completed' && !order.deleted_at && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEditOrderModal(true)}
+            >
+              {order.status === 'preparing' ? 'Aggiungi Prodotti' : 'Modifica Ordine'}
+            </Button>
+          )}
+
+          {/* Elimina Ordine - nascosto se preparing, completed o già deleted */}
+          {order.status !== 'preparing' && order.status !== 'completed' && !order.deleted_at && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={deleteOrder}
+            >
+              Elimina Ordine
+            </Button>
+          )}
         </div>
       </div>
 
@@ -634,26 +614,33 @@ function OrderDetailPage({ session }) {
               <div key={event.id} style={timelineItemStyles}>
                 <div style={timelineDotStyles}></div>
                 <div style={timelineContentStyles}>
-                  <div style={timelineActionStyles}>{getStatusLabel(event.action)}</div>
-                  {event.action === 'table_changed' && event.changes && (
+                  {/* Action Label (NO event source badge - è dettaglio tecnico) */}
+                  <div style={timelineActionStyles}>{event.actionLabel}</div>
+
+                  {/* Details Summary OR Notes (mostra solo uno per evitare duplicati) */}
+                  {(event.details_summary || event.notes) && (
                     <div style={{
                       ...timelineStaffStyles,
                       color: tokens.colors.gray[700],
-                      marginTop: tokens.spacing.xs
+                      marginBottom: tokens.spacing.xs,
+                      fontWeight: event.details_summary ? tokens.typography.fontWeight.medium : tokens.typography.fontWeight.normal,
+                      fontStyle: event.details_summary ? 'normal' : 'italic'
                     }}>
-                      {event.changes.old_room_name} T{event.changes.old_table_number} → {event.changes.new_room_name} T{event.changes.new_table_number}
+                      {/* Priorità a details_summary, fallback a notes */}
+                      {event.details_summary || event.notes}
                     </div>
                   )}
-                  {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (
+
+                  {/* Operator Display - semplificato (senza "da") */}
+                  {event.operatorDisplay && event.operatorDisplay !== 'Sistema' && (
                     <div style={timelineStaffStyles}>
-                      {event.created_by_type === 'customer'
-                        ? 'Cliente Incognito'
-                        : event.staff_role_display && event.staff_name
-                          ? `da ${event.staff_role_display} - ${event.staff_name}`
-                          : event.staff_role_display || event.staff_name || null}
+                      {/* Rimuovi "da" iniziale se presente */}
+                      {event.operatorDisplay.replace(/^da\s+/i, '')}
                     </div>
                   )}
-                  <div style={timelineDateStyles}>{formatDateTime(event.created_at)}</div>
+
+                  {/* Date */}
+                  <div style={timelineDateStyles}>{event.formattedDate}</div>
                 </div>
               </div>
             ))}
@@ -661,8 +648,8 @@ function OrderDetailPage({ session }) {
         )}
       </Card>
 
-      {/* Actions */}
-      {nextAction && (
+      {/* Actions - nascosto per ordini eliminati */}
+      {nextAction && !order.deleted_at && (
         <div style={actionsStyles}>
           <Button
             variant="primary"

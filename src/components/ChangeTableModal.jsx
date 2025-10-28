@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { Modal, Button } from './ui'
 import { tokens } from '../styles/tokens'
 import { supabase } from '../supabaseClient'
+import { getOccupiedTables } from '../lib/orderOperations'
+import {
+  addTimelineEntry,
+  buildOperatorInfo,
+  EVENT_SOURCE,
+  TIMELINE_ACTION
+} from '../lib/timelineService'
 
 /**
  * Modal Cambia Tavolo
@@ -62,18 +69,17 @@ function ChangeTableModal({
         setSelectedRoomId(order.room_id)
       }
 
-      // Load occupied tables (orders with status pending or preparing)
-      const { data: activeOrders, error: ordersError } = await supabase
-        .from('orders')
-        .select('table_id')
-        .eq('restaurant_id', restaurantId)
-        .in('status', ['pending', 'preparing'])
-        .neq('id', order.id) // Exclude current order
+      // Load occupied tables using centralized service
+      // ✅ Automatically filters: status IN ('pending', 'confirmed', 'preparing') AND deleted_at IS NULL
+      const occupiedTables = await getOccupiedTables(restaurantId)
 
-      if (ordersError) throw ordersError
+      // Extract table IDs, excluding current order's table (avoid showing current table as occupied)
+      const occupiedIds = occupiedTables
+        .filter(t => t.table_id !== order.table_id) // Exclude current order's table
+        .map(t => t.table_id)
+        .filter(Boolean)
 
-      // Extract table IDs from active orders
-      const occupiedIds = activeOrders?.map(o => o.table_id).filter(Boolean) || []
+      console.log(`[ChangeTableModal] ${occupiedIds.length} tavoli occupati (escluso tavolo corrente)`)
       setOccupiedTableIds(occupiedIds)
     } catch (error) {
       console.error('Error loading rooms:', error)
@@ -146,29 +152,34 @@ function ChangeTableModal({
 
       if (updateError) throw updateError
 
-      // Insert into order_timeline for tracking
-      const { error: timelineError } = await supabase
-        .from('order_timeline')
-        .insert({
-          order_id: order.id,
-          action: 'table_changed',
-          user_id: user.id,
-          staff_id: null,
-          created_by_type: 'owner',
+      // ✅ Timeline Event - usando timelineService centralizzato
+      await addTimelineEntry({
+        orderId: order.id,
+        action: TIMELINE_ACTION.TABLE_CHANGED,
+        eventSource: EVENT_SOURCE.TABLE_SERVICE, // Cambio tavolo è operazione di servizio
+        operator: buildOperatorInfo({
+          staffId: null, // NULL per proprietario
+          userId: user.id,
+          createdByType: 'owner',
+          staffName: userName
+        }),
+        data: {
+          previousStatus: order.status,
+          newStatus: order.status, // Status rimane lo stesso
+          notes: `Tavolo cambiato da ${oldRoomName} T${oldTable} → ${newRoomName} T${newTable?.number}`,
           changes: {
             old_room_name: oldRoomName,
             old_table_number: oldTable,
             new_room_name: newRoomName,
             new_table_number: newTable?.number
           },
-          notes: `Tavolo cambiato da ${oldRoomName} T${oldTable} → ${newRoomName} T${newTable?.number}`,
-          created_at: new Date().toISOString()
-        })
-
-      if (timelineError) {
-        console.error('Error inserting timeline entry:', timelineError)
+          isExpandable: true,
+          detailsSummary: `Da ${oldRoomName} T${oldTable} → ${newRoomName} T${newTable?.number}`
+        }
+      }).catch(error => {
+        console.error('Error inserting timeline entry:', error)
         // Don't fail the operation if timeline insert fails
-      }
+      })
 
       // Log the table change in analytics table
       const { error: logError } = await supabase
@@ -379,6 +390,11 @@ function ChangeTableModal({
                 >
                   <option value="">-- Seleziona un tavolo --</option>
                   {tables.map(table => {
+                    // Skip current table - non mostrarlo nemmeno come opzione
+                    if (table.id === order.table_id) {
+                      return null
+                    }
+
                     const isOccupied = occupiedTableIds.includes(table.id)
                     return (
                       <option

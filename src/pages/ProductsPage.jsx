@@ -107,6 +107,7 @@ function ProductsPage({ session }) {
         restaurantName={restaurant?.name}
         userName={session?.user?.email}
         isPremium={isPremium}
+        permissions={['*']}
         onLogout={handleLogout}
       >
         <Spinner size="lg" text="Caricamento..." centered />
@@ -119,6 +120,7 @@ function ProductsPage({ session }) {
       restaurantName={restaurant?.name}
       userName={session?.user?.email}
       isPremium={isPremium}
+      permissions={['*']}
       onLogout={handleLogout}
     >
       {/* Page Header */}

@@ -1229,6 +1229,7 @@ function CassaPage({ session }) {
         restaurantName={restaurant?.name}
         userName={session?.user?.email}
         isPremium={isPremium}
+        permissions={['*']}
         onLogout={handleLogout}
       >
         <Spinner size="lg" text="Caricamento cassa..." centered />
@@ -1241,6 +1242,7 @@ function CassaPage({ session }) {
       restaurantName={restaurant?.name}
       userName={session?.user?.email}
       isPremium={isPremium}
+      permissions={['*']}
       onLogout={handleLogout}
     >
       {/* Page Header */}

@@ -55,10 +55,18 @@ function StaffLogin() {
     setLoggingIn(true)
 
     try {
-      // Verifica credenziali staff
+      // Verifica credenziali staff + carica ruolo con permessi
       const { data: staff, error: staffError } = await supabase
         .from('restaurant_staff')
-        .select('*')
+        .select(`
+          *,
+          primary_role:staff_roles!primary_role_id (
+            id,
+            name,
+            color,
+            permissions
+          )
+        `)
         .eq('restaurant_id', restaurant.id)
         .eq('email', credentials.email)
         .single()
@@ -77,21 +85,39 @@ function StaffLogin() {
         throw new Error('Account disabilitato')
       }
 
-      // Salva staff in localStorage
-      localStorage.setItem('staff_session', JSON.stringify({
+      // Estrai permessi dal ruolo
+      const permissions = staff.primary_role?.permissions || []
+      const rolePermissions = typeof permissions === 'string'
+        ? JSON.parse(permissions)
+        : permissions
+
+      // Salva staff session con ruolo e permessi
+      const staffSession = {
         staff_id: staff.id,
         restaurant_id: restaurant.id,
         name: staff.name,
         email: staff.email,
-        role: staff.role,
+        role: staff.role || staff.primary_role?.name || 'Staff', // Backward compatibility
+        role_id: staff.primary_role?.id || null,
+        role_name: staff.primary_role?.name || null,
+        role_color: staff.primary_role?.color || null,
+        permissions: rolePermissions,
         subdomain: subdomain
-      }))
+      }
 
-      // Redirect alla pagina ordini
-      navigate(`/staff/${subdomain}/orders`)
+      localStorage.setItem('staff_session', JSON.stringify(staffSession))
+
+      console.log('✅ Staff login successful:', {
+        staff: staff.name,
+        role: staffSession.role_name,
+        permissions_count: rolePermissions.length
+      })
+
+      // Redirect alla dashboard staff
+      navigate(`/staff/${subdomain}/dashboard`)
 
     } catch (error) {
-      console.error('Errore login:', error)
+      console.error('❌ Errore login:', error)
       setError(error.message || 'Errore durante il login')
     } finally {
       setLoggingIn(false)

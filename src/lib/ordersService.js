@@ -5,33 +5,12 @@
 
 import { supabase } from '../supabaseClient'
 import { trackEvent } from '../utils/analytics'
-
-// Inline addTimelineEntry per evitare problemi di import con JSX
-const addTimelineEntry = async (orderId, action, staffId = null, data = {}) => {
-  try {
-    const entry = {
-      order_id: orderId,
-      staff_id: staffId,
-      user_id: data.userId || null,
-      created_by_type: data.createdByType || (staffId ? 'staff' : 'system'),
-      action: action,
-      previous_status: data.previousStatus || null,
-      new_status: data.newStatus || null,
-      changes: data.changes || null,
-      notes: data.notes || null
-    }
-
-    const { error } = await supabase
-      .from('order_timeline')
-      .insert(entry)
-
-    if (error) throw error
-    return true
-  } catch (error) {
-    console.error('Errore aggiunta timeline:', error)
-    return false
-  }
-}
+import {
+  addTimelineEntry as addTimelineEntryNew,
+  buildOperatorInfo,
+  EVENT_SOURCE,
+  TIMELINE_ACTION
+} from './timelineService'
 
 // ============================================
 // ORDINI - CRUD BASE
@@ -98,13 +77,24 @@ export const createTableOrder = async ({
     }
 
     // Timeline: Ordine creato da cliente
-    await addTimelineEntry(order.id, 'created', null, {
-      createdByType: 'customer',
-      newStatus: 'pending',
-      notes: `Ordine creato dal cliente${customerName ? ` - ${customerName}` : ''}`,
-      changes: {
-        items_count: items.length,
-        is_priority: isPriority
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId: order.id,
+      action: TIMELINE_ACTION.CREATED,
+      eventSource: EVENT_SOURCE.PUBLIC_MENU,
+      operator: buildOperatorInfo({
+        createdByType: 'customer',
+        staffName: customerName || 'Cliente Incognito'
+      }),
+      data: {
+        newStatus: 'pending',
+        notes: `Ordine creato dal cliente${customerName ? ` - ${customerName}` : ''}`,
+        changes: {
+          items_count: items.length,
+          is_priority: isPriority
+        },
+        isExpandable: true,
+        detailsSummary: `${items.length} prodotto${items.length !== 1 ? 'i' : ''}${isPriority ? ' - PRIORITARIO' : ''}`
       }
     })
 
@@ -191,12 +181,24 @@ export const createTableOrderByStaff = async ({
     }
 
     // Timeline: Ordine creato e confermato da staff (direttamente in preparazione)
-    await addTimelineEntry(order.id, 'created', staffId, {
-      newStatus: 'preparing',
-      notes: `Tavolo aperto dallo staff${customerName ? ` per ${customerName}` : ''}`,
-      changes: {
-        items_count: items.length,
-        is_priority: isPriority
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId: order.id,
+      action: TIMELINE_ACTION.CREATED,
+      eventSource: EVENT_SOURCE.TABLE_SERVICE,
+      operator: buildOperatorInfo({
+        staffId: staffId,
+        createdByType: 'staff'
+      }),
+      data: {
+        newStatus: 'preparing',
+        notes: `Tavolo aperto dallo staff${customerName ? ` per ${customerName}` : ''}`,
+        changes: {
+          items_count: items.length,
+          is_priority: isPriority
+        },
+        isExpandable: true,
+        detailsSummary: `${items.length} prodotto${items.length !== 1 ? 'i' : ''}${isPriority ? ' - PRIORITARIO' : ''}`
       }
     })
 
@@ -330,10 +332,20 @@ export const confirmOrder = async (orderId, staffId) => {
     if (itemsError) throw itemsError
 
     // Timeline: Evento "confermato" → "preparazione"
-    await addTimelineEntry(orderId, 'confirmed', staffId, {
-      previousStatus: 'pending',
-      newStatus: 'preparing',
-      notes: 'Ordine confermato e messo in preparazione'
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.CONFIRMED,
+      eventSource: EVENT_SOURCE.TABLE_SERVICE,
+      operator: buildOperatorInfo({
+        staffId: staffId,
+        createdByType: 'staff'
+      }),
+      data: {
+        previousStatus: 'pending',
+        newStatus: 'preparing',
+        notes: 'Ordine confermato e messo in preparazione'
+      }
     })
 
     // Analytics
@@ -377,12 +389,24 @@ export const closeTableOrder = async (orderId, staffId, receiptNumber = null) =>
     if (error) throw error
 
     // Timeline: Ordine completato
-    await addTimelineEntry(orderId, 'completed', staffId, {
-      previousStatus: 'preparing',
-      newStatus: 'completed',
-      notes: receiptNumber ? `Scontrino fiscale N. ${receiptNumber}` : 'Tavolo chiuso',
-      changes: {
-        receipt_number: receiptNumber
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.COMPLETED,
+      eventSource: EVENT_SOURCE.CASHIER,
+      operator: buildOperatorInfo({
+        staffId: staffId,
+        createdByType: 'staff'
+      }),
+      data: {
+        previousStatus: 'preparing',
+        newStatus: 'completed',
+        notes: receiptNumber ? `Scontrino fiscale N. ${receiptNumber}` : 'Tavolo chiuso',
+        changes: {
+          receipt_number: receiptNumber
+        },
+        isExpandable: !!receiptNumber,
+        detailsSummary: receiptNumber ? `Scontrino N. ${receiptNumber}` : 'Tavolo chiuso'
       }
     })
 
@@ -408,12 +432,16 @@ export const closeTableOrder = async (orderId, staffId, receiptNumber = null) =>
  */
 export const deleteOrder = async (orderId, staffId) => {
   try {
+    console.log('🗑️ deleteOrder chiamato:', { orderId, staffId })
+
     // Get previous status before deleting
     const { data: currentOrder } = await supabase
       .from('orders')
       .select('status')
       .eq('id', orderId)
       .single()
+
+    console.log('📋 Status attuale ordine:', currentOrder?.status)
 
     const { data: order, error } = await supabase
       .from('orders')
@@ -427,13 +455,33 @@ export const deleteOrder = async (orderId, staffId) => {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('❌ ERRORE 409 in ordersService.deleteOrder():')
+      console.error('❌ Error code:', error.code)
+      console.error('❌ Error message:', error.message)
+      console.error('❌ Error details:', error.details)
+      console.error('❌ Error hint:', error.hint)
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2))
+      throw error
+    }
+
+    console.log('✅ Soft delete completato in ordersService:', order)
 
     // Timeline: Ordine annullato
-    await addTimelineEntry(orderId, 'cancelled', staffId, {
-      previousStatus: currentOrder?.status,
-      newStatus: 'cancelled',
-      notes: 'Ordine annullato e rimosso'
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.CANCELLED,
+      eventSource: EVENT_SOURCE.ORDERS_PAGE,
+      operator: buildOperatorInfo({
+        staffId: staffId,
+        createdByType: 'staff'
+      }),
+      data: {
+        previousStatus: currentOrder?.status,
+        newStatus: 'cancelled',
+        notes: 'Ordine annullato e rimosso'
+      }
     })
 
     // Analytics
@@ -512,8 +560,8 @@ export const addProductsToOrder = async (orderId, items, staffId) => {
       prepared: false,
       added_by_staff_id: staffId,
       variant_id: item.variant_id || null,
-      variant_title: item.variant_title || null,
-      option_values: item.option_values || null
+      variant_title: item.variant_title || null
+      // option_values column doesn't exist in order_items table
     }))
 
     const { error: itemsError } = await supabase
@@ -529,17 +577,29 @@ export const addProductsToOrder = async (orderId, items, staffId) => {
       .eq('id', orderId)
 
     // Timeline: Prodotti aggiunti
-    await addTimelineEntry(orderId, 'item_added', staffId, {
-      notes: `Aggiunti ${items.length} prodotti (Batch #${batchNumber})`,
-      changes: {
-        batch_number: batchNumber,
-        items_count: items.length,
-        products: items.map(i => ({ name: i.product_name, qty: i.quantity }))
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.ITEM_ADDED,
+      eventSource: EVENT_SOURCE.TABLE_SERVICE,
+      operator: buildOperatorInfo({
+        staffId: staffId,
+        createdByType: 'staff'
+      }),
+      data: {
+        notes: `Aggiunti ${items.length} prodotti (Batch #${batchNumber})`,
+        changes: {
+          batch_number: batchNumber,
+          items_count: items.length,
+          products: items.map(i => ({ name: i.product_name, qty: i.quantity }))
+        },
+        isExpandable: true,
+        detailsSummary: `${items.length} prodotto${items.length !== 1 ? 'i' : ''} aggiunto${items.length !== 1 ? 'i' : ''} - Batch #${batchNumber}`
       }
     })
 
-    // Analytics
-    await trackEvent('table_products_added', {
+    // Analytics - using correct event name from database constraint
+    await trackEvent('products_added_to_order', {
       restaurant_id: order.restaurant_id,
       order_id: orderId,
       table_id: order.table_id,
@@ -615,12 +675,24 @@ export const removeProductFromOrder = async (orderItemId, staffId) => {
       .eq('id', item.order_id)
 
     // Timeline: Prodotto rimosso
-    await addTimelineEntry(item.order_id, 'item_removed', staffId, {
-      notes: `Rimosso: ${item.product_name} (x${item.quantity})`,
-      changes: {
-        batch_number: item.batch_number,
-        product_name: item.product_name,
-        quantity: item.quantity
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId: item.order_id,
+      action: TIMELINE_ACTION.ITEM_REMOVED,
+      eventSource: EVENT_SOURCE.ORDERS_PAGE,
+      operator: buildOperatorInfo({
+        staffId: staffId,
+        createdByType: 'staff'
+      }),
+      data: {
+        notes: `Rimosso: ${item.product_name} (x${item.quantity})`,
+        changes: {
+          batch_number: item.batch_number,
+          product_name: item.product_name,
+          quantity: item.quantity
+        },
+        isExpandable: true,
+        detailsSummary: `${item.product_name} x${item.quantity} rimosso`
       }
     })
 
@@ -675,13 +747,33 @@ export const addPriorityToOrder = async (orderId, amount = 2.00) => {
 
 /**
  * Ottieni ordini attivi per ristorante
+ * ATTIVI = pending, confirmed, preparing (NON completed, NON cancelled, NON deleted)
  */
 export const getActiveOrders = async (restaurantId) => {
   try {
     const { data, error } = await supabase
-      .from('v_active_orders')
-      .select('*')
+      .from('orders')
+      .select(`
+        *,
+        table:tables(id, number),
+        room:rooms(id, name),
+        order_items(
+          id,
+          product_id,
+          product_name,
+          product_price,
+          quantity,
+          subtotal,
+          notes,
+          batch_number,
+          prepared,
+          variant_id,
+          variant_title
+        )
+      `)
       .eq('restaurant_id', restaurantId)
+      .in('status', ['pending', 'confirmed', 'preparing'])  // Include CONFIRMED
+      .is('deleted_at', null)  // Escludi eliminati
       .order('created_at', { ascending: true })
 
     if (error) throw error
@@ -891,17 +983,40 @@ export const generatePreconto = async (orderId, staffId) => {
     const order = await getOrderWithItems(orderId)
     if (!order) throw new Error('Ordine non trovato')
 
-    // Marca metadata che è stato generato preconto
+    const precontoTimestamp = new Date().toISOString()
+
+    // Marca metadata che è stato generato preconto con timestamp
     await supabase
       .from('orders')
       .update({
-        metadata: { ...order.metadata, preconto_generated: true, preconto_at: new Date().toISOString() },
+        metadata: { ...order.metadata, preconto_generated: true, preconto_at: precontoTimestamp },
+        preconto_generated_at: precontoTimestamp, // Campo dedicated per timestamp
         modified_by_staff_id: staffId
       })
       .eq('id', orderId)
 
-    // Analytics
-    await trackEvent('table_preconto', {
+    // Timeline: Preconto generato
+    // 🆕 MIGRATO a nuovo timelineService.js
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.PRECONTO_GENERATED,
+      eventSource: EVENT_SOURCE.CASHIER,
+      operator: buildOperatorInfo({
+        staffId: staffId,
+        createdByType: 'staff'
+      }),
+      data: {
+        notes: 'Preconto generato',
+        changes: {
+          timestamp: precontoTimestamp
+        },
+        isExpandable: false,
+        detailsSummary: 'Preconto generato'
+      }
+    })
+
+    // Analytics - using correct event name from database constraint
+    await trackEvent('preconto_generated', {
       restaurant_id: order.restaurant_id,
       order_id: orderId,
       table_id: order.table_id,
@@ -965,6 +1080,26 @@ export const generateScontrino = async (orderId, staffId) => {
     return { success: true, order, receiptNumber }
   } catch (error) {
     console.error('Errore generazione scontrino:', error)
+    return { success: false, error }
+  }
+}
+
+/**
+ * Chiudi tavolo senza generare scontrino
+ */
+export const closeTableWithoutReceipt = async (orderId, staffId) => {
+  try {
+    const order = await getOrderWithItems(orderId)
+    if (!order) throw new Error('Ordine non trovato')
+
+    // Chiudi tavolo senza numero scontrino
+    const result = await closeTableOrder(orderId, staffId, null)
+
+    if (!result.success) throw result.error
+
+    return { success: true, order }
+  } catch (error) {
+    console.error('Errore chiusura tavolo:', error)
     return { success: false, error }
   }
 }

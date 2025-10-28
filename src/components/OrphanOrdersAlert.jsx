@@ -31,8 +31,7 @@ function OrphanOrdersAlert({ orphanOrders, onAssignTable }) {
 
   return (
     <div style={{ marginBottom: tokens.spacing.lg }}>
-      <Card>
-        <Card.Section>
+      <Card padding="md">
           <div style={{
             display: 'flex',
             alignItems: 'flex-start',
@@ -143,7 +142,6 @@ function OrphanOrdersAlert({ orphanOrders, onAssignTable }) {
               </div>
             </div>
           </div>
-        </Card.Section>
       </Card>
     </div>
   )

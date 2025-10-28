@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
-import { Card, Button, KPICard, EmptyState, Spinner } from '../components/ui'
+import { Card, Button, KPICard, EmptyState, Spinner, Alert } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 
 /**
@@ -14,6 +14,7 @@ function Home({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [temporaryUpgrade, setTemporaryUpgrade] = useState(null)
 
   useEffect(() => {
     if (session) {
@@ -34,6 +35,22 @@ function Home({ session }) {
 
       if (restaurantError) throw restaurantError
       setRestaurant(restaurantData)
+
+      // Check for active temporary upgrade
+      const { data: tempUpgradeData, error: tempUpgradeError } = await supabase
+        .from('temporary_upgrades')
+        .select(`
+          *,
+          temporary_plan:subscription_plans!temporary_upgrades_temporary_plan_id_fkey(name, slug)
+        `)
+        .eq('restaurant_id', restaurantData.id)
+        .eq('is_active', true)
+        .gt('expires_at', new Date().toISOString())
+        .single()
+
+      if (!tempUpgradeError && tempUpgradeData) {
+        setTemporaryUpgrade(tempUpgradeData)
+      }
 
       // Load today's stats
       const today = new Date()
@@ -78,7 +95,21 @@ function Home({ session }) {
     }
   }
 
+  /**
+   * Calculate days remaining from date
+   */
+  const getDaysRemaining = (expiryDate) => {
+    if (!expiryDate) return 0
+    const now = new Date()
+    const expiry = new Date(expiryDate)
+    const diffTime = expiry - now
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return Math.max(0, diffDays)
+  }
+
   const isPremium = restaurant?.subscription_tier === 'premium'
+  const isTrialActive = restaurant?.subscription_status === 'trial'
+  const hasTemporaryUpgrade = temporaryUpgrade !== null
 
   const pageHeaderStyles = {
     marginBottom: tokens.spacing.xl,
@@ -125,6 +156,7 @@ function Home({ session }) {
         restaurantName={restaurant?.name}
         userName={session?.user?.email}
         isPremium={isPremium}
+        permissions={['*']}
         onLogout={handleLogout}
       >
         <Spinner size="lg" text="Caricamento dashboard..." centered />
@@ -137,15 +169,68 @@ function Home({ session }) {
       restaurantName={restaurant?.name}
       userName={session?.user?.email}
       isPremium={isPremium}
+      permissions={['*']}
       onLogout={handleLogout}
     >
       {/* Page Header */}
       <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Panoramica</h1>
-        <p style={subtitleStyles}>
-          Benvenuto in {restaurant?.name || 'MVP Menu'}
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing.md }}>
+          <div>
+            <h1 style={titleStyles}>Panoramica</h1>
+            <p style={subtitleStyles}>
+              Benvenuto in {restaurant?.name || 'MVP Menu'}
+            </p>
+          </div>
+          <Button variant="outline" onClick={handleLogout} style={{ flexShrink: 0 }}>
+            Esci
+          </Button>
+        </div>
       </div>
+
+      {/* Trial Period Banner */}
+      {isTrialActive && (
+        <Alert variant="info" style={{ marginBottom: tokens.spacing.lg }}>
+          <strong>Periodo di Prova Attivo</strong>
+          <p style={{ margin: `${tokens.spacing.xs} 0 0 0` }}>
+            Stai utilizzando un periodo di prova. Ti rimangono{' '}
+            <strong>{getDaysRemaining(restaurant.subscription_trial_ends_at)} giorni</strong> per
+            testare tutte le funzionalità premium. Scadenza:{' '}
+            {new Date(restaurant.subscription_trial_ends_at).toLocaleDateString('it-IT')}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/piano')}
+            style={{ marginTop: tokens.spacing.sm }}
+          >
+            Passa a un piano
+          </Button>
+        </Alert>
+      )}
+
+      {/* Temporary Upgrade Banner */}
+      {hasTemporaryUpgrade && (
+        <Alert variant="success" style={{ marginBottom: tokens.spacing.lg }}>
+          <strong>Upgrade Temporaneo Attivo!</strong>
+          <p style={{ margin: `${tokens.spacing.xs} 0 0 0` }}>
+            Hai accesso temporaneo al piano{' '}
+            <strong>{temporaryUpgrade.temporary_plan?.name || 'Premium'}</strong>.{' '}
+            Ti rimangono <strong>{getDaysRemaining(temporaryUpgrade.expires_at)} giorni</strong> per
+            sfruttare tutte le funzionalità avanzate!
+            {temporaryUpgrade.reason && (
+              <> Motivo: <em>{temporaryUpgrade.reason}</em></>
+            )}
+          </p>
+          <p style={{
+            margin: `${tokens.spacing.xs} 0 0 0`,
+            fontSize: tokens.typography.fontSize.sm,
+            color: tokens.colors.gray[600]
+          }}>
+            L'upgrade scade il {new Date(temporaryUpgrade.expires_at).toLocaleDateString('it-IT')}.
+            Dopo tornerai automaticamente al tuo piano originale.
+          </p>
+        </Alert>
+      )}
 
       {/* KPI Cards */}
       <div style={gridStyles}>

@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import * as ordersService from '../lib/ordersService'
+import {
+  addTimelineEntry,
+  buildOperatorInfo,
+  EVENT_SOURCE,
+  TIMELINE_ACTION
+} from '../lib/timelineService'
+import { trackEvent } from '../utils/analytics'
 
 function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession, existingOrder = null, preselectedRoomId = null, preselectedTableNumber = null, isOpen = true }) {
 
@@ -40,9 +48,8 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
     loadCategories()
     loadRestaurantSettings()
     loadRooms()
-    if (existingOrder) {
-      loadExistingOrderItems()
-    }
+    // NON caricare prodotti esistenti - quando aggiungi prodotti parti da zero
+    // Il modal in "add products mode" mostra solo i NUOVI prodotti da aggiungere
   }, [restaurantId, existingOrder])
 
   // Load tables when room is selected
@@ -114,7 +121,8 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
 
   const loadTables = async (roomId) => {
     try {
-      const { data, error } = await supabase
+      // Load tables
+      const { data: tablesData, error } = await supabase
         .from('tables')
         .select('*')
         .eq('room_id', roomId)
@@ -127,12 +135,34 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
         console.error('Codice:', error.code)
         throw error
       }
-      console.log('✅ Tavoli caricati per sala:', data?.length || 0)
-      setTables(data || [])
+
+      // Load active orders for these tables (only if creating new order, not editing)
+      if (!existingOrder && tablesData && tablesData.length > 0) {
+        const tableIds = tablesData.map(t => t.id)
+
+        const { data: activeOrders, error: ordersError } = await supabase
+          .from('orders')
+          .select('table_id')
+          .in('table_id', tableIds)
+          .in('status', ['pending', 'confirmed', 'preparing']) // Active statuses
+          .is('deleted_at', null)
+
+        if (!ordersError && activeOrders) {
+          const occupiedTableIds = new Set(activeOrders.map(o => o.table_id))
+
+          // Mark tables as occupied
+          tablesData.forEach(table => {
+            table.is_occupied = occupiedTableIds.has(table.id)
+          })
+        }
+      }
+
+      console.log('✅ Tavoli caricati per sala:', tablesData?.length || 0)
+      setTables(tablesData || [])
 
       // Auto-select table if preselectedTableNumber is provided
-      if (preselectedTableNumber && data && data.length > 0) {
-        const table = data.find(t => t.number === preselectedTableNumber)
+      if (preselectedTableNumber && tablesData && tablesData.length > 0) {
+        const table = tablesData.find(t => t.number === preselectedTableNumber)
         if (table) {
           setSelectedTableId(table.id)
         }
@@ -363,14 +393,17 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
   }
 
   const handleSubmit = async () => {
-    if (!selectedRoomId) {
-      alert('Seleziona una sala')
-      return
-    }
+    // In edit mode non validare sala/tavolo (già esistenti)
+    if (!isEditMode) {
+      if (!selectedRoomId) {
+        alert('Seleziona una sala')
+        return
+      }
 
-    if (!isTableNumberValid()) {
-      alert('Seleziona un tavolo')
-      return
+      if (!isTableNumberValid()) {
+        alert('Seleziona un tavolo')
+        return
+      }
     }
 
     if (selectedProducts.length === 0) {
@@ -382,7 +415,7 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
 
     try {
       if (isEditMode) {
-        // Modifica ordine esistente
+        // Aggiungi prodotti a ordine esistente (batch system)
         await updateExistingOrder()
       } else {
         // Crea nuovo ordine
@@ -514,169 +547,85 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       }
     }
 
-    // Traccia nella timeline che è stato creato manualmente
-    // Nota: staff_name e staff_role_display vengono popolati automaticamente dal trigger
-    await supabase.from('order_timeline').insert({
-      order_id: order.id,
-      action: 'created',
-      staff_id: staffSession?.staff_id || null,
-      user_id: staffSession?.isOwner ? staffSession?.user_id : null,
-      created_by_type: staffSession?.isOwner ? 'owner' : (staffSession?.staff_id ? 'staff' : 'system'),
-      created_at: new Date().toISOString()
-    })
-
-    // Analytics: traccia evento order_completed
-    await supabase.from('analytics_events').insert({
-      restaurant_id: restaurantId,
-      event_type: 'order_completed',
-      order_id: order.id,
-      metadata: {
-        table_number: parseInt(tableNumber),
-        total_amount: total,
-        items_count: selectedProducts.length,
-        is_priority: isPriorityOrder,
-        created_by_staff: true,
-        staff_name: staffSession?.name
+    // ✅ Timeline Event - usando timelineService centralizzato
+    await addTimelineEntry({
+      orderId: order.id,
+      action: TIMELINE_ACTION.CREATED,
+      eventSource: EVENT_SOURCE.TABLE_SERVICE, // Staff crea ordine dalla cassa
+      operator: buildOperatorInfo({
+        staffId: staffSession?.staff_id || null,
+        userId: staffSession?.isOwner ? staffSession?.user_id : null,
+        createdByType: staffSession?.isOwner ? 'owner' : (staffSession?.staff_id ? 'staff' : 'system'),
+        staffName: staffSession?.name || null
+      }),
+      data: {
+        newStatus: 'pending',
+        notes: `Ordine creato dallo staff${customerName ? ` per ${customerName}` : ''}`,
+        changes: {
+          items_count: selectedProducts.length,
+          is_priority: isPriorityOrder,
+          total_amount: total,
+          table_number: selectedTable.number,
+          room_id: selectedRoomId
+        },
+        isExpandable: true,
+        detailsSummary: `${selectedProducts.length} prodotto${selectedProducts.length !== 1 ? 'i' : ''}${isPriorityOrder ? ' - PRIORITARIO' : ''} - Tavolo ${selectedTable.number}`
       }
     })
 
-    // Track analytics event for operator action
-    if (staffSession?.staff_id) {
-      await supabase.from('analytics_events').insert({
-        restaurant_id: restaurantId,
-        event_type: 'operator_order_action',
-        metadata: {
-          order_id: order.id,
-          staff_id: staffSession.staff_id,
-          staff_name: staffSession.name,
-          action: 'created',
-          previous_status: null,
-          table_number: parseInt(tableNumber)
-        }
-      })
-    }
+    // ✅ Analytics Event - ordine creato (NON completed!)
+    await trackEvent('table_order_pending', {
+      restaurant_id: restaurantId,
+      order_id: order.id,
+      table_id: selectedTable.id,
+      room_id: selectedRoomId,
+      items_count: selectedProducts.length,
+      is_priority: isPriorityOrder,
+      metadata: {
+        total_amount: total,
+        created_by_staff: true,
+        staff_id: staffSession?.staff_id,
+        staff_name: staffSession?.name,
+        customer_name: customerName
+      }
+    })
 
     onOrderCreated()
     onClose()
   }
 
   const updateExistingOrder = async () => {
-    // Elimina tutti i prodotti esistenti
-    await supabase
-      .from('order_items')
-      .delete()
-      .eq('order_id', existingOrder.id)
-
-    // Riaggiungi i prodotti aggiornati con supporto varianti
-    const orderItems = selectedProducts.map(p => ({
-      order_id: existingOrder.id,
+    // STEP 6: Aggiungi prodotti a ordine esistente usando batch system
+    // Trasforma selectedProducts nel formato richiesto da ordersService
+    const items = selectedProducts.map(p => ({
       product_id: p.product_id,
       product_name: p.product_name,
       product_price: p.price,
       quantity: p.quantity,
       notes: p.notes || null,
-      subtotal: p.subtotal,
+      subtotal: p.price * p.quantity,
       variant_id: p.variant_id || null,
       variant_title: p.variant_title || null
+      // option_values column doesn't exist in order_items table
     }))
 
-    // Aggiorna l'ordine
-    const total = calculateTotal()
-    const priorityAmount = isPriorityOrder ? priorityPrice : 0
+    console.log('🔄 Aggiungendo prodotti a ordine esistente:', existingOrder.id)
 
-    await supabase
-      .from('order_items')
-      .insert(orderItems)
+    // Usa ordersService.addProductsToOrder che calcola automaticamente il batch number
+    const result = await ordersService.addProductsToOrder(
+      existingOrder.id,
+      items,
+      staffSession?.staff_id || null
+    )
 
-    // Se è un ordine priority, aggiungi il supplemento come item separato
-    if (isPriorityOrder && priorityAmount > 0) {
-      try {
-        // Cerca se esiste già un prodotto "Priority Order" per questo ristorante
-        let { data: priorityProduct } = await supabase
-          .from('products')
-          .select('id')
-          .eq('restaurant_id', restaurantId)
-          .eq('name', '⚡ Ordine Prioritario')
-          .maybeSingle()
-
-        // Se non esiste, crealo
-        if (!priorityProduct) {
-          const { data: newPriorityProduct } = await supabase
-            .from('products')
-            .insert({
-              restaurant_id: restaurantId,
-              category_id: null,
-              name: '⚡ Ordine Prioritario',
-              description: 'Supplemento per ordine prioritario',
-              price: priorityAmount,
-              is_visible: false,
-              image_url: null
-            })
-            .select('id')
-            .single()
-
-          priorityProduct = newPriorityProduct
-        }
-
-        // Inserisci l'item priority order
-        if (priorityProduct?.id) {
-          await supabase
-            .from('order_items')
-            .insert({
-              order_id: existingOrder.id,
-              product_id: priorityProduct.id,
-              product_name: '⚡ Ordine Prioritario',
-              product_price: priorityAmount,
-              quantity: 1,
-              notes: 'Supplemento per ordine prioritario',
-              subtotal: priorityAmount
-            })
-        }
-      } catch (priorityError) {
-        console.error('Errore gestione priority order item in update:', priorityError)
-      }
+    if (!result.success) {
+      throw new Error(result.error || 'Errore durante l\'aggiunta dei prodotti')
     }
 
-    await supabase
-      .from('orders')
-      .update({
-        table_number: parseInt(tableNumber),
-        customer_name: customerName || null,
-        customer_notes: customerNotes || null,
-        total_amount: total,
-        is_priority_order: isPriorityOrder,
-        priority_order_amount: priorityAmount,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', existingOrder.id)
+    console.log('✅ Prodotti aggiunti con successo! Batch:', result.batchNumber)
 
-    // Traccia modifica nella timeline
-    // Nota: staff_name e staff_role_display vengono popolati automaticamente dal trigger
-    await supabase.from('order_timeline').insert({
-      order_id: existingOrder.id,
-      action: 'updated',
-      staff_id: staffSession?.staff_id || null,
-      user_id: staffSession?.isOwner ? staffSession?.user_id : null,
-      created_by_type: staffSession?.isOwner ? 'owner' : (staffSession?.staff_id ? 'staff' : 'system'),
-      changes: { edited_manually: true },
-      created_at: new Date().toISOString()
-    })
-
-    // Track analytics event for operator action
-    if (staffSession?.staff_id) {
-      await supabase.from('analytics_events').insert({
-        restaurant_id: restaurantId,
-        event_type: 'operator_order_action',
-        metadata: {
-          order_id: existingOrder.id,
-          staff_id: staffSession.staff_id,
-          staff_name: staffSession.name,
-          action: 'updated',
-          previous_status: existingOrder.status,
-          table_number: parseInt(tableNumber)
-        }
-      })
-    }
+    // Mostra notifica con batch number
+    alert(`Prodotti aggiunti con successo come Batch ${result.batchNumber}!`)
 
     onOrderCreated()
     onClose()
@@ -707,101 +656,134 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
     <div style={styles.overlay} onClick={onClose}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div style={styles.header}>
-          <h2 style={styles.title}>{isEditMode ? 'Modifica Ordine' : 'Crea Nuovo Ordine'}</h2>
+          <h2 style={styles.title}>{isEditMode ? 'Aggiungi Prodotti a Ordine' : 'Crea Nuovo Ordine'}</h2>
           <button onClick={onClose} style={styles.closeButton}>×</button>
         </div>
 
         <div style={styles.content}>
-          {/* Sala - Dropdown delle sale disponibili */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Sala *</label>
-            <select
-              value={selectedRoomId || ''}
-              onChange={(e) => setSelectedRoomId(e.target.value || null)}
-              style={styles.input}
-            >
-              <option value="">Seleziona una sala</option>
-              {rooms.map(room => (
-                <option key={room.id} value={room.id}>{room.name}</option>
-              ))}
-            </select>
-            {rooms.length === 0 && (
-              <div style={styles.infoText}>
-                Nessuna sala configurata. Configura le sale nella sezione Cassa.
+          {/* Mostra info ordine quando in edit mode */}
+          {isEditMode && (
+            <div style={styles.formGroup}>
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#f0f9ff',
+                border: '1px solid #0ea5e9',
+                borderRadius: '6px',
+                fontSize: '13px',
+                color: '#0369a1',
+                marginBottom: '16px'
+              }}>
+                📋 Aggiungi prodotti al <strong>Tavolo {existingOrder.table_number}</strong>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Tavolo - Dropdown dei tavoli in base alla sala scelta */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Tavolo *</label>
-            <select
-              value={selectedTableId || ''}
-              onChange={(e) => setSelectedTableId(e.target.value || null)}
-              style={{
-                ...styles.input,
-                borderColor: !isTableNumberValid() ? '#EF4444' : '#ddd'
-              }}
-              disabled={!selectedRoomId}
-            >
-              <option value="">Seleziona un tavolo</option>
-              {tables.map(table => (
-                <option key={table.id} value={table.id}>
-                  Tavolo {table.number}
-                </option>
-              ))}
-            </select>
-            {!selectedRoomId && (
-              <div style={styles.infoText}>
-                Seleziona prima una sala
-              </div>
-            )}
-            {selectedRoomId && tables.length === 0 && (
-              <div style={styles.infoText}>
-                Nessun tavolo disponibile per questa sala
-              </div>
-            )}
-            {!isTableNumberValid() && selectedRoomId && tables.length > 0 && (
-              <div style={styles.errorText}>
-                Seleziona un tavolo
-              </div>
-            )}
-          </div>
+          {/* Sala - Dropdown delle sale disponibili (solo in create mode) */}
+          {!isEditMode && (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Sala *</label>
+              <select
+                value={selectedRoomId || ''}
+                onChange={(e) => setSelectedRoomId(e.target.value || null)}
+                style={styles.input}
+              >
+                <option value="">Seleziona una sala</option>
+                {rooms.map(room => (
+                  <option key={room.id} value={room.id}>{room.name}</option>
+                ))}
+              </select>
+              {rooms.length === 0 && (
+                <div style={styles.infoText}>
+                  Nessuna sala configurata. Configura le sale nella sezione Cassa.
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Customer Name */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Nome Cliente (opzionale)</label>
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              style={styles.input}
-              placeholder="Nome del cliente"
-            />
-          </div>
+          {/* Tavolo - Dropdown dei tavoli in base alla sala scelta (solo in create mode) */}
+          {!isEditMode && (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Tavolo *</label>
+              <select
+                value={selectedTableId || ''}
+                onChange={(e) => setSelectedTableId(e.target.value || null)}
+                style={{
+                  ...styles.input,
+                  borderColor: !isTableNumberValid() ? '#EF4444' : '#ddd'
+                }}
+                disabled={!selectedRoomId}
+              >
+                <option value="">Seleziona un tavolo</option>
+                {tables.map(table => (
+                  <option
+                    key={table.id}
+                    value={table.id}
+                    disabled={table.is_occupied}
+                    style={{
+                      color: table.is_occupied ? '#999' : 'inherit',
+                      fontStyle: table.is_occupied ? 'italic' : 'normal'
+                    }}
+                  >
+                    Tavolo {table.number}{table.is_occupied ? ' - OCCUPATO' : ''}
+                  </option>
+                ))}
+              </select>
+              {!selectedRoomId && (
+                <div style={styles.infoText}>
+                  Seleziona prima una sala
+                </div>
+              )}
+              {selectedRoomId && tables.length === 0 && (
+                <div style={styles.infoText}>
+                  Nessun tavolo disponibile per questa sala
+                </div>
+              )}
+              {!isTableNumberValid() && selectedRoomId && tables.length > 0 && (
+                <div style={styles.errorText}>
+                  Seleziona un tavolo
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Priority Order - mostra sempre, disabilita se non attivo */}
-          <div style={styles.checkboxGroup}>
-            <label style={{
-              ...styles.checkboxLabel,
-              opacity: enablePriorityOrders ? 1 : 0.5,
-              cursor: enablePriorityOrders ? 'pointer' : 'not-allowed'
-            }}>
+          {/* Customer Name (solo in create mode) */}
+          {!isEditMode && (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Nome Cliente (opzionale)</label>
               <input
-                type="checkbox"
-                checked={isPriorityOrder}
-                onChange={(e) => setIsPriorityOrder(e.target.checked)}
-                disabled={!enablePriorityOrders}
-                style={styles.checkbox}
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                style={styles.input}
+                placeholder="Nome del cliente"
               />
-              <span>Ordine Prioritario (+€{priorityPrice.toFixed(2)})</span>
-            </label>
-            {!enablePriorityOrders && (
-              <div style={styles.checkboxHint}>
-                Funzionalità non attiva. Abilitala dalle impostazioni ordini al tavolo.
-              </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Priority Order (solo in create mode) */}
+          {!isEditMode && (
+            <div style={styles.checkboxGroup}>
+              <label style={{
+                ...styles.checkboxLabel,
+                opacity: enablePriorityOrders ? 1 : 0.5,
+                cursor: enablePriorityOrders ? 'pointer' : 'not-allowed'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={isPriorityOrder}
+                  onChange={(e) => setIsPriorityOrder(e.target.checked)}
+                  disabled={!enablePriorityOrders}
+                  style={styles.checkbox}
+                />
+                <span>Ordine Prioritario (+€{priorityPrice.toFixed(2)})</span>
+              </label>
+              {!enablePriorityOrders && (
+                <div style={styles.checkboxHint}>
+                  Funzionalità non attiva. Abilitala dalle impostazioni ordini al tavolo.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Selected Products */}
           <div style={styles.formGroup}>
@@ -1009,34 +991,38 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
             </div>
           )}
 
-          {/* Customer Notes */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Note Ordine (opzionale)</label>
-            <textarea
-              value={customerNotes}
-              onChange={(e) => setCustomerNotes(e.target.value)}
-              style={styles.textarea}
-              placeholder="Note generali per l'ordine"
-              rows="3"
-            />
-          </div>
+          {/* Customer Notes (solo in create mode) */}
+          {!isEditMode && (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Note Ordine (opzionale)</label>
+              <textarea
+                value={customerNotes}
+                onChange={(e) => setCustomerNotes(e.target.value)}
+                style={styles.textarea}
+                placeholder="Note generali per l'ordine"
+                rows="3"
+              />
+            </div>
+          )}
 
           {/* Total */}
           <div style={styles.totalSection}>
             <div style={styles.totalRow}>
-              <span>Subtotale Prodotti:</span>
+              <span>{isEditMode ? 'Totale Nuovi Prodotti:' : 'Subtotale Prodotti:'}</span>
               <span>€{selectedProducts.reduce((sum, p) => sum + p.subtotal, 0).toFixed(2)}</span>
             </div>
-            {isPriorityOrder && (
+            {!isEditMode && isPriorityOrder && (
               <div style={styles.totalRow}>
                 <span style={{ color: '#FF9800' }}>Priority Order:</span>
                 <span style={{ color: '#FF9800' }}>€{priorityPrice.toFixed(2)}</span>
               </div>
             )}
-            <div style={{ ...styles.totalRow, ...styles.totalFinal }}>
-              <span>Totale:</span>
-              <span>€{calculateTotal().toFixed(2)}</span>
-            </div>
+            {!isEditMode && (
+              <div style={{ ...styles.totalRow, ...styles.totalFinal }}>
+                <span>Totale:</span>
+                <span>€{calculateTotal().toFixed(2)}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1048,12 +1034,12 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
             onClick={handleSubmit}
             style={{
               ...styles.submitButton,
-              opacity: (loading || !isTableNumberValid() || selectedProducts.length === 0) ? 0.5 : 1,
-              cursor: (loading || !isTableNumberValid() || selectedProducts.length === 0) ? 'not-allowed' : 'pointer'
+              opacity: (loading || (!isEditMode && !isTableNumberValid()) || selectedProducts.length === 0) ? 0.5 : 1,
+              cursor: (loading || (!isEditMode && !isTableNumberValid()) || selectedProducts.length === 0) ? 'not-allowed' : 'pointer'
             }}
-            disabled={loading || !isTableNumberValid() || selectedProducts.length === 0}
+            disabled={loading || (!isEditMode && !isTableNumberValid()) || selectedProducts.length === 0}
           >
-            {loading ? 'Salvataggio...' : (isEditMode ? 'Salva Modifiche' : 'Crea Ordine')}
+            {loading ? 'Salvataggio...' : (isEditMode ? 'Aggiungi Prodotti' : 'Crea Ordine')}
           </button>
         </div>
       </div>

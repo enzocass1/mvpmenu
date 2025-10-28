@@ -247,4 +247,40 @@ Già supportate nel sistema esistente, mantenute compatibili.
 
 ---
 
+## REGOLE BUSINESS - PERMESSI SEZIONE ORDINI vs CASSA
+
+### Sezione ORDINI (`/ordini` e `/ordini/:id`)
+
+**Ordini PENDING**
+- ✅ Visualizza, Modifica, Cambia Tavolo, Elimina, Conferma
+- ✅ Tutti i bottoni disponibili
+
+**Ordini PREPARING**
+- ✅ Visualizza (sola lettura)
+- ❌ NON può modificare
+- ❌ NON può cambiare tavolo
+- ❌ NON può eliminare
+- ❌ NON può completare (solo Cassa)
+- **Implementazione**: OrderDetailPage.jsx - bottoni nascosti per `status === 'preparing'`
+
+**Ordini COMPLETED**
+- ✅ Visualizza (sola lettura)
+- ❌ Nessuna azione disponibile
+- ❌ Checkbox disabilitato in lista
+- **Implementazione**: OrdersPage.jsx + OrderDetailPage.jsx
+
+### Sezione CASSA (`/cassa`)
+
+**Tutti gli ordini (pending, preparing)**
+- ✅ Tutte le azioni disponibili
+- ✅ Può completare ordini (Scontrino, Chiudi Tavolo)
+- ✅ Può modificare/eliminare anche ordini preparing
+- **Implementazione**: CassaPage.jsx + TableDetailModal.jsx
+
+**Ordini COMPLETED**
+- ✅ Visualizza (sola lettura)
+- ❌ Nessuna azione disponibile
+
+---
+
 ## FINE PIANO

@@ -4,7 +4,6 @@ import { supabase } from './supabaseClient'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Landing from './pages/Landing'
-import Checkout from './pages/Checkout'
 import AnalyticsSelection from './pages/AnalyticsSelection'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import ConversionFunnel from './pages/ConversionFunnel'
@@ -13,6 +12,7 @@ import RevenueAnalytics from './pages/RevenueAnalytics'
 import TimeBasedAnalysis from './pages/TimeBasedAnalysis'
 import AOVAnalysis from './pages/AOVAnalysis'
 import StaffLogin from './pages/StaffLogin'
+import StaffDashboard from './pages/StaffDashboard'
 import StaffOrders from './pages/StaffOrders'
 import OrderConfirmation from './pages/OrderConfirmation'
 import PublicMenu from './pages/PublicMenu'
@@ -28,6 +28,11 @@ import ChannelsPage from './pages/ChannelsPage'
 import SettingsPage from './pages/SettingsPage'
 import PlanPage from './pages/PlanPage'
 import CassaPage from './pages/CassaPage'
+import UsersPage from './pages/UsersPage'
+import SuperAdminLogin from './pages/superadmin/SuperAdminLogin'
+import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
+import PlansManagement from './pages/superadmin/PlansManagement'
+import RestaurantsManagement from './pages/superadmin/RestaurantsManagement'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -190,12 +195,6 @@ function App() {
         path="/dashboard-old"
         element={session ? <Dashboard session={session} /> : <Navigate to="/login" replace />}
       />
-      
-      {/* Checkout - solo se loggato */}
-      <Route
-        path="/checkout"
-        element={session ? <Checkout session={session} /> : <Navigate to="/login" replace />}
-      />
 
       {/* Analytics Selection - solo se loggato */}
       <Route
@@ -275,6 +274,12 @@ function App() {
         element={session ? <SettingsPage session={session} /> : <Navigate to="/login" replace />}
       />
 
+      {/* Users Page (Ruoli + Membri) - solo se loggato */}
+      <Route
+        path="/utenti"
+        element={session ? <UsersPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
       {/* Plan Page - solo se loggato */}
       <Route
         path="/piano"
@@ -299,6 +304,12 @@ function App() {
         element={<StaffLogin />}
       />
 
+      {/* Staff Dashboard - accessibile a staff autenticati */}
+      <Route
+        path="/staff/:subdomain/dashboard"
+        element={<StaffDashboard />}
+      />
+
       {/* Staff Orders - accessibile a staff autenticati */}
       <Route
         path="/staff/:subdomain/orders"
@@ -321,6 +332,24 @@ function App() {
       <Route
         path="/order-confirmation/:orderId"
         element={<OrderConfirmation />}
+      />
+
+      {/* Super Admin Routes - accessibile con autenticazione separata */}
+      <Route
+        path="/super-admin/login"
+        element={<SuperAdminLogin />}
+      />
+      <Route
+        path="/super-admin/dashboard"
+        element={<SuperAdminDashboard />}
+      />
+      <Route
+        path="/super-admin/plans"
+        element={<PlansManagement />}
+      />
+      <Route
+        path="/super-admin/restaurants"
+        element={<RestaurantsManagement />}
       />
 
       {/* Root redirect */}

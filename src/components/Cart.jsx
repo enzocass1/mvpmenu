@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
+import { trackOrderCreated, trackCartViewed, trackCartItemRemoved, trackCheckoutStarted } from '../utils/richAnalytics'
+import { getOrCreateAnonymousCustomer } from '../utils/customerUtils'
+import { getOccupiedTables } from '../lib/orderOperations'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -38,7 +41,7 @@ const getThemeStyles = (themeConfig) => {
  * Componente Slidecart per ordini al tavolo
  * Include: lista prodotti, quantità, note, selezione tavolo, conferma ordine
  */
-function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemoveItem, onClearCart }) {
+function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemoveItem, onClearCart, trafficSource }) {
   const [currentStep, setCurrentStep] = useState(1) // Step 1: Carrello, Step 2: Dettagli ordine
   const [rooms, setRooms] = useState([])
   const [tables, setTables] = useState([])
@@ -52,6 +55,9 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
   const [orderSettings, setOrderSettings] = useState(null)
   const [loadingSettings, setLoadingSettings] = useState(true)
   const [occupiedTables, setOccupiedTables] = useState([])
+
+  // Session tracking per analytics
+  const [sessionStartTime] = useState(() => Date.now())
 
   // Calcola stili dinamici basati sul theme_config del ristorante
   const themeStyles = useMemo(() => {
@@ -68,12 +74,37 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
       loadOrderSettings()
       loadRoomsAndTables()
       loadOccupiedTables()
+
+      // Track cart viewed event
+      trackCartViewedEvent()
     }
     // Reset to step 1 when opening cart
     if (isOpen) {
       setCurrentStep(1)
     }
   }, [restaurant?.id, isOpen])
+
+  // Track cart viewed
+  const trackCartViewedEvent = async () => {
+    if (!restaurant?.id || cartItems.length === 0) return
+
+    try {
+      const sessionId = localStorage.getItem('session_id')
+      const { customer } = await getOrCreateAnonymousCustomer(restaurant.id, sessionId)
+
+      await trackCartViewed({
+        restaurantId: restaurant.id,
+        itemsCount: cartItems.length,
+        uniqueProductsCount: new Set(cartItems.map(i => i.id)).size,
+        cartSubtotal: calculateSubtotal(),
+        cartTotal: calculateTotal(),
+        productIds: cartItems.map(i => i.id),
+        customerId: customer?.id
+      })
+    } catch (error) {
+      console.error('[Cart] Error tracking cart viewed:', error)
+    }
+  }
 
   const loadOrderSettings = async () => {
     try {
@@ -99,7 +130,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         .from('rooms')
         .select('*')
         .eq('restaurant_id', restaurant.id)
-        .order('table_start')
+        .order('name')
 
       if (roomsError) throw roomsError
 
@@ -110,15 +141,18 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         setSelectedRoomId(roomsData[0].id)
       }
 
-      // Carica tutti i tavoli
+      // Carica tutti i tavoli (filtrando per room_id invece di restaurant_id)
       const { data: tablesData, error: tablesError } = await supabase
         .from('tables')
         .select('*')
-        .eq('restaurant_id', restaurant.id)
-        .order('table_number')
+        .eq('is_active', true)
+        .order('number')
 
       if (tablesError) throw tablesError
 
+      console.log('[Cart] Tavoli caricati:', tablesData)
+      console.log('[Cart] Restaurant ID:', restaurant.id)
+      console.log('[Cart] Selected Room ID:', selectedRoomId)
       setTables(tablesData || [])
     } catch (err) {
       console.error('Errore caricamento sale e tavoli:', err)
@@ -127,25 +161,58 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
 
   const loadOccupiedTables = async () => {
     try {
-      // Carica ordini aperti (status: pending, preparing)
-      const { data, error } = await supabase
-        .from('orders')
-        .select('table_number, room_id')
-        .eq('restaurant_id', restaurant.id)
-        .in('status', ['pending', 'preparing'])
+      // Usa il servizio centralizzato per ottenere tavoli occupati
+      // CRITICAL: Filtra automaticamente per deleted_at IS NULL
+      const occupied = await getOccupiedTables(restaurant.id)
 
-      if (error) throw error
-
-      // Estrai numeri tavolo occupati con le sale
-      const occupied = data?.map(order => ({
+      // Converti nel formato usato da Cart (solo table_number e room_id)
+      const occupiedFormatted = occupied.map(order => ({
         table_number: order.table_number,
         room_id: order.room_id
-      })) || []
+      }))
 
-      setOccupiedTables(occupied)
+      setOccupiedTables(occupiedFormatted)
+      console.log(`[Cart] Tavoli occupati caricati: ${occupiedFormatted.length}`)
     } catch (err) {
       console.error('Errore caricamento tavoli occupati:', err)
+      setOccupiedTables([])
     }
+  }
+
+  // Wrapper for onRemoveItem to track analytics
+  const handleRemoveItem = async (productId, notes) => {
+    const item = cartItems.find(i => i.id === productId && i.notes === notes)
+    if (!item) return
+
+    try {
+      const sessionId = localStorage.getItem('session_id')
+      const { customer } = await getOrCreateAnonymousCustomer(restaurant.id, sessionId)
+
+      // Track before removing
+      const itemAddedAt = item.addedAt || Date.now()
+      const newCart = cartItems.filter(i => !(i.id === productId && i.notes === notes))
+
+      await trackCartItemRemoved({
+        restaurantId: restaurant.id,
+        productId: item.id,
+        productName: item.name,
+        productSku: item.sku || `SKU-${item.id.substring(0, 8)}`,
+        quantityRemoved: item.quantity,
+        subtotalRemoved: item.price * item.quantity,
+        timeInCartSeconds: Math.floor((Date.now() - itemAddedAt) / 1000),
+        cartStateAfter: {
+          itemsCount: newCart.length,
+          subtotal: newCart.reduce((sum, i) => sum + (i.price * i.quantity), 0),
+          total: newCart.reduce((sum, i) => sum + (i.price * i.quantity), 0)
+        },
+        customerId: customer?.id
+      })
+    } catch (error) {
+      console.error('[Cart] Error tracking item removed:', error)
+    }
+
+    // Call original remove function
+    onRemoveItem(productId, notes)
   }
 
   // Filtra i tavoli disponibili in base alla sala selezionata
@@ -161,8 +228,12 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
     )
   }
 
+  const calculateSubtotal = () => {
+    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  }
+
   const calculateTotal = () => {
-    const itemsTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const itemsTotal = calculateSubtotal()
     const priorityAmount = (isPriorityOrder && orderSettings?.priority_order_enabled)
       ? (orderSettings.priority_order_price || 0)
       : 0
@@ -171,6 +242,35 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
 
   const getTotalItems = () => {
     return cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  }
+
+  // Handle checkout started (proceed to step 2)
+  const handleProceedToCheckout = async () => {
+    try {
+      const sessionId = localStorage.getItem('session_id')
+      const { customer } = await getOrCreateAnonymousCustomer(restaurant.id, sessionId)
+
+      const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000)
+
+      await trackCheckoutStarted({
+        restaurantId: restaurant.id,
+        items: cartItems,
+        cartSubtotal: calculateSubtotal(),
+        hasPriorityOrder: isPriorityOrder && orderSettings?.priority_order_enabled,
+        priorityFee: (isPriorityOrder && orderSettings?.priority_order_enabled) ? (orderSettings.priority_order_price || 0) : 0,
+        cartTotal: calculateTotal(),
+        tableId: null, // Will be selected in step 2
+        tableNumber: null,
+        roomId: null,
+        roomName: null,
+        customerId: customer?.id,
+        sessionDurationSeconds: sessionDuration
+      })
+    } catch (error) {
+      console.error('[Cart] Error tracking checkout started:', error)
+    }
+
+    setCurrentStep(2)
   }
 
   const handleSubmitOrder = async () => {
@@ -200,12 +300,13 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         : 0
 
       // Trova il tavolo selezionato per ottenere il room_id
-      const selectedTable = tables.find(t => t.table_number === parseInt(tableNumber) && t.room_id === selectedRoomId)
+      const selectedTable = tables.find(t => t.number === parseInt(tableNumber) && t.room_id === selectedRoomId)
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           restaurant_id: restaurant.id,
+          table_id: selectedTable?.id || null,
           table_number: parseInt(tableNumber),
           room_id: selectedRoomId || null,
           customer_name: customerName || null,
@@ -286,19 +387,73 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         }
       }
 
-      // 3. Traccia evento analytics
-      await supabase
-        .from('analytics_events')
-        .insert({
-          restaurant_id: restaurant.id,
-          event_type: 'order_completed',
-          order_id: order.id,
-          metadata: {
-            table_number: parseInt(tableNumber),
-            total_amount: calculateTotal(),
-            items_count: cartItems.length
-          }
-        })
+      // 3. Get or create anonymous customer
+      const sessionId = localStorage.getItem('session_id') || crypto.randomUUID()
+      if (!localStorage.getItem('session_id')) {
+        localStorage.setItem('session_id', sessionId)
+      }
+
+      const { customer } = await getOrCreateAnonymousCustomer(restaurant.id, sessionId)
+
+      // 4. Build complete items array with all product details
+      const completeItems = orderItems.map(item => {
+        const cartItem = cartItems.find(ci => ci.id === item.product_id)
+        return {
+          product_id: item.product_id,
+          product_name: item.product_name,
+          product_sku: cartItem?.sku || `SKU-${item.product_id.substring(0, 8)}`,
+          category_id: cartItem?.category_id || null,
+          category_name: cartItem?.category_name || 'Generale',
+          variant_id: item.variant_id,
+          variant_title: item.variant_title,
+          variant_options: cartItem?.variant_options || {},
+          quantity: item.quantity,
+          unit_price: item.product_price,
+          subtotal: item.subtotal,
+          allergens: cartItem?.allergens || [],
+          dietary_tags: cartItem?.dietary_tags || [],
+          notes: item.notes,
+          preparation_time_minutes: 15,
+          batch_number: 1,
+          prepared: false
+        }
+      })
+
+      // 5. Calculate session timing
+      const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000)
+
+      // 6. Track complete order_created event with 5 pillars
+      await trackOrderCreated({
+        restaurantId: restaurant.id,
+        order: order,
+        items: completeItems,
+        actor: {
+          type: 'customer',
+          customer_id: customer.id,
+          customer_name: customer.name,
+          is_anonymous: customer.is_anonymous,
+          is_registered: customer.is_registered
+        },
+        customer: customer,
+        location: {
+          table_id: selectedTable?.id || null,
+          table_number: parseInt(tableNumber),
+          room_id: selectedRoomId,
+          room_name: rooms.find(r => r.id === selectedRoomId)?.name || 'Sala Principale',
+          seats: selectedTable?.seats || null
+        },
+        sessionData: {
+          startTime: sessionStartTime,
+          duration: sessionDuration,
+          timeFromQRScan: sessionDuration, // Approximate for QR orders
+        },
+        trafficSource: trafficSource || { source: 'qr', medium: 'qr' },
+        flags: {
+          is_first_order: (customer.total_orders_count || 0) === 0,
+          is_priority_order: isPriorityOrder && orderSettings?.priority_order_enabled,
+          has_customer_notes: !!customerNotes
+        }
+      })
 
       // Successo - redirect alla thank you page
       onClearCart()
@@ -405,7 +560,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
                             +
                           </button>
                           <button
-                            onClick={() => onRemoveItem(item.id, item.notes)}
+                            onClick={() => handleRemoveItem(item.id, item.notes)}
                             style={styles.deleteButton}
                             aria-label="Rimuovi prodotto"
                           >
@@ -473,14 +628,14 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
                       {rooms.length > 1 && !selectedRoomId ? 'Prima seleziona una sala' : 'Seleziona un tavolo'}
                     </option>
                     {getAvailableTables().map(table => {
-                      const occupied = isTableOccupied(table.table_number)
+                      const occupied = isTableOccupied(table.number)
                       return (
                         <option
                           key={table.id}
-                          value={table.table_number}
+                          value={table.number}
                           disabled={occupied}
                         >
-                          Tavolo {table.table_number} {occupied ? '(Occupato)' : ''}
+                          Tavolo {table.number} {occupied ? '(Occupato)' : ''}
                         </option>
                       )
                     })}
@@ -597,7 +752,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
             {currentStep === 1 ? (
               <>
                 <button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={handleProceedToCheckout}
                   style={styles.confirmButton}
                 >
                   Procedi all'Ordine

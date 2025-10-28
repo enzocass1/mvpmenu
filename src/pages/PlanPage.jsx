@@ -161,6 +161,7 @@ function PlanPage({ session }) {
         restaurantName={restaurant?.name}
         userName={session?.user?.email}
         isPremium={isPremium}
+        permissions={['*']}
         onLogout={handleLogout}
       >
         <Spinner size="lg" text="Caricamento..." centered />
@@ -173,6 +174,7 @@ function PlanPage({ session }) {
       restaurantName={restaurant?.name}
       userName={session?.user?.email}
       isPremium={isPremium}
+      permissions={['*']}
       onLogout={handleLogout}
     >
       {/* Page Header */}

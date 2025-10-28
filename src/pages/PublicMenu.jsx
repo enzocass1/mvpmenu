@@ -17,6 +17,7 @@ import {
   trackQRScanned,
   useSessionTracking
 } from '../utils/analytics'
+import useTrafficSource from '../hooks/useTrafficSource'
 import Cart from '../components/Cart'
 import AddToCartModal from '../components/AddToCartModal'
 
@@ -103,6 +104,16 @@ function PublicMenu() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [addToCartModalProduct, setAddToCartModalProduct] = useState(null)
   const [orderSettingsEnabled, setOrderSettingsEnabled] = useState(false)
+
+  // Traffic source tracking (QR, organic, social)
+  const tableId = searchParams.get('table_id')
+  const tableNumber = searchParams.get('table_number')
+  const trafficSource = useTrafficSource(
+    restaurant?.id,
+    tableId,
+    tableNumber,
+    null // customer_id (null for now, will add customer system later)
+  )
 
   const [isDragging, setIsDragging] = useState(false)
   const [startX, setStartX] = useState(0)
@@ -746,6 +757,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
             onUpdateQuantity={handleUpdateQuantity}
             onRemoveItem={handleRemoveFromCart}
             onClearCart={handleClearCart}
+            trafficSource={trafficSource}
           />
 
           {/* Add to Cart Modal */}

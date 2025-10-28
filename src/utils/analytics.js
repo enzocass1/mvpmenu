@@ -6,15 +6,28 @@
 import { supabase } from '../supabaseClient'
 
 /**
- * Tipi di eventi supportati
+ * Tipi di eventi supportati - Allineati con database constraint
+ * Riferimento: database/migrations/01_analytics_constraint.sql
  */
 export const EVENT_TYPES = {
+  // Public menu events
   FAVORITE_ADDED: 'favorite_added',
   FAVORITE_REMOVED: 'favorite_removed',
   PRODUCT_VIEWED: 'product_viewed',
   CATEGORY_VIEWED: 'category_viewed',
   SESSION_TIME: 'session_time',
-  QR_SCANNED: 'qr_scanned'
+  QR_SCANNED: 'qr_scanned',
+
+  // Order management events (aligned with database constraint names)
+  TABLE_ORDER_PENDING: 'table_order_pending',
+  TABLE_OPENED: 'table_opened',
+  COUNTER_ORDER_COMPLETED: 'counter_order_completed',
+  TABLE_ORDER_CONFIRMED: 'table_order_confirmed',
+  TABLE_CLOSED: 'table_closed',
+  ORDER_CANCELLED: 'order_cancelled',
+  PRODUCTS_ADDED_TO_ORDER: 'products_added_to_order', // ✅ Fixed: was table_products_added
+  PRIORITY_ORDER_REQUESTED: 'priority_order_requested',
+  PRECONTO_GENERATED: 'preconto_generated' // ✅ Fixed: was table_preconto
 }
 
 /**

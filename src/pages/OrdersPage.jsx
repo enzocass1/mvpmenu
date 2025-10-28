@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { softDeleteOrders } from '../lib/orderOperations'
 import { tokens } from '../styles/tokens'
 import { Card, Button, Badge, EmptyState, Spinner, Tabs } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
@@ -30,7 +31,7 @@ function OrdersPage({ session }) {
       // const interval = setInterval(() => loadData(), 10000)
       // return () => clearInterval(interval)
     }
-  }, [session])
+  }, [session, activeFilter])  // Ricarica quando cambia il filtro
 
   // Desktop/mobile detection
   useEffect(() => {
@@ -57,7 +58,8 @@ function OrdersPage({ session }) {
       setRestaurant(restaurantData)
 
       // Load orders with explicit relationship aliases as per documentation
-      const { data: ordersData, error: ordersError } = await supabase
+      // Se tab "Eliminati" carica solo deleted, altrimenti escludi deleted
+      let query = supabase
         .from('orders')
         .select(`
           *,
@@ -78,15 +80,29 @@ function OrdersPage({ session }) {
           )
         `)
         .eq('restaurant_id', restaurantData.id)
-        .order('created_at', { ascending: false })
+
+      // Filtra in base al tab selezionato
+      if (activeFilter === 'deleted') {
+        console.log('🗑️ Caricamento tab ELIMINATI')
+        query = query.not('deleted_at', 'is', null)  // Solo ordini eliminati
+      } else {
+        query = query.is('deleted_at', null)  // Escludi ordini eliminati
+      }
+
+      const { data: ordersData, error: ordersError } = await query.order('created_at', { ascending: false })
 
       if (ordersError) {
         console.error('Errore caricamento ordini:', ordersError)
         throw ordersError
       }
 
+      console.log(`📊 Ordini caricati (activeFilter: ${activeFilter}):`, ordersData?.length || 0)
+      console.log('📋 Ordini dettaglio:', ordersData)
+
       const active = ordersData?.filter(o => o.status !== 'completed' && o.status !== 'cancelled') || []
       const archived = ordersData?.filter(o => o.status === 'completed' || o.status === 'cancelled') || []
+
+      console.log(`✅ Active: ${active.length}, Archived: ${archived.length}`)
 
       // Ordina gli ordini attivi: Priority prima, poi dal più vecchio al più recente
       const sortedActive = active.sort((a, b) => {
@@ -120,6 +136,15 @@ function OrdersPage({ session }) {
 
   // Gestione selezione multipla
   const toggleOrderSelection = (orderId) => {
+    // Trova l'ordine per verificare lo status
+    const order = orders.find(o => o.id === orderId)
+
+    // Non permettere selezione di ordini completed
+    if (order && order.status === 'completed') {
+      alert('Gli ordini completati non possono essere selezionati o eliminati.')
+      return
+    }
+
     if (selectedOrders.includes(orderId)) {
       const newSelection = selectedOrders.filter(id => id !== orderId)
       setSelectedOrders(newSelection)
@@ -151,6 +176,15 @@ function OrdersPage({ session }) {
   const deleteSelectedOrders = async () => {
     if (selectedOrders.length === 0) return
 
+    // Filtra ordini completed - non possono essere eliminati
+    const selectedOrdersData = orders.filter(o => selectedOrders.includes(o.id))
+    const completedOrders = selectedOrdersData.filter(o => o.status === 'completed')
+
+    if (completedOrders.length > 0) {
+      alert('Non puoi eliminare ordini completati. Gli ordini completati sono archiviati e non possono essere modificati.')
+      return
+    }
+
     const confirmMsg = selectedOrders.length === 1
       ? 'Sei sicuro di voler eliminare questo ordine?'
       : `Sei sicuro di voler eliminare ${selectedOrders.length} ordini?`
@@ -158,32 +192,14 @@ function OrdersPage({ session }) {
     if (!confirm(confirmMsg)) return
 
     try {
-      for (const orderId of selectedOrders) {
-        // Elimina tutti i dati correlati all'ordine
-        // 1. Elimina gli items dell'ordine
-        await supabase
-          .from('order_items')
-          .delete()
-          .eq('order_id', orderId)
+      // Usa il servizio centralizzato per soft delete bulk
+      const result = await softDeleteOrders(selectedOrders, session, restaurant)
 
-        // 2. Elimina gli eventi analytics correlati
-        await supabase
-          .from('analytics_events')
-          .delete()
-          .eq('order_id', orderId)
-
-        // 3. Elimina la timeline
-        await supabase
-          .from('order_timeline')
-          .delete()
-          .eq('order_id', orderId)
-
-        // 4. Elimina l'ordine stesso
-        await supabase
-          .from('orders')
-          .delete()
-          .eq('id', orderId)
+      if (!result.success) {
+        throw new Error(result.error)
       }
+
+      console.log('✅ Bulk soft delete completato:', result.data)
 
       // Reset selezione
       setSelectedOrders([])
@@ -192,10 +208,10 @@ function OrdersPage({ session }) {
       // Ricarica ordini
       loadData()
 
-      alert(selectedOrders.length === 1 ? 'Ordine eliminato' : 'Ordini eliminati')
+      alert(selectedOrders.length === 1 ? 'Ordine spostato in Eliminati' : 'Ordini spostati in Eliminati')
     } catch (error) {
-      console.error('Errore eliminazione ordini:', error)
-      alert('Errore durante l\'eliminazione degli ordini')
+      console.error('❌ Errore eliminazione ordini:', error)
+      alert(`Errore durante l'eliminazione: ${error.message || error}`)
     }
   }
 
@@ -239,6 +255,10 @@ function OrdersPage({ session }) {
         (o) => o.status !== 'completed' && o.status !== 'cancelled'
       )
     }
+    // Tab "Eliminati": mostra tutti gli ordini caricati (già filtrati dalla query con deleted_at)
+    if (activeFilter === 'deleted') {
+      return orders
+    }
     return orders.filter((o) => o.status === activeFilter)
   }
 
@@ -265,9 +285,9 @@ function OrdersPage({ session }) {
     { label: 'Tutti', value: 'all' },
     { label: 'Attivi', value: 'active' },
     { label: 'In Attesa', value: 'pending' },
-    { label: 'Confermati', value: 'confirmed' },
     { label: 'In Preparazione', value: 'preparing' },
     { label: 'Completati', value: 'completed' },
+    { label: 'Eliminati', value: 'deleted' },
   ]
 
   const dropdownStyles = {
@@ -420,6 +440,7 @@ function OrdersPage({ session }) {
         restaurantName={restaurant?.name}
         userName={session?.user?.email}
         isPremium={isPremium}
+        permissions={['*']}
         onLogout={handleLogout}
       >
         <Spinner size="lg" text="Caricamento ordini..." centered />
@@ -432,6 +453,7 @@ function OrdersPage({ session }) {
       restaurantName={restaurant?.name}
       userName={session?.user?.email}
       isPremium={isPremium}
+      permissions={['*']}
       onLogout={handleLogout}
     >
       {/* Page Header */}
@@ -509,7 +531,8 @@ function OrdersPage({ session }) {
               e.currentTarget.style.transform = 'translateX(0)'
 
               // Swipe verso destra di almeno 80px e più orizzontale che verticale
-              if (deltaX > 80 && Math.abs(deltaX) > deltaY) {
+              // NON permettere swipe per ordini completed
+              if (deltaX > 80 && Math.abs(deltaX) > deltaY && order.status !== 'completed') {
                 if (!selectionMode) {
                   setSelectionMode(true)
                   setSelectedOrders([order.id])
@@ -551,7 +574,7 @@ function OrdersPage({ session }) {
                   {/* Order Header */}
                   <div style={orderHeaderStyles}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.md }}>
-                      {/* Checkbox visibile su desktop */}
+                      {/* Checkbox visibile su desktop - disabilitato per ordini completed */}
                       {isDesktop && (
                         <div style={{
                           display: 'flex',
@@ -562,11 +585,13 @@ function OrdersPage({ session }) {
                           borderRadius: tokens.borderRadius.sm,
                           backgroundColor: isSelected ? tokens.colors.info.base : 'transparent',
                           border: isSelected ? 'none' : `2px solid ${tokens.colors.gray[300]}`,
-                          transition: tokens.transitions.base
+                          transition: tokens.transitions.base,
+                          opacity: order.status === 'completed' ? 0.3 : 1
                         }}>
                           <input
                             type="checkbox"
                             checked={isSelected}
+                            disabled={order.status === 'completed'}
                             onChange={(e) => {
                               e.stopPropagation()
                               toggleOrderSelection(order.id)
@@ -575,7 +600,7 @@ function OrdersPage({ session }) {
                             style={{
                               width: '20px',
                               height: '20px',
-                              cursor: 'pointer',
+                              cursor: order.status === 'completed' ? 'not-allowed' : 'pointer',
                               accentColor: tokens.colors.info.base
                             }}
                           />
@@ -602,8 +627,8 @@ function OrdersPage({ session }) {
                         #{order.order_number || order.id.substring(0, 8).toUpperCase()}
                       </div>
                     </div>
-                    <Badge variant={getStatusVariant(order.status)}>
-                      {getStatusLabel(order.status)}
+                    <Badge variant={order.deleted_at ? 'error' : getStatusVariant(order.status)}>
+                      {order.deleted_at ? 'Eliminato' : getStatusLabel(order.status)}
                     </Badge>
                   </div>
 

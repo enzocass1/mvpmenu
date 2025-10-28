@@ -100,6 +100,7 @@ function TableDetailModal({
   // Determina azioni disponibili
   const isPending = order.status === 'pending'
   const isPreparing = order.status === 'preparing'
+  const isCompleted = order.status === 'completed'
   const hasPendingItems = (order.items || []).some(item => !item.prepared)
 
   const handleConfirm = async () => {
@@ -176,6 +177,27 @@ function TableDetailModal({
     } catch (error) {
       console.error('Errore eliminazione:', error)
       alert('Errore durante l\'eliminazione')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCloseTable = async () => {
+    if (!confirm('Chiudere il tavolo senza generare scontrino?')) return
+
+    setLoading(true)
+    try {
+      const result = await ordersService.closeTableWithoutReceipt(order.id, null) // TODO: pass staffId
+      if (result.success) {
+        alert('Tavolo chiuso con successo!')
+        onOrderUpdated?.()
+        onClose()
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error('Errore chiusura tavolo:', error)
+      alert('Errore durante la chiusura del tavolo')
     } finally {
       setLoading(false)
     }
@@ -528,10 +550,12 @@ function TableDetailModal({
 
       <Modal.Footer>
         <div style={{ display: 'flex', gap: tokens.spacing.sm, width: '100%', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-          {/* Cambia Tavolo - always visible */}
-          <Button variant="secondary" onClick={() => onChangeTable?.(order)} disabled={loading}>
-            Cambia Tavolo
-          </Button>
+          {/* Cambia Tavolo - nascosto se completed */}
+          {!isCompleted && (
+            <Button variant="secondary" onClick={() => onChangeTable?.(order)} disabled={loading}>
+              Cambia Tavolo
+            </Button>
+          )}
 
           <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
             {/* Azioni per ordine PENDING */}
@@ -539,9 +563,6 @@ function TableDetailModal({
               <>
                 <Button variant="primary" onClick={handleConfirm} disabled={loading}>
                   Conferma Ordine
-                </Button>
-                <Button variant="outline" onClick={() => onAddProducts?.(order)} disabled={loading}>
-                  Modifica
                 </Button>
                 <Button variant="danger" onClick={handleDelete} disabled={loading}>
                   Elimina
@@ -561,10 +582,25 @@ function TableDetailModal({
                 <Button variant="success" onClick={handleScontrino} disabled={loading}>
                   Scontrino
                 </Button>
+                <Button variant="secondary" onClick={handleCloseTable} disabled={loading}>
+                  Chiudi Tavolo
+                </Button>
                 <Button variant="ghost" onClick={handleDelete} disabled={loading}>
                   Elimina
                 </Button>
               </>
+            )}
+
+            {/* Nessuna azione per ordine COMPLETED */}
+            {isCompleted && (
+              <div style={{
+                padding: tokens.spacing.md,
+                color: tokens.colors.gray[600],
+                fontSize: tokens.typography.fontSize.sm,
+                fontStyle: 'italic'
+              }}>
+                Ordine completato - Nessuna azione disponibile
+              </div>
             )}
           </div>
         </div>

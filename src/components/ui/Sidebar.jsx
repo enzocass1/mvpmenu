@@ -7,53 +7,75 @@ import Badge from './Badge'
  * Sidebar Navigation Component - Shopify-like Design System
  * NO icons - text only navigation
  * Responsive: collapsible on mobile
+ * Permission-based filtering: hides menu items if user lacks required permissions
  */
-function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium }) {
+function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permissions = [], onLogout }) {
   const navigate = useNavigate()
   const location = useLocation()
+
+  // Helper function to check if user has permission
+  const hasPermission = (requiredPermission) => {
+    if (!requiredPermission) return true // No permission required
+    if (permissions.includes('*')) return true // Wildcard (Proprietario)
+    return permissions.includes(requiredPermission)
+  }
 
   const navigationItems = [
     {
       label: 'Home',
       path: '/dashboard',
       section: 'main',
+      requiredPermission: null, // Visibile a tutti
     },
     {
       label: 'Cassa',
       path: '/cassa',
       section: 'main',
       badge: 'Nuova',
+      requiredPermission: 'cashier.access',
     },
     {
       label: 'Ordini',
       path: '/ordini',
       section: 'main',
+      requiredPermission: 'orders.view_all',
     },
     {
       label: 'Prodotti',
       path: '/prodotti',
       section: 'main',
+      requiredPermission: 'products.view',
     },
     {
       label: 'Analytics',
       path: '/analytics',
       section: 'main',
+      requiredPermission: 'analytics.view_reports',
     },
     {
       label: 'Canali di Vendita',
       path: '/canali',
       section: 'main',
+      requiredPermission: 'channels.view',
+    },
+    {
+      label: 'Utenti',
+      path: '/utenti',
+      section: 'main',
+      requiredPermission: 'staff.manage',
     },
     {
       label: 'Impostazioni',
       path: '/impostazioni',
       section: 'main',
+      requiredPermission: 'restaurant.manage_settings',
     },
     {
       label: 'Piano',
       path: '/piano',
       section: 'bottom',
       badge: isPremium ? 'Premium' : 'Free',
+      requiredPermission: 'restaurant.manage_subscription',
     },
   ]
 
@@ -188,6 +210,7 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium }) {
           <div style={sectionStyles}>
             {navigationItems
               .filter((item) => item.section === 'main')
+              .filter((item) => hasPermission(item.requiredPermission))
               .map((item) => {
                 const active = isActive(item.path)
                 const hovered = hoveredItem === item.path
@@ -223,6 +246,7 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium }) {
           <div>
             {navigationItems
               .filter((item) => item.section === 'bottom')
+              .filter((item) => hasPermission(item.requiredPermission))
               .map((item) => {
                 const active = isActive(item.path)
                 const hovered = hoveredItem === item.path
@@ -252,6 +276,31 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium }) {
                   </button>
                 )
               })}
+
+            {/* Separator before logout */}
+            <div style={separatorStyles} />
+
+            {/* Logout button */}
+            {onLogout && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Sei sicuro di voler uscire?')) {
+                    onLogout()
+                  }
+                }}
+                onMouseEnter={() => setHoveredItem('logout')}
+                onMouseLeave={() => setHoveredItem(null)}
+                style={{
+                  ...navItemStyles(false),
+                  color: tokens.colors.error.base,
+                  ...(hoveredItem === 'logout' && {
+                    backgroundColor: tokens.colors.error.light,
+                  }),
+                }}
+              >
+                <span>Esci</span>
+              </button>
+            )}
           </div>
         </nav>
       </aside>
