@@ -298,11 +298,17 @@ function PublicMenu() {
 
   const loadMenu = async () => {
     try {
+      console.log('🔍 [PERFORMANCE] Inizio caricamento menu...')
+      const startTime = performance.now()
+      let queryCount = 0
+
       const { data: restaurantData } = await supabase
         .from('restaurants')
         .select('*')
         .eq('subdomain', subdomain)
         .single()
+      queryCount++
+      console.log(`⏱️ Query 1 (restaurant): ${(performance.now() - startTime).toFixed(0)}ms`)
 
       if (restaurantData) {
         setRestaurant(restaurantData)
@@ -313,39 +319,50 @@ function PublicMenu() {
           .eq('restaurant_id', restaurantData.id)
           .eq('is_visible', true)
           .order('order', { ascending: true })
+        queryCount++
+        console.log(`⏱️ Query 2 (categories): ${(performance.now() - startTime).toFixed(0)}ms`)
 
         // Applica limiti Free/Premium sulle categorie
         const { hasValidAccess } = checkPremiumAccess(restaurantData)
 const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || []).slice(0, 3)
         setCategories(visibleCategories || [])
+        console.log(`📊 Categorie da caricare: ${visibleCategories?.length || 0}`)
 
         const productsMap = {}
         for (const category of visibleCategories || []) {
+          const catStart = performance.now()
           const { data: productsData } = await supabase
             .from('products')
             .select('*')
             .eq('category_id', category.id)
             .eq('is_visible', true)
             .order('order', { ascending: true })
+          queryCount++
+          console.log(`⏱️ Query ${queryCount} (products categoria "${category.name}"): ${(performance.now() - catStart).toFixed(0)}ms`)
 
           // Applica limiti Free/Premium sui prodotti
           const visibleProducts = hasValidAccess ? productsData : (productsData || []).slice(0, 3)
+          console.log(`📦 Prodotti in "${category.name}": ${visibleProducts?.length || 0}`)
 
           // Carica varianti per ogni prodotto
           const productsWithVariants = await Promise.all(
             (visibleProducts || []).map(async (product) => {
+              const prodStart = performance.now()
               const { data: variantsData } = await supabase
                 .from('v_product_variants')
                 .select('*')
                 .eq('product_id', product.id)
                 .eq('is_available', true)
                 .order('position')
+              queryCount++
 
               const { data: optionsData } = await supabase
                 .from('v_product_variant_options')
                 .select('*')
                 .eq('product_id', product.id)
                 .order('position')
+              queryCount++
+              console.log(`⏱️ Query ${queryCount-1}+${queryCount} (variants+options "${product.name}"): ${(performance.now() - prodStart).toFixed(0)}ms`)
 
               return {
                 ...product,
@@ -359,14 +376,20 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
           productsMap[category.id] = productsWithVariants
         }
         setProducts(productsMap)
-        
+
         const { data: hoursData } = await supabase
           .from('opening_hours')
           .select('*')
           .eq('restaurant_id', restaurantData.id)
           .order('order', { ascending: true })
+        queryCount++
+        console.log(`⏱️ Query ${queryCount} (opening_hours): ${(performance.now() - startTime).toFixed(0)}ms`)
 
         setOpeningHours(hoursData || [])
+
+        const totalTime = (performance.now() - startTime).toFixed(0)
+        console.log(`✅ [PERFORMANCE] Menu caricato in ${totalTime}ms con ${queryCount} query`)
+        console.log(`🐌 PROBLEMA: Troppo lento! Necessaria ottimizzazione.`)
       }
     } catch (error) {
       console.error('Errore:', error)
