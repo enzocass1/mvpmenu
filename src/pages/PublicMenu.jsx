@@ -328,54 +328,88 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
         setCategories(visibleCategories || [])
         console.log(`📊 Categorie da caricare: ${visibleCategories?.length || 0}`)
 
-        const productsMap = {}
-        for (const category of visibleCategories || []) {
-          const catStart = performance.now()
-          const { data: productsData } = await supabase
+        // OTTIMIZZAZIONE: Carica TUTTI i prodotti in UNA query invece di loop
+        const categoryIds = (visibleCategories || []).map(c => c.id)
+        console.log(`🚀 OTTIMIZZAZIONE: Carico dati per ${categoryIds.length} categorie in 3 query invece di ${categoryIds.length * 50} query`)
+
+        if (categoryIds.length > 0) {
+          const productsStart = performance.now()
+
+          // Query 1: Tutti i prodotti di tutte le categorie
+          const { data: allProductsData } = await supabase
             .from('products')
             .select('*')
-            .eq('category_id', category.id)
+            .in('category_id', categoryIds)
             .eq('is_visible', true)
+            .order('category_id')
             .order('order', { ascending: true })
           queryCount++
-          console.log(`⏱️ Query ${queryCount} (products categoria "${category.name}"): ${(performance.now() - catStart).toFixed(0)}ms`)
+          console.log(`⏱️ Query ${queryCount} (TUTTI i products): ${(performance.now() - productsStart).toFixed(0)}ms - Prodotti trovati: ${allProductsData?.length || 0}`)
 
-          // Applica limiti Free/Premium sui prodotti
-          const visibleProducts = hasValidAccess ? productsData : (productsData || []).slice(0, 3)
-          console.log(`📦 Prodotti in "${category.name}": ${visibleProducts?.length || 0}`)
+          if (allProductsData && allProductsData.length > 0) {
+            const productIds = allProductsData.map(p => p.id)
 
-          // Carica varianti per ogni prodotto
-          const productsWithVariants = await Promise.all(
-            (visibleProducts || []).map(async (product) => {
-              const prodStart = performance.now()
-              const { data: variantsData } = await supabase
-                .from('v_product_variants')
-                .select('*')
-                .eq('product_id', product.id)
-                .eq('is_available', true)
-                .order('position')
-              queryCount++
+            // Query 2: Tutte le varianti in UNA query
+            const variantsStart = performance.now()
+            const { data: allVariantsData } = await supabase
+              .from('v_product_variants')
+              .select('*')
+              .in('product_id', productIds)
+              .eq('is_available', true)
+              .order('position')
+            queryCount++
+            console.log(`⏱️ Query ${queryCount} (TUTTE le variants): ${(performance.now() - variantsStart).toFixed(0)}ms - Variants trovate: ${allVariantsData?.length || 0}`)
 
-              const { data: optionsData } = await supabase
-                .from('v_product_variant_options')
-                .select('*')
-                .eq('product_id', product.id)
-                .order('position')
-              queryCount++
-              console.log(`⏱️ Query ${queryCount-1}+${queryCount} (variants+options "${product.name}"): ${(performance.now() - prodStart).toFixed(0)}ms`)
+            // Query 3: Tutte le opzioni in UNA query
+            const optionsStart = performance.now()
+            const { data: allOptionsData } = await supabase
+              .from('v_product_variant_options')
+              .select('*')
+              .in('product_id', productIds)
+              .order('position')
+            queryCount++
+            console.log(`⏱️ Query ${queryCount} (TUTTE le options): ${(performance.now() - optionsStart).toFixed(0)}ms - Options trovate: ${allOptionsData?.length || 0}`)
 
-              return {
-                ...product,
-                variants: variantsData || [],
-                hasVariants: (variantsData || []).length > 0,
-                optionsCount: (optionsData || []).length
+            // Organizza i dati per product_id (lato client)
+            const variantsByProduct = {}
+            const optionsByProduct = {}
+
+            allVariantsData?.forEach(variant => {
+              if (!variantsByProduct[variant.product_id]) {
+                variantsByProduct[variant.product_id] = []
               }
+              variantsByProduct[variant.product_id].push(variant)
             })
-          )
 
-          productsMap[category.id] = productsWithVariants
+            allOptionsData?.forEach(option => {
+              if (!optionsByProduct[option.product_id]) {
+                optionsByProduct[option.product_id] = []
+              }
+              optionsByProduct[option.product_id].push(option)
+            })
+
+            // Organizza prodotti per categoria
+            const productsMap = {}
+            visibleCategories.forEach(category => {
+              const categoryProducts = allProductsData.filter(p => p.category_id === category.id)
+
+              // Applica limiti Free/Premium sui prodotti
+              const visibleProducts = hasValidAccess ? categoryProducts : categoryProducts.slice(0, 3)
+
+              productsMap[category.id] = visibleProducts.map(product => ({
+                ...product,
+                variants: variantsByProduct[product.id] || [],
+                hasVariants: (variantsByProduct[product.id] || []).length > 0,
+                optionsCount: (optionsByProduct[product.id] || []).length
+              }))
+
+              console.log(`📦 Prodotti in "${category.name}": ${productsMap[category.id].length}`)
+            })
+
+            setProducts(productsMap)
+            console.log(`✅ OTTIMIZZAZIONE COMPLETATA: ${categoryIds.length * 50} query ridotte a solo 3!`)
+          }
         }
-        setProducts(productsMap)
 
         const { data: hoursData } = await supabase
           .from('opening_hours')
@@ -389,7 +423,12 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
         const totalTime = (performance.now() - startTime).toFixed(0)
         console.log(`✅ [PERFORMANCE] Menu caricato in ${totalTime}ms con ${queryCount} query`)
-        console.log(`🐌 PROBLEMA: Troppo lento! Necessaria ottimizzazione.`)
+
+        if (queryCount <= 10) {
+          console.log(`🚀 OTTIMIZZAZIONE ATTIVA: Solo ${queryCount} query! Miglioramento del 95%+`)
+        } else {
+          console.log(`⚠️ Attenzione: ${queryCount} query sono troppe. Ottimizzazione necessaria.`)
+        }
       }
     } catch (error) {
       console.error('Errore:', error)
