@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
 import { Card, Button, Badge, Modal, Select, Input, Spinner, EmptyState } from '../components/ui'
@@ -1044,6 +1044,20 @@ function CassaPage({ session }) {
     (p) => !selectedCategory || p.category_id === selectedCategory
   )
 
+  // Scroll orizzontale con la rotellina (e touch nativo) su barra categorie e griglia prodotti
+  const categoriesBarRef = useRef(null)
+  const productsGridRef = useRef(null)
+  useEffect(() => {
+    const els = [categoriesBarRef.current, productsGridRef.current].filter(Boolean)
+    const onWheel = (e) => {
+      const el = e.currentTarget
+      if (el.scrollWidth <= el.clientWidth) return
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { el.scrollLeft += e.deltaY; e.preventDefault() }
+    }
+    els.forEach(el => el.addEventListener('wheel', onWheel, { passive: false }))
+    return () => els.forEach(el => el.removeEventListener('wheel', onWheel))
+  }, [mode, selectedCategory, categories, filteredProducts.length])
+
   // Generate tables from selected room's range
   const filteredTables = getTablesForRoom(selectedRoom)
 
@@ -1123,16 +1137,22 @@ function CassaPage({ session }) {
     whiteSpace: 'nowrap',
   })
 
+  // Griglia prodotti: 2 righe che scorrono in ORIZZONTALE (così ci stanno più prodotti)
   const productsGridStyles = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 120px), 1fr))',
-    gap: tokens.spacing.md,
-    overflowY: 'auto',
-    padding: tokens.spacing.sm,
+    gridTemplateRows: 'repeat(2, auto)',
+    gridAutoFlow: 'column',
+    gridAutoColumns: '132px',
+    gap: tokens.spacing.sm,
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    alignContent: 'start',
+    paddingBottom: tokens.spacing.sm,
   }
 
+  // Tile prodotto COMPATTA (meno spazio, testi più piccoli)
   const productCardStyles = {
-    padding: tokens.spacing.md,
+    padding: tokens.spacing.sm,
     backgroundColor: tokens.colors.white,
     borderWidth: tokens.borders.width.thin,
     borderStyle: 'solid',
@@ -1141,10 +1161,11 @@ function CassaPage({ session }) {
     cursor: 'pointer',
     transition: tokens.transitions.base,
     textAlign: 'center',
-    minHeight: '100px',
+    minHeight: '66px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
+    gap: '2px',
   }
 
   const cartAreaStyles = {
@@ -1240,7 +1261,7 @@ function CassaPage({ session }) {
           {/* Products Area */}
           <div style={productsAreaStyles}>
             {/* Categories Bar */}
-            <div style={categoriesBarStyles}>
+            <div style={categoriesBarStyles} ref={categoriesBarRef}>
               {categories.map((cat) => (
                 <button
                   key={cat.id}
@@ -1253,7 +1274,7 @@ function CassaPage({ session }) {
             </div>
 
             {/* Products Grid */}
-            <div style={productsGridStyles}>
+            <div style={productsGridStyles} ref={productsGridRef}>
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
@@ -1270,17 +1291,21 @@ function CassaPage({ session }) {
                 >
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.sm,
+                      fontSize: tokens.typography.fontSize.xs,
                       fontWeight: tokens.typography.fontWeight.medium,
                       color: tokens.colors.black,
-                      marginBottom: tokens.spacing.xs,
+                      lineHeight: 1.2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
                     }}
                   >
                     {product.name}
                   </div>
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.base,
+                      fontSize: tokens.typography.fontSize.sm,
                       fontWeight: tokens.typography.fontWeight.semibold,
                       color: tokens.colors.black,
                     }}

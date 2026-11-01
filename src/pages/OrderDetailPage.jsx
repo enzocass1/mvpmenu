@@ -456,15 +456,27 @@ function OrderDetailPage({ session }) {
     >
       {/* Page Header */}
       <div style={pageHeaderStyles}>
-        <div style={{ flex: 1 }}>
-          <Button
-            variant="ghost"
-            size="sm"
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <button
             onClick={() => navigate('/ordini')}
-            style={{ marginBottom: tokens.spacing.sm }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: tokens.spacing.xs,
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              marginBottom: tokens.spacing.sm,
+              color: tokens.colors.gray[600],
+              fontSize: tokens.typography.fontSize.sm,
+              fontWeight: tokens.typography.fontWeight.medium,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = tokens.colors.black }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = tokens.colors.gray[600] }}
           >
-            ← Torna agli Ordini
-          </Button>
+            <span aria-hidden="true">←</span> Torna agli Ordini
+          </button>
           <h1 style={titleStyles}>Ordine #{order.order_number || order.id.substring(0, 8).toUpperCase()}</h1>
         </div>
         <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
