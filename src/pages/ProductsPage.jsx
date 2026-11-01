@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { tokens } from '../styles/tokens'
-import { Tabs, Spinner, PageHeader } from '../components/ui'
+import { Spinner, PageHeader, ResponsiveTabs } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import ProductManager from '../components/ProductManager'
 import CategoryManager from '../components/CategoryManager'
@@ -14,14 +13,6 @@ function ProductsPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('products')
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
   useEffect(() => {
     if (session) {
       loadRestaurant()
@@ -60,24 +51,6 @@ function ProductsPage({ session }) {
 
   const isPremium = restaurant?.subscription_tier === 'premium'
 
-  const dropdownStyles = {
-    width: '100%',
-    padding: tokens.spacing.md,
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.medium,
-    color: tokens.colors.black,
-    backgroundColor: tokens.colors.white,
-    border: `${tokens.borders.width.thin} solid ${tokens.colors.gray[300]}`,
-    borderRadius: tokens.borderRadius.md,
-    outline: 'none',
-    cursor: 'pointer',
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23000' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 12px center',
-    paddingRight: '40px',
-  }
-
   const tabsData = [
     { label: 'Tutti i Prodotti', value: 'products' },
     { label: 'Categorie', value: 'categories' },
@@ -108,24 +81,7 @@ function ProductsPage({ session }) {
       {/* Page Header */}
       <PageHeader title="Prodotti" subtitle="Gestisci i prodotti del tuo menu e le categorie" />
 
-      {/* Tabs / Dropdown */}
-      <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>
-        {isMobile ? (
-          <select
-            value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-            style={dropdownStyles}
-          >
-            {tabsData.map(tab => (
-              <option key={tab.value} value={tab.value}>
-                {tab.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <Tabs tabs={tabsData} activeTab={activeTab} onChange={setActiveTab} />
-        )}
-      </div>
+      <ResponsiveTabs tabs={tabsData} activeTab={activeTab} onChange={setActiveTab} />
 
       {/* Tab Content */}
       {activeTab === 'products' && (

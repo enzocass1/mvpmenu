@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { softDeleteOrders } from '../lib/orderOperations'
 import { tokens } from '../styles/tokens'
-import { Card, Button, Badge, EmptyState, Spinner, Tabs, PageHeader } from '../components/ui'
+import { Card, Button, Badge, EmptyState, Spinner, PageHeader, ResponsiveTabs } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import CreateOrderModal from '../components/CreateOrderModal'
 
@@ -274,24 +274,6 @@ function OrdersPage({ session }) {
     { label: 'Eliminati', value: 'deleted' },
   ]
 
-  const dropdownStyles = {
-    width: '100%',
-    padding: tokens.spacing.md,
-    fontSize: tokens.typography.fontSize.base,
-    fontWeight: tokens.typography.fontWeight.medium,
-    color: tokens.colors.black,
-    backgroundColor: tokens.colors.white,
-    border: `${tokens.borders.width.thin} solid ${tokens.colors.gray[300]}`,
-    borderRadius: tokens.borderRadius.md,
-    outline: 'none',
-    cursor: 'pointer',
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23000' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 12px center',
-    paddingRight: '40px',
-  }
-
   const orderCardStyles = {
     marginBottom: tokens.spacing.md,
     cursor: 'pointer',
@@ -446,24 +428,7 @@ function OrdersPage({ session }) {
         actions={<Button variant="primary" onClick={() => setShowCreateOrder(true)}>Nuovo Ordine</Button>}
       />
 
-      {/* Filters Tabs / Dropdown */}
-      <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>
-        {isMobile ? (
-          <select
-            value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
-            style={dropdownStyles}
-          >
-            {tabsData.map(tab => (
-              <option key={tab.value} value={tab.value}>
-                {tab.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <Tabs tabs={tabsData} activeTab={activeFilter} onChange={setActiveFilter} />
-        )}
-      </div>
+      <ResponsiveTabs tabs={tabsData} activeTab={activeFilter} onChange={setActiveFilter} />
 
       {/* Orders List */}
       {filteredOrders.length === 0 ? (

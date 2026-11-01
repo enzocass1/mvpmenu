@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
 import DashboardLayout from '../components/ui/DashboardLayout'
-import PageHeader from '../components/ui/PageHeader'
+import { Card, Badge, Button, Modal, PageHeader } from '../components/ui'
 import { APP_UPDATES, UPDATE_TYPE_LABEL, markUpdatesSeen } from '../lib/appUpdates'
 
 // Immagine/esempio associato a ogni aggiornamento (screenshot in public/updates/)
@@ -16,8 +16,11 @@ const EXAMPLE_IMAGE = {
   '2026-11-01-temi-layout': '/updates/temi-layout.gif'
 }
 
+// Tipo aggiornamento → variante Badge del design system
+const TYPE_TO_BADGE = { novita: 'error', miglioramento: 'info', correzione: 'success' }
+
 /**
- * Pagina "Aggiornamenti app": elenco cronologico degli upgrade con data,
+ * Pagina "Aggiornamenti": elenco cronologico degli upgrade con data,
  * descrizione e istruzioni passo-passo. All'apertura segna gli aggiornamenti
  * come letti, così il badge "NOVITÀ" nella sidebar scompare.
  */
@@ -67,102 +70,91 @@ function UpdatesPage({ session }) {
       permissions={['*']}
       onLogout={handleLogout}
     >
-      <div style={{ maxWidth: 820, margin: '0 auto' }}>
+      <div style={{ maxWidth: '820px', margin: '0 auto' }}>
         <PageHeader title="Aggiornamenti" subtitle="Tutte le novità e i miglioramenti, con le istruzioni per usarli." />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.md }}>
           {APP_UPDATES.map((u) => {
-            const t = UPDATE_TYPE_LABEL[u.type] || UPDATE_TYPE_LABEL.novita
+            const label = (UPDATE_TYPE_LABEL[u.type] || UPDATE_TYPE_LABEL.novita).label
             return (
-              <div key={u.id} style={cardStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
-                  <span style={{ ...tagStyle, color: t.color, background: t.bg }}>{t.label}</span>
-                  <span style={{ fontSize: 13, color: tokens.colors.gray[500] }}>{formatDate(u.date)}</span>
-                </div>
-                <h2 style={{ margin: '0 0 8px', fontSize: isMobile ? 18 : 20, fontWeight: 700, color: tokens.colors.black }}>{u.title}</h2>
-                <p style={{ margin: '0 0 14px', fontSize: 15, lineHeight: 1.6, color: tokens.colors.gray[700] }}>{u.description}</p>
-                {u.steps?.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: tokens.colors.black, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 8 }}>Come si usa</div>
-                    <ol style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {u.steps.map((s, i) => (
-                        <li key={i} style={{ fontSize: 14, lineHeight: 1.55, color: tokens.colors.gray[800] }}>{s}</li>
-                      ))}
-                    </ol>
+              <Card key={u.id} padding={isMobile ? 'md' : 'lg'}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm, flexWrap: 'wrap', marginBottom: tokens.spacing.sm }}>
+                    <Badge variant={TYPE_TO_BADGE[u.type] || 'default'}>{label}</Badge>
+                    <span style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[500] }}>{formatDate(u.date)}</span>
                   </div>
-                )}
-                {EXAMPLE_IMAGE[u.id] && (
-                  <button
-                    onClick={() => setExample({ src: EXAMPLE_IMAGE[u.id], title: u.title })}
-                    style={ctaStyle}
-                  >
-                    <span aria-hidden="true">👁</span> Guarda un esempio
-                  </button>
-                )}
-              </div>
+                  <h2 style={{
+                    margin: `0 0 ${tokens.spacing.sm}`,
+                    fontSize: isMobile ? tokens.typography.fontSize.lg : tokens.typography.fontSize.xl,
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.black,
+                  }}>{u.title}</h2>
+                  <p style={{
+                    margin: `0 0 ${tokens.spacing.md}`,
+                    fontSize: tokens.typography.fontSize.base,
+                    lineHeight: tokens.typography.lineHeight.relaxed,
+                    color: tokens.colors.gray[700],
+                  }}>{u.description}</p>
+
+                  {u.steps?.length > 0 && (
+                    <div>
+                      <div style={{
+                        fontSize: tokens.typography.fontSize.sm,
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.black,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.4px',
+                        marginBottom: tokens.spacing.sm,
+                      }}>Come si usa</div>
+                      <ol style={{ margin: 0, paddingLeft: tokens.spacing.lg, display: 'flex', flexDirection: 'column', gap: tokens.spacing.xs }}>
+                        {u.steps.map((s, i) => (
+                          <li key={i} style={{ fontSize: tokens.typography.fontSize.base, lineHeight: tokens.typography.lineHeight.normal, color: tokens.colors.gray[800] }}>{s}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {EXAMPLE_IMAGE[u.id] && (
+                    <div style={{ marginTop: tokens.spacing.md }}>
+                      <Button variant="primary" size="sm" onClick={() => setExample({ src: EXAMPLE_IMAGE[u.id], title: u.title })}>
+                        Guarda un esempio
+                      </Button>
+                    </div>
+                  )}
+              </Card>
             )
           })}
         </div>
       </div>
 
-      {/* Modal esempio (immagine) */}
-      {example && (
-        <div style={lightbox.overlay} onClick={() => setExample(null)}>
-          <div style={lightbox.inner} onClick={(e) => e.stopPropagation()}>
-            <div style={lightbox.head}>
-              <span style={lightbox.title}>{example.title}</span>
-              <button style={lightbox.close} onClick={() => setExample(null)} aria-label="Chiudi">×</button>
+      {/* Modal esempio (immagine/GIF) */}
+      <Modal isOpen={!!example} onClose={() => setExample(null)} size="lg">
+        {example && (
+          <>
+            <div style={{
+              padding: `${tokens.spacing.md} ${tokens.spacing.lg}`,
+              paddingRight: tokens.spacing['2xl'],
+              borderBottom: `${tokens.borders.width.thin} solid ${tokens.colors.gray[200]}`,
+              fontSize: tokens.typography.fontSize.base,
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.black,
+            }}>
+              {example.title}
             </div>
-            <div style={lightbox.body}>
-              <img src={example.src} alt={example.title} style={lightbox.img} />
+            <div style={{ padding: tokens.spacing.md, overflow: 'auto', background: tokens.colors.gray[50] }}>
+              <img src={example.src} alt={example.title} style={{
+                display: 'block',
+                maxWidth: '100%',
+                maxHeight: '72vh',
+                margin: '0 auto',
+                borderRadius: tokens.borderRadius.md,
+                boxShadow: tokens.shadows.lg,
+              }} />
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </DashboardLayout>
   )
-}
-
-const ctaStyle = {
-  marginTop: 14,
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '10px 16px',
-  borderRadius: 10,
-  border: 'none',
-  background: tokens.colors.black,
-  color: tokens.colors.white,
-  fontSize: 14,
-  fontWeight: 700,
-  cursor: 'pointer'
-}
-
-const lightbox = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  inner: { background: '#fff', borderRadius: 14, maxWidth: 'min(960px, 96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  head: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 16px', borderBottom: '1px solid #eee' },
-  title: { fontSize: 15, fontWeight: 700, color: '#111' },
-  close: { border: 'none', background: 'transparent', fontSize: 26, lineHeight: 1, cursor: 'pointer', color: '#555' },
-  body: { padding: 12, overflow: 'auto', background: '#f3f4f6' },
-  img: { display: 'block', maxWidth: '100%', maxHeight: '78vh', margin: '0 auto', borderRadius: 8, boxShadow: '0 4px 18px rgba(0,0,0,0.15)' }
-}
-
-const cardStyle = {
-  background: tokens.colors.white,
-  border: `${tokens.borders.width.thin} solid ${tokens.colors.gray[200]}`,
-  borderRadius: tokens.borderRadius.lg,
-  padding: '18px 20px',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-}
-
-const tagStyle = {
-  display: 'inline-block',
-  padding: '3px 10px',
-  borderRadius: 999,
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: '0.3px'
 }
 
 export default UpdatesPage
