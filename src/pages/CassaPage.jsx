@@ -7,6 +7,9 @@ import CreateOrderModal from '../components/CreateOrderModal'
 import TableDetailModal from '../components/TableDetailModal'
 import ChangeTableModal from '../components/ChangeTableModal'
 import OrphanOrdersAlert from '../components/OrphanOrdersAlert'
+import ProductPickerModal from '../components/ProductPickerModal'
+import ProductsOrderModal from '../components/ProductsOrderModal'
+import { formatPrice } from '../lib/priceFormat'
 import * as ordersService from '../lib/ordersService'
 import { trackEvent } from '../utils/analytics'
 import '../styles/cassa-animations.css'
@@ -22,6 +25,9 @@ function CassaPage({ session }) {
   const [mode, setMode] = useState('tavolo') // 'banco' | 'tavolo' | 'ordini'
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
+  const [favorites, setFavorites] = useState([]) // id prodotti preferiti (ordinati) per il banco
+  const [favPickerOpen, setFavPickerOpen] = useState(false)
+  const [favOrderOpen, setFavOrderOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [cart, setCart] = useState([])
   const [showVariantModal, setShowVariantModal] = useState(false)
@@ -106,6 +112,7 @@ function CassaPage({ session }) {
 
       if (restaurantError) throw restaurantError
       setRestaurant(restaurantData)
+      setFavorites(Array.isArray(restaurantData.cassa_favorites) ? restaurantData.cassa_favorites : [])
 
       // Load categories
       const { data: categoriesData, error: categoriesError } = await supabase
@@ -119,9 +126,8 @@ function CassaPage({ session }) {
       }
 
       setCategories(categoriesData || [])
-      if (categoriesData?.length > 0) {
-        setSelectedCategory(categoriesData[0].id)
-      }
+      // La tab "Preferiti" è la prima a sinistra ed è selezionata di default
+      setSelectedCategory('favorites')
 
       // Load products through categories (products are linked to categories, not directly to restaurant)
       let productsData = []
@@ -1040,9 +1046,26 @@ function CassaPage({ session }) {
 
   const isPremium = restaurant?.subscription_tier === 'premium'
 
-  const filteredProducts = products.filter(
-    (p) => !selectedCategory || p.category_id === selectedCategory
-  )
+  // Prodotti preferiti del banco, nell'ordine scelto
+  const favoriteProducts = favorites
+    .map((id) => products.find((p) => p.id === id))
+    .filter(Boolean)
+
+  const filteredProducts = selectedCategory === 'favorites'
+    ? favoriteProducts
+    : products.filter((p) => !selectedCategory || p.category_id === selectedCategory)
+
+  // Salva i preferiti (ordine di id) sul ristorante
+  const saveFavorites = async (ids) => {
+    setFavorites(ids)
+    if (restaurant?.id) {
+      try {
+        await supabase.from('restaurants').update({ cassa_favorites: ids }).eq('id', restaurant.id)
+      } catch (e) {
+        console.error('Errore salvataggio preferiti:', e)
+      }
+    }
+  }
 
   // Scroll orizzontale con la rotellina (e touch nativo) su barra categorie e griglia prodotti
   const categoriesBarRef = useRef(null)
@@ -1260,8 +1283,14 @@ function CassaPage({ session }) {
         <div style={layoutStyles}>
           {/* Products Area */}
           <div style={productsAreaStyles}>
-            {/* Categories Bar */}
+            {/* Categories Bar — "Preferiti" è sempre la prima tab */}
             <div style={categoriesBarStyles} ref={categoriesBarRef}>
+              <button
+                style={categoryButtonStyles(selectedCategory === 'favorites')}
+                onClick={() => setSelectedCategory('favorites')}
+              >
+                Preferiti
+              </button>
               {categories.map((cat) => (
                 <button
                   key={cat.id}
@@ -1273,7 +1302,22 @@ function CassaPage({ session }) {
               ))}
             </div>
 
-            {/* Products Grid */}
+            {/* Toolbar preferiti */}
+            {selectedCategory === 'favorites' && (
+              <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
+                <Button variant="secondary" size="sm" onClick={() => setFavPickerOpen(true)}>Scegli preferiti</Button>
+                {favoriteProducts.length >= 2 && (
+                  <Button variant="outline" size="sm" onClick={() => setFavOrderOpen(true)}>Ordina</Button>
+                )}
+              </div>
+            )}
+
+            {/* Griglia prodotti (o messaggio se nessun preferito) */}
+            {selectedCategory === 'favorites' && favoriteProducts.length === 0 ? (
+              <div style={{ padding: tokens.spacing.xl, textAlign: 'center', color: tokens.colors.gray[500], border: `1px dashed ${tokens.colors.gray[300]}`, borderRadius: tokens.borderRadius.md }}>
+                Nessun preferito. Premi “Scegli preferiti” per aggiungere i prodotti che usi più spesso al banco.
+              </div>
+            ) : (
             <div style={productsGridStyles} ref={productsGridRef}>
               {filteredProducts.map((product) => (
                 <div
@@ -1320,6 +1364,7 @@ function CassaPage({ session }) {
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           {/* Cart Area */}
@@ -2130,6 +2175,28 @@ function CassaPage({ session }) {
             handleOrderUpdated()
           }}
           restaurantId={restaurant?.id}
+        />
+      )}
+
+      {/* Preferiti del banco: scegli i prodotti */}
+      {favPickerOpen && (
+        <ProductPickerModal
+          products={products}
+          selectedIds={favorites}
+          title="Scegli i prodotti preferiti"
+          onSave={(ids) => { saveFavorites(ids); setFavPickerOpen(false) }}
+          onClose={() => setFavPickerOpen(false)}
+        />
+      )}
+
+      {/* Preferiti del banco: riordina */}
+      {favOrderOpen && (
+        <ProductsOrderModal
+          title="Ordina i preferiti"
+          subtitle="Trascina per cambiare l'ordine nel banco"
+          items={favoriteProducts.map((p) => ({ id: p.id, name: p.name, imageUrl: p.image_url, subLabel: formatPrice(p) }))}
+          onSave={(items) => { saveFavorites(items.map((i) => i.id)) }}
+          onClose={() => setFavOrderOpen(false)}
         />
       )}
     </DashboardLayout>
