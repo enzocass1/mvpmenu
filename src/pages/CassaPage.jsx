@@ -1838,9 +1838,9 @@ function CassaPage({ session }) {
                   {option.name}
                 </div>
                 <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
-                  {option.values.map((value) => {
+                  {(option.values || []).map((value) => {
                     const variant = selectedProduct?.variants?.find(
-                      (v) => v.title.includes(value.value)
+                      (v) => (v.title || '').includes(value.value || '')
                     )
                     return (
                       <button
@@ -1866,7 +1866,7 @@ function CassaPage({ session }) {
                         {value.value}
                         {variant && (
                           <div style={{ fontSize: tokens.typography.fontSize.xs, marginTop: '2px' }}>
-                            €{variant.price.toFixed(2)}
+                            €{Number(variant.price || 0).toFixed(2)}
                           </div>
                         )}
                       </button>
