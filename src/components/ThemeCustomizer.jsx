@@ -488,10 +488,12 @@ function ThemeCustomizer({ restaurantId }) {
 
     setLoading(true)
     try {
+      // Merge difensivo: non perdere eventuali campi salvati non presenti in `theme`
+      const merged = { ...(restaurant?.theme_config || {}), ...theme }
       const { error } = await supabase
         .from('restaurants')
         .update({
-          theme_config: theme,
+          theme_config: merged,
           updated_at: new Date().toISOString()
         })
         .eq('id', restaurantId)
@@ -507,7 +509,19 @@ function ThemeCustomizer({ restaurantId }) {
   }
 
   const applyPreset = (preset) => {
-    setTheme(preset.config)
+    // Applica SOLO l'aspetto del tema pronto (colori/font), preservando
+    // struttura e contenuti già impostati (layout scelto, Home componibile,
+    // dimensioni), così non si perde il lavoro fatto.
+    setTheme(prev => ({
+      ...prev,
+      ...preset.config,
+      layoutStyle: prev.layoutStyle || preset.config.layoutStyle,
+      homeSections: prev.homeSections,
+      textScale: prev.textScale,
+      cardSize: prev.cardSize,
+      sectionGap: prev.sectionGap,
+      showCategoryChips: prev.showCategoryChips,
+    }))
   }
 
   const getFontStyle = (fontFamily) => {

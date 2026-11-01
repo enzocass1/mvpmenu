@@ -39,6 +39,18 @@ export default function MenuStoreLayout({
     return () => ro.disconnect()
   }, [showSearch, query, categories])
 
+  // Desktop: scorri i badge categorie in orizzontale con la rotellina del mouse
+  useEffect(() => {
+    const el = chipBarRef.current
+    if (!el) return
+    const onWheel = (e) => {
+      if (el.scrollWidth <= el.clientWidth) return
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { el.scrollLeft += e.deltaY; e.preventDefault() }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [categories, query])
+
   const t = theme || {}
   const accent = t.accentColor || '#111'
   const cardBg = t.cardBackground || '#fff'

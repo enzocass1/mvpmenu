@@ -69,6 +69,18 @@ export default function MenuBuilderLayout({
     return () => ro.disconnect()
   }, [categories, viewAllCat])
 
+  // Desktop: scorri i badge categorie in orizzontale con la rotellina del mouse
+  useEffect(() => {
+    const el = chipsRef.current
+    if (!el) return
+    const onWheel = (e) => {
+      if (el.scrollWidth <= el.clientWidth) return
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { el.scrollLeft += e.deltaY; e.preventDefault() }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [categories, viewAllCat])
+
   // Prezzo numerico minimo (solo per l'ordinamento dei caroselli)
   const priceOf = (p) => (p.hasVariants && p.variants?.length)
     ? Math.min(...p.variants.map(v => Number(v.price || p.price || 0)))
