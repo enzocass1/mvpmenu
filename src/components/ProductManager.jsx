@@ -18,6 +18,7 @@ function ProductManager({ restaurantId, restaurant }) {
   const [variantCounts, setVariantCounts] = useState({})
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showCategoryFilter, setShowCategoryFilter] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -264,6 +265,11 @@ function ProductManager({ restaurantId, restaurant }) {
     const category = categories.find(c => c.id === categoryId)
     return category ? category.name : 'Senza categoria'
   }
+
+  // Prodotti mostrati = filtro categoria + ricerca live per nome
+  const displayedProducts = products
+    .filter(p => selectedCategory === 'all' || p.category_id === selectedCategory)
+    .filter(p => !searchQuery.trim() || p.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
 
   return (
     <>
@@ -605,6 +611,29 @@ function ProductManager({ restaurantId, restaurant }) {
           </div>
         )}
 
+        {/* Ricerca prodotti live */}
+        {products.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cerca un prodotto…"
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                fontSize: '14px',
+                border: '1px solid #E0E0E0',
+                borderRadius: '8px',
+                background: '#FFFFFF',
+                color: '#000000',
+                boxSizing: 'border-box',
+                outline: 'none'
+              }}
+            />
+          </div>
+        )}
+
         {products.length === 0 ? (
           <div style={{
             padding: '60px 20px',
@@ -629,14 +658,24 @@ function ProductManager({ restaurantId, restaurant }) {
               {categories.length === 0 ? 'Crea prima una categoria dalla tab Categorie' : 'Clicca su "+ Nuovo Prodotto" per iniziare'}
             </p>
           </div>
+        ) : displayedProducts.length === 0 ? (
+          <div style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            color: '#999999',
+            border: '2px dashed #E0E0E0',
+            borderRadius: '12px',
+            background: '#FAFAFA'
+          }}>
+            Nessun prodotto trovato{searchQuery.trim() ? ` per "${searchQuery.trim()}"` : ''}.
+          </div>
         ) : (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
             gap: '20px'
           }}>
-            {products
-              .filter(p => selectedCategory === 'all' || p.category_id === selectedCategory)
+            {displayedProducts
               .map((product) => {
               const variantCount = variantCounts[product.id] || 0
               const categoryName = getCategoryName(product.category_id)

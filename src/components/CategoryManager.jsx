@@ -16,6 +16,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
   const [editingCategory, setEditingCategory] = useState(null)
   const [productCounts, setProductCounts] = useState({})
   const [reorder, setReorder] = useState(null) // { title, subtitle, items, sortOptions, onSave }
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Apre il riordino dei PRODOTTI di una categoria (con prezzo, data, bestseller)
   const openProductReorder = async (category) => {
@@ -303,6 +304,9 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
 
   const hiddenCategoriesCount = restaurant ? getHiddenCategoriesCount(categories, restaurant) : 0
 
+  const displayedCategories = categories
+    .filter(c => !searchQuery.trim() || c.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+
   return (
     <>
       {/* Modal for Create/Edit Category */}
@@ -546,6 +550,29 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
           </div>
         )}
 
+        {/* Ricerca categorie live */}
+        {categories.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cerca una categoria…"
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                fontSize: '14px',
+                border: '1px solid #E0E0E0',
+                borderRadius: '8px',
+                background: '#FFFFFF',
+                color: '#000000',
+                boxSizing: 'border-box',
+                outline: 'none'
+              }}
+            />
+          </div>
+        )}
+
         {categories.length === 0 ? (
           <div style={{
             padding: '60px 20px',
@@ -570,13 +597,24 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
               Clicca su "+ Nuova Categoria" per iniziare
             </p>
           </div>
+        ) : displayedCategories.length === 0 ? (
+          <div style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            color: '#999999',
+            border: '2px dashed #E0E0E0',
+            borderRadius: '12px',
+            background: '#FAFAFA'
+          }}>
+            Nessuna categoria trovata{searchQuery.trim() ? ` per "${searchQuery.trim()}"` : ''}.
+          </div>
         ) : (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
             gap: '20px'
           }}>
-            {categories.map((category) => {
+            {displayedCategories.map((category) => {
               const productCount = productCounts[category.id] || 0
 
               return (
