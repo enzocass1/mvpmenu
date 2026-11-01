@@ -6,6 +6,7 @@ import ThemeHomeEditor from './ThemeHomeEditor'
 
 function ThemeCustomizer({ restaurantId }) {
   const [showHomeEditor, setShowHomeEditor] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false) // sezione colori avanzati a scomparsa
   const [loading, setLoading] = useState(false)
   const [loadingRestaurant, setLoadingRestaurant] = useState(true)
   const [restaurant, setRestaurant] = useState(null)
@@ -686,38 +687,43 @@ function ThemeCustomizer({ restaurantId }) {
       {/* Preset Temi */}
       <Card>
         <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
-          <h3 style={sectionTitleStyles}>Temi Predefiniti</h3>
+          <h3 style={sectionTitleStyles}>Temi pronti</h3>
+          <p style={{ margin: `0 0 ${tokens.spacing.lg}`, fontSize: 14, color: tokens.colors.gray[600] }}>
+            Parti da un tema già fatto, poi personalizzalo qui sotto come vuoi.
+          </p>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 190px), 1fr))',
             gap: tokens.spacing.md
           }}>
             {themePresets.map((preset) => (
               <button
                 key={preset.name}
                 onClick={() => applyPreset(preset)}
+                title={`Applica il tema ${preset.name}`}
                 style={{
-                  padding: tokens.spacing.md,
-                  border: `2px solid ${tokens.colors.gray[300]}`,
+                  border: `2px solid ${tokens.colors.gray[200]}`,
                   borderRadius: tokens.borderRadius.md,
                   background: tokens.colors.white,
                   cursor: 'pointer',
-                  fontSize: tokens.typography.fontSize.sm,
-                  fontWeight: tokens.typography.fontWeight.medium,
-                  color: tokens.colors.gray[900],
+                  padding: 0,
+                  overflow: 'hidden',
                   transition: 'all 0.2s ease',
-                  textAlign: 'center',
+                  textAlign: 'left',
                 }}
-                onMouseEnter={(e) => {
-                  e.target.style.borderColor = tokens.colors.black
-                  e.target.style.backgroundColor = tokens.colors.gray[50]
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.borderColor = tokens.colors.gray[300]
-                  e.target.style.backgroundColor = tokens.colors.white
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = tokens.colors.black }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = tokens.colors.gray[200] }}
               >
-                {preset.name}
+                {/* Anteprima dei colori del tema */}
+                <div style={{ height: 48, background: preset.config.primaryColor, display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px' }}>
+                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: preset.config.cardBackground, border: `1px solid ${preset.config.borderColor || 'rgba(255,255,255,0.35)'}` }} />
+                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: preset.config.accentColor }} />
+                  <span style={{ width: 16, height: 16, borderRadius: '50%', background: preset.config.buttonColor || preset.config.accentColor }} />
+                  <span style={{ marginLeft: 'auto', width: 34, height: 9, borderRadius: 3, background: preset.config.textSecondaryColor || '#fff' }} />
+                </div>
+                <div style={{ padding: '8px 10px', fontSize: 13, fontWeight: 600, color: tokens.colors.gray[900], whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {preset.name}
+                </div>
               </button>
             ))}
           </div>
@@ -826,7 +832,16 @@ function ThemeCustomizer({ restaurantId }) {
         </div>
       </Card>
 
-      {/* Colori Funzionali (NUOVA SEZIONE) */}
+      {/* Personalizzazione avanzata (colori funzionali) — a scomparsa */}
+      <button
+        onClick={() => setShowAdvanced(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 18px', border: `1px solid ${tokens.colors.gray[200]}`, borderRadius: tokens.borderRadius.lg, background: tokens.colors.white, cursor: 'pointer', fontSize: 15, fontWeight: 600, color: tokens.colors.black }}
+      >
+        <span>Personalizzazione avanzata <span style={{ fontWeight: 400, color: tokens.colors.gray[500], fontSize: 13 }}>— bordi, stati errore/successo, badge…</span></span>
+        <span style={{ fontSize: 13, color: tokens.colors.gray[500] }}>{showAdvanced ? '▲ Nascondi' : '▼ Mostra'}</span>
+      </button>
+
+      {showAdvanced && (
       <Card>
         <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={sectionTitleStyles}>Colori Funzionali</h3>
@@ -988,6 +1003,7 @@ function ThemeCustomizer({ restaurantId }) {
           </div>
         </div>
       </Card>
+      )}
 
       {/* Stili e Layout */}
       <Card>
