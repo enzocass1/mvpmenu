@@ -525,6 +525,24 @@ function ThemeCustomizer({ restaurantId }) {
     window.open(`/#/menu/${restaurant.subdomain}`, '_blank')
   }
 
+  // Anteprima di uno stile menu SENZA applicarlo (apre il menu in una nuova scheda)
+  const previewLayout = (style) => {
+    if (!restaurant?.subdomain) {
+      alert('❌ Configura prima il sottodominio del ristorante')
+      return
+    }
+    window.open(`/#/menu/${restaurant.subdomain}?previewLayout=${style}`, '_blank')
+  }
+
+  // Stili di menu disponibili (struttura). I temi "vecchi" dei clienti usano
+  // 'carousel' (Classico) e NON vanno toccati: il cambio è una scelta loro.
+  const MENU_STYLES = [
+    { value: 'carousel', title: 'Classico', desc: 'Lista e caroselli semplici. Personalizzi i colori. È lo stile di sempre.' },
+    { value: 'store', title: 'Vetrina', desc: 'Prodotti a griglia con foto grandi, in stile negozio online.' },
+    { value: 'builder', title: 'Home componibile', desc: 'Costruisci la home con caroselli e anteprima dal vivo.', recommended: true }
+  ]
+  const currentStyle = theme.layoutStyle || 'carousel'
+
   if (loadingRestaurant) {
     return <Spinner size="lg" text="Caricamento..." centered />
   }
@@ -616,6 +634,54 @@ function ThemeCustomizer({ restaurantId }) {
           Configura l'aspetto del tuo menu pubblico
         </p>
       </div>
+
+      {/* Stile del menu (struttura) — selettore visivo con anteprima */}
+      <Card>
+        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
+          <h3 style={sectionTitleStyles}>Stile del menu</h3>
+          <p style={{ margin: `0 0 ${tokens.spacing.lg}`, fontSize: 14, color: tokens.colors.gray[600] }}>
+            Scegli come appare il menu ai clienti. Puoi <strong>vedere l'anteprima</strong> prima di decidere; il cambiamento diventa attivo solo quando premi <strong>“Salva tema”</strong> in fondo.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: tokens.spacing.md }}>
+            {MENU_STYLES.map((s) => {
+              const selected = currentStyle === s.value
+              return (
+                <div key={s.value} style={{
+                  border: `2px solid ${selected ? tokens.colors.black : tokens.colors.gray[200]}`,
+                  borderRadius: tokens.borderRadius.md,
+                  padding: tokens.spacing.md,
+                  background: selected ? tokens.colors.gray[50] : tokens.colors.white,
+                  display: 'flex', flexDirection: 'column', gap: 8
+                }}>
+                  <MenuMock type={s.value} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, color: tokens.colors.black }}>{s.title}</span>
+                    {selected && <span style={{ fontSize: 11, fontWeight: 700, color: '#065f46', background: '#d1fae5', padding: '2px 7px', borderRadius: 999 }}>ATTUALE</span>}
+                    {s.recommended && !selected && <span style={{ fontSize: 11, fontWeight: 700, color: '#92400e', background: '#fef3c7', padding: '2px 7px', borderRadius: 999 }}>CONSIGLIATO</span>}
+                  </div>
+                  <div style={{ fontSize: 13, color: tokens.colors.gray[600], lineHeight: 1.45, minHeight: 36 }}>{s.desc}</div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+                    <button onClick={() => previewLayout(s.value)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: `1px solid ${tokens.colors.gray[300]}`, background: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', color: tokens.colors.gray[900] }}>👁 Anteprima</button>
+                    {!selected && (
+                      <button onClick={() => setTheme({ ...theme, layoutStyle: s.value })} style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: tokens.colors.black, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Usa questo</button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {currentStyle === 'builder' && (
+            <div style={{ marginTop: tokens.spacing.lg, padding: tokens.spacing.lg, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: tokens.borderRadius.md, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+              <div style={{ minWidth: 220, flex: 1 }}>
+                <div style={{ fontWeight: 700, marginBottom: 2 }}>Home componibile attiva</div>
+                <div style={{ fontSize: 13, color: '#64748B' }}>Costruisci la home e personalizza colori, font e dimensioni con anteprima dal vivo.</div>
+              </div>
+              <Button variant="primary" onClick={() => setShowHomeEditor(true)}>Apri Editor dal vivo</Button>
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Preset Temi */}
       <Card>
@@ -1001,27 +1067,7 @@ function ThemeCustomizer({ restaurantId }) {
               </select>
             </div>
 
-            <div>
-              <label style={labelStyles}>Layout menu</label>
-              <select
-                value={theme.layoutStyle}
-                onChange={(e) => setTheme({...theme, layoutStyle: e.target.value})}
-                style={inputStyles}
-              >
-                <option value="carousel">Carosello (classico)</option>
-                <option value="store">Store (e-commerce)</option>
-                <option value="builder">Builder — Home a caroselli (nuovo)</option>
-              </select>
-            </div>
           </div>
-
-          {theme.layoutStyle === 'builder' && (
-            <div style={{ marginTop: tokens.spacing.lg, padding: tokens.spacing.lg, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: tokens.borderRadius.md }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>Home a caroselli</div>
-              <div style={{ fontSize: 13, color: '#64748B', marginBottom: 10 }}>Componi la home con caroselli di prodotti o categorie.</div>
-              <Button variant="primary" onClick={() => setShowHomeEditor(true)}>Apri Editor Home</Button>
-            </div>
-          )}
         </div>
       </Card>
 
@@ -1347,6 +1393,44 @@ function ThemeCustomizer({ restaurantId }) {
           )}
         </div>
       </Card>
+    </div>
+  )
+}
+
+// Mini-anteprima illustrativa (puro CSS) di uno stile di menu
+function MenuMock({ type }) {
+  const box = { background: '#e2e8f0', borderRadius: 3 }
+  const frame = { background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, height: 84, display: 'flex', flexDirection: 'column', gap: 5, overflow: 'hidden' }
+  const bar = { ...box, height: 8, width: '55%' }
+  if (type === 'store') {
+    return (
+      <div style={frame}>
+        <div style={bar} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, flex: 1 }}>
+          {[0, 1, 2, 3].map(i => <div key={i} style={{ ...box, borderRadius: 4 }} />)}
+        </div>
+      </div>
+    )
+  }
+  if (type === 'builder') {
+    return (
+      <div style={frame}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div style={{ ...box, width: 10, height: 10, borderRadius: '50%', background: '#cbd5e1' }} />
+          <div style={{ ...bar, width: '45%' }} />
+        </div>
+        <div style={{ display: 'flex', gap: 4 }}>{[0, 1, 2].map(i => <div key={i} style={{ ...box, flex: 1, height: 20, borderRadius: 4 }} />)}</div>
+        <div style={{ display: 'flex', gap: 4 }}>{[0, 1, 2].map(i => <div key={i} style={{ ...box, flex: 1, height: 20, borderRadius: 4 }} />)}</div>
+      </div>
+    )
+  }
+  // carousel (Classico)
+  return (
+    <div style={frame}>
+      <div style={bar} />
+      <div style={{ display: 'flex', gap: 4 }}>{[0, 1].map(i => <div key={i} style={{ ...box, flex: 1, height: 24, borderRadius: 4 }} />)}</div>
+      <div style={{ ...box, height: 6, width: '85%' }} />
+      <div style={{ ...box, height: 6, width: '70%' }} />
     </div>
   )
 }

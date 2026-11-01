@@ -178,8 +178,13 @@ function PublicMenu() {
     return () => window.removeEventListener('message', onMsg)
   }, [searchParams])
 
-  // Configurazione tema effettiva: bozza dell'anteprima oppure quella salvata
-  const effectiveThemeConfig = previewOverride || restaurant?.theme_config
+  // Configurazione tema effettiva: bozza live, oppure anteprima di un layout
+  // (?previewLayout=carousel|store|builder) senza salvare, oppure quella salvata
+  const previewLayoutParam = searchParams.get('previewLayout')
+  const effectiveThemeConfig = previewOverride
+    || (previewLayoutParam
+        ? { ...(restaurant?.theme_config || {}), layoutStyle: previewLayoutParam }
+        : restaurant?.theme_config)
 
   // Calcola stili dinamici basati sul theme_config effettivo
   const themeStyles = useMemo(() => {
