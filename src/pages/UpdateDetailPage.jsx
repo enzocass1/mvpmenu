@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
 import DashboardLayout from '../components/ui/DashboardLayout'
-import { Card, Button } from '../components/ui'
+import { Card } from '../components/ui'
 import { APP_UPDATES, getUpdateById, UPDATE_TYPE_LABEL, EXAMPLE_IMAGE, markUpdatesSeen } from '../lib/appUpdates'
 
 const TYPE_COLORS = {
@@ -39,7 +39,6 @@ function UpdateDetailPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [indexOpen, setIndexOpen] = useState(false)
-  const [copiedId, setCopiedId] = useState(null)
   const sectionRefs = useRef({})
 
   const update = getUpdateById(id)
@@ -86,15 +85,6 @@ function UpdateDetailPage({ session }) {
     } else {
       navigate(`/aggiornamenti/${uid}`)
     }
-  }
-
-  const copyLink = async (uid) => {
-    const base = window.location.href.split('#')[0]
-    const link = `${base}#/aggiornamenti/${uid}`
-    try {
-      await navigator.clipboard.writeText(link)
-      setCopiedId(uid); setTimeout(() => setCopiedId(null), 2000)
-    } catch { setCopiedId(null) }
   }
 
   const formatDate = (iso) => {
@@ -205,22 +195,17 @@ function UpdateDetailPage({ session }) {
                   <span style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[500] }}>{formatDate(u.date)}</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing.md, flexWrap: 'wrap', marginBottom: tokens.spacing.lg }}>
-                  <h2 style={{
-                    margin: 0,
-                    fontSize: isMobile ? tokens.typography.fontSize.xl : tokens.typography.fontSize['2xl'],
-                    fontWeight: tokens.typography.fontWeight.bold,
-                    color: tokens.colors.black,
-                    lineHeight: tokens.typography.lineHeight.tight,
-                    // Evidenzia leggermente la sezione aperta dal link
-                    ...(active ? { borderLeft: `3px solid ${tokens.colors.black}`, paddingLeft: tokens.spacing.md } : {}),
-                  }}>
-                    {u.title}
-                  </h2>
-                  <Button variant="outline" size="sm" onClick={() => copyLink(u.id)}>
-                    {copiedId === u.id ? 'Link copiato' : 'Copia link'}
-                  </Button>
-                </div>
+                <h2 style={{
+                  margin: `0 0 ${tokens.spacing.lg}`,
+                  fontSize: isMobile ? tokens.typography.fontSize.xl : tokens.typography.fontSize['2xl'],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.black,
+                  lineHeight: tokens.typography.lineHeight.tight,
+                  // Evidenzia leggermente la sezione aperta dal link
+                  ...(active ? { borderLeft: `3px solid ${tokens.colors.black}`, paddingLeft: tokens.spacing.md } : {}),
+                }}>
+                  {u.title}
+                </h2>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.md }}>
                   <Card padding={isMobile ? 'md' : 'lg'}>
