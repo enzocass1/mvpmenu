@@ -7,6 +7,7 @@ import ThemeHomeEditor from './ThemeHomeEditor'
 function ThemeCustomizer({ restaurantId }) {
   const [showHomeEditor, setShowHomeEditor] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false) // sezione colori avanzati a scomparsa
+  const [showPreview, setShowPreview] = useState(false)    // anteprima tema a scomparsa
   const [loading, setLoading] = useState(false)
   const [loadingRestaurant, setLoadingRestaurant] = useState(true)
   const [restaurant, setRestaurant] = useState(null)
@@ -576,6 +577,16 @@ function ThemeCustomizer({ restaurantId }) {
     color: tokens.colors.gray[700],
   }
 
+  // Sotto-etichetta di gruppo dentro la card "Personalizza"
+  const subLabelStyles = {
+    fontSize: 12,
+    fontWeight: 800,
+    color: tokens.colors.gray[500],
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    margin: '0 0 12px',
+  }
+
   const inputStyles = {
     width: '100%',
     padding: tokens.spacing.sm,
@@ -733,7 +744,8 @@ function ThemeCustomizer({ restaurantId }) {
       {/* Personalizzazione Colori */}
       <Card>
         <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
-          <h3 style={sectionTitleStyles}>Colori Principali</h3>
+          <h3 style={sectionTitleStyles}>Personalizza</h3>
+          <div style={subLabelStyles}>Colori</div>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
@@ -827,6 +839,59 @@ function ThemeCustomizer({ restaurantId }) {
                   style={{ ...inputStyles, flex: 1 }}
                 />
               </div>
+            </div>
+          </div>
+
+          <div style={{ ...subLabelStyles, marginTop: 24 }}>Testo e forma</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: tokens.spacing.lg }}>
+            <div>
+              <label style={labelStyles}>Font testo</label>
+              <select value={theme.fontFamily} onChange={(e) => setTheme({...theme, fontFamily: e.target.value})} style={inputStyles}>
+                <option value="system">Sistema (Default)</option>
+                <option value="serif">Serif (Elegante)</option>
+                <option value="sans-serif">Sans-Serif (Moderno)</option>
+                <option value="cursive">Cursive (Decorativo)</option>
+                <option value="inter">Inter (Web, pulito)</option>
+                <option value="poppins">Poppins (Web, moderno)</option>
+                <option value="montserrat">Montserrat (Web)</option>
+                <option value="playfair">Playfair Display (Web, serif)</option>
+                <option value="cormorant">Cormorant (Web, serif)</option>
+                <option value="spacegrotesk">Space Grotesk (Web)</option>
+                <option value="orbitron">Orbitron (Web, tech)</option>
+                <option value="bebas">Bebas Neue (Web, display)</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyles}>Font titoli</label>
+              <select value={theme.headingFontFamily || theme.fontFamily} onChange={(e) => setTheme({...theme, headingFontFamily: e.target.value})} style={inputStyles}>
+                <option value="system">Come il testo</option>
+                <option value="serif">Serif (Georgia)</option>
+                <option value="playfair">Playfair Display (serif)</option>
+                <option value="cormorant">Cormorant (serif)</option>
+                <option value="montserrat">Montserrat</option>
+                <option value="poppins">Poppins</option>
+                <option value="inter">Inter</option>
+                <option value="orbitron">Orbitron (tech)</option>
+                <option value="bebas">Bebas Neue (display)</option>
+                <option value="spacegrotesk">Space Grotesk</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyles}>Stile Card</label>
+              <select value={theme.cardStyle} onChange={(e) => setTheme({...theme, cardStyle: e.target.value})} style={inputStyles}>
+                <option value="modern">Moderno</option>
+                <option value="classic">Classico</option>
+                <option value="minimal">Minimale</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyles}>Bordi Arrotondati</label>
+              <select value={theme.borderRadius} onChange={(e) => setTheme({...theme, borderRadius: e.target.value})} style={inputStyles}>
+                <option value="0">Nessuno (Squadrato)</option>
+                <option value="8">Leggero</option>
+                <option value="16">Medio</option>
+                <option value="24">Molto Arrotondato</option>
+              </select>
             </div>
           </div>
         </div>
@@ -1005,88 +1070,6 @@ function ThemeCustomizer({ restaurantId }) {
       </Card>
       )}
 
-      {/* Stili e Layout */}
-      <Card>
-        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
-          <h3 style={sectionTitleStyles}>Stile e Layout</h3>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
-            gap: tokens.spacing.lg
-          }}>
-            <div>
-              <label style={labelStyles}>Font testo</label>
-              <select
-                value={theme.fontFamily}
-                onChange={(e) => setTheme({...theme, fontFamily: e.target.value})}
-                style={inputStyles}
-              >
-                <option value="system">Sistema (Default)</option>
-                <option value="serif">Serif (Elegante)</option>
-                <option value="sans-serif">Sans-Serif (Moderno)</option>
-                <option value="cursive">Cursive (Decorativo)</option>
-                <option value="inter">Inter (Web, pulito)</option>
-                <option value="poppins">Poppins (Web, moderno)</option>
-                <option value="montserrat">Montserrat (Web)</option>
-                <option value="playfair">Playfair Display (Web, serif)</option>
-                <option value="cormorant">Cormorant (Web, serif)</option>
-                <option value="spacegrotesk">Space Grotesk (Web)</option>
-                <option value="orbitron">Orbitron (Web, tech)</option>
-                <option value="bebas">Bebas Neue (Web, display)</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Font titoli</label>
-              <select
-                value={theme.headingFontFamily || theme.fontFamily}
-                onChange={(e) => setTheme({...theme, headingFontFamily: e.target.value})}
-                style={inputStyles}
-              >
-                <option value="system">Come il testo</option>
-                <option value="serif">Serif (Georgia)</option>
-                <option value="playfair">Playfair Display (serif)</option>
-                <option value="cormorant">Cormorant (serif)</option>
-                <option value="montserrat">Montserrat</option>
-                <option value="poppins">Poppins</option>
-                <option value="inter">Inter</option>
-                <option value="orbitron">Orbitron (tech)</option>
-                <option value="bebas">Bebas Neue (display)</option>
-                <option value="spacegrotesk">Space Grotesk</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Stile Card</label>
-              <select
-                value={theme.cardStyle}
-                onChange={(e) => setTheme({...theme, cardStyle: e.target.value})}
-                style={inputStyles}
-              >
-                <option value="modern">Moderno</option>
-                <option value="classic">Classico</option>
-                <option value="minimal">Minimale</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Bordi Arrotondati</label>
-              <select
-                value={theme.borderRadius}
-                onChange={(e) => setTheme({...theme, borderRadius: e.target.value})}
-                style={inputStyles}
-              >
-                <option value="0">Nessuno (Squadrato)</option>
-                <option value="8">Leggero</option>
-                <option value="16">Medio</option>
-                <option value="24">Molto Arrotondato</option>
-              </select>
-            </div>
-
-          </div>
-        </div>
-      </Card>
-
       {showHomeEditor && (
         <ThemeHomeEditor restaurantId={restaurantId} onClose={() => { setShowHomeEditor(false); loadRestaurantAndTheme() }} />
       )}
@@ -1094,8 +1077,16 @@ function ThemeCustomizer({ restaurantId }) {
       {/* Anteprima */}
       <Card>
         <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
-          <h3 style={sectionTitleStyles}>Anteprima Tema</h3>
+          <button
+            onClick={() => setShowPreview(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}
+          >
+            <h3 style={{ ...sectionTitleStyles, marginBottom: 0 }}>Anteprima Tema</h3>
+            <span style={{ fontSize: 13, color: tokens.colors.gray[500] }}>{showPreview ? '▲ Nascondi' : '▼ Mostra'}</span>
+          </button>
 
+          {showPreview && (
+          <div style={{ marginTop: tokens.spacing.lg }}>
           {/* Background principale del menu */}
           <div style={{
             padding: tokens.spacing.xl,
@@ -1271,6 +1262,8 @@ function ThemeCustomizer({ restaurantId }) {
               </p>
             </div>
           </div>
+          </div>
+          )}
         </div>
       </Card>
 
