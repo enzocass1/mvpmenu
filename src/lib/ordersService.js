@@ -12,6 +12,9 @@ import {
   TIMELINE_ACTION
 } from './timelineService'
 
+// Stati di un ordine ancora aperto (non chiuso, non annullato)
+export const OPEN_ORDER_STATUSES = ['pending', 'confirmed', 'preparing']
+
 // ============================================
 // ORDINI - CRUD BASE
 // ============================================
@@ -60,8 +63,7 @@ export const createTableOrder = async ({
         batch_number: 1,
         prepared: false,
         variant_id: item.variant_id || null,
-        variant_title: item.variant_title || null,
-        option_values: item.option_values || null
+        variant_title: item.variant_title || null
       }))
 
       const { error: itemsError } = await supabase
@@ -164,8 +166,7 @@ export const createTableOrderByStaff = async ({
         prepared_at: new Date().toISOString(),
         added_by_staff_id: staffId,
         variant_id: item.variant_id || null,
-        variant_title: item.variant_title || null,
-        option_values: item.option_values || null
+        variant_title: item.variant_title || null
       }))
 
       const { error: itemsError } = await supabase
@@ -230,17 +231,26 @@ export const createCounterOrder = async ({
   items = [],
   isPriority = false
 }) => {
+  let order = null
   try {
+    const now = new Date().toISOString()
+    const receiptNumber = await getNextReceiptNumber(restaurantId)
+    const itemsTotal = items.reduce(
+      (sum, item) => sum + (item.subtotal ?? item.product_price * item.quantity), 0
+    )
+
     // Crea ordine già completato
-    const { data: order, error: orderError } = await supabase
+    const { data: createdOrder, error: orderError } = await supabase
       .from('orders')
       .insert({
         restaurant_id: restaurantId,
         order_type: 'counter',
         status: 'completed',
         customer_name: customerName,
-        opened_at: new Date().toISOString(),
-        closed_at: new Date().toISOString(),
+        opened_at: now,
+        closed_at: now,
+        total_amount: itemsTotal,
+        metadata: { receipt_number: receiptNumber, receipt_date: now },
         created_by_staff_id: staffId,
         confirmed_by_staff_id: staffId
       })
@@ -248,6 +258,7 @@ export const createCounterOrder = async ({
       .single()
 
     if (orderError) throw orderError
+    order = createdOrder
 
     // Aggiungi items
     if (items.length > 0) {
@@ -258,14 +269,13 @@ export const createCounterOrder = async ({
         product_price: item.product_price,
         quantity: item.quantity,
         notes: item.notes || null,
-        subtotal: item.subtotal,
+        subtotal: item.subtotal ?? item.product_price * item.quantity,
         batch_number: 1,
         prepared: true,
         prepared_at: new Date().toISOString(),
         added_by_staff_id: staffId,
         variant_id: item.variant_id || null,
-        variant_title: item.variant_title || null,
-        option_values: item.option_values || null
+        variant_title: item.variant_title || null
       }))
 
       const { error: itemsError } = await supabase
@@ -289,11 +299,27 @@ export const createCounterOrder = async ({
       is_priority: isPriority
     })
 
-    return { success: true, order }
+    return { success: true, order, receiptNumber }
   } catch (error) {
     console.error('Errore creazione ordine banco:', error)
+    // Se l'ordine è stato creato ma i prodotti no, non lasciare un ordine vuoto "completato"
+    if (order?.id) {
+      await discardOrphanOrder(order.id)
+    }
     return { success: false, error }
   }
+}
+
+/**
+ * Annulla un ordine rimasto senza prodotti dopo un inserimento fallito
+ */
+export const discardOrphanOrder = async (orderId) => {
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: 'cancelled', deleted_at: new Date().toISOString() })
+    .eq('id', orderId)
+
+  if (error) console.error('Errore annullamento ordine incompleto:', error)
 }
 
 // ============================================
@@ -301,35 +327,31 @@ export const createCounterOrder = async ({
 // ============================================
 
 /**
- * Conferma ordine (pending → preparing)
+ * Approva ordine (pending → preparing): la comanda "parte".
+ * NON segna i prodotti come preparati: il "preparato" è per singolo batch
+ * (vedi markBatchPrepared). La chiusura del tavolo spetta solo alla Cassa.
  */
-export const confirmOrder = async (orderId, staffId) => {
+export const confirmOrder = async (orderId, staffId, operator = null) => {
   try {
-    // Aggiorna ordine
+    const now = new Date().toISOString()
+    // Approva solo se ancora da approvare: evita doppie approvazioni da due operatori
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .update({
         status: 'preparing',
         confirmed_by_staff_id: staffId,
-        opened_at: new Date().toISOString()
+        confirmed_at: now,
+        preparing_at: now,
+        opened_at: now
       })
       .eq('id', orderId)
+      .in('status', ['pending', 'confirmed'])
+      .is('deleted_at', null)
       .select()
-      .single()
+      .maybeSingle()
 
     if (orderError) throw orderError
-
-    // Marca tutti i prodotti come preparati
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .update({
-        prepared: true,
-        prepared_at: new Date().toISOString()
-      })
-      .eq('order_id', orderId)
-      .eq('prepared', false)
-
-    if (itemsError) throw itemsError
+    if (!order) throw new Error('Ordine già approvato o non più modificabile')
 
     // Timeline: Evento "confermato" → "preparazione"
     // 🆕 MIGRATO a nuovo timelineService.js
@@ -337,14 +359,14 @@ export const confirmOrder = async (orderId, staffId) => {
       orderId,
       action: TIMELINE_ACTION.CONFIRMED,
       eventSource: EVENT_SOURCE.TABLE_SERVICE,
-      operator: buildOperatorInfo({
+      operator: operator || buildOperatorInfo({
         staffId: staffId,
         createdByType: 'staff'
       }),
       data: {
         previousStatus: 'pending',
         newStatus: 'preparing',
-        notes: 'Ordine confermato e messo in preparazione'
+        notes: 'Comanda approvata'
       }
     })
 
@@ -365,6 +387,60 @@ export const confirmOrder = async (orderId, staffId) => {
 }
 
 /**
+ * Rifiuta un ordine in attesa (es. ordine finto non verificato dallo staff).
+ * Soft delete: lo stato resta tracciato ma il tavolo si libera.
+ */
+export const rejectOrder = async (orderId, staffId) => {
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled', deleted_at: new Date().toISOString(), modified_by_staff_id: staffId })
+      .eq('id', orderId)
+      .eq('status', 'pending')
+      .is('deleted_at', null)
+      .select()
+      .maybeSingle()
+
+    if (error) throw error
+    if (!order) throw new Error('Ordine non più rifiutabile (già approvato o rimosso)')
+    return { success: true, order }
+  } catch (error) {
+    console.error('Errore rifiuto ordine:', error)
+    return { success: false, error }
+  }
+}
+
+/**
+ * Segna preparato un singolo batch (comanda) di un ordine.
+ * NON cambia lo stato dell'ordine e NON chiude il tavolo: il tavolo resta
+ * aperto finché la Cassa non lo chiude.
+ */
+export const markBatchPrepared = async (orderId, batchNumber, staffId, prepared = true) => {
+  try {
+    const { error } = await supabase
+      .from('order_items')
+      .update({ prepared, prepared_at: prepared ? new Date().toISOString() : null })
+      .eq('order_id', orderId)
+      .eq('batch_number', batchNumber)
+
+    if (error) throw error
+
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.UPDATED,
+      eventSource: EVENT_SOURCE.TABLE_SERVICE,
+      operator: buildOperatorInfo({ staffId, createdByType: 'staff' }),
+      data: { notes: `Batch ${batchNumber} ${prepared ? 'preparato' : 'riaperto'}`, changes: { batch_number: batchNumber, prepared } }
+    }).catch(e => console.error('timeline batch prepared:', e))
+
+    return { success: true }
+  } catch (error) {
+    console.error('Errore segna batch preparato:', error)
+    return { success: false, error }
+  }
+}
+
+/**
  * Chiudi tavolo (scontrino)
  */
 export const closeTableOrder = async (orderId, staffId, receiptNumber = null) => {
@@ -376,17 +452,34 @@ export const closeTableOrder = async (orderId, staffId, receiptNumber = null) =>
     }
 
     if (receiptNumber) {
-      updateData.metadata = { receipt_number: receiptNumber, receipt_date: new Date().toISOString() }
+      // Unisci ai metadata esistenti (es. dati del preconto) invece di sovrascriverli
+      const { data: current, error: currentError } = await supabase
+        .from('orders')
+        .select('metadata')
+        .eq('id', orderId)
+        .single()
+
+      if (currentError) throw currentError
+
+      updateData.metadata = {
+        ...(current?.metadata || {}),
+        receipt_number: receiptNumber,
+        receipt_date: new Date().toISOString()
+      }
     }
 
+    // Chiudi solo se ancora aperto: evita doppie chiusure da due operatori
     const { data: order, error } = await supabase
       .from('orders')
       .update(updateData)
       .eq('id', orderId)
+      .in('status', OPEN_ORDER_STATUSES)
+      .is('deleted_at', null)
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) throw error
+    if (!order) throw new Error('Ordine già chiuso o eliminato')
 
     // Timeline: Ordine completato
     // 🆕 MIGRATO a nuovo timelineService.js
@@ -535,7 +628,7 @@ export const getNextBatchNumber = async (orderId) => {
 /**
  * Aggiungi prodotti a ordine esistente (nuova ondata)
  */
-export const addProductsToOrder = async (orderId, items, staffId) => {
+export const addProductsToOrder = async (orderId, items, staffId, delivery = { mode: 'now' }) => {
   try {
     // Ottieni prossimo batch
     const batchNumber = await getNextBatchNumber(orderId)
@@ -546,6 +639,13 @@ export const addProductsToOrder = async (orderId, items, staffId) => {
       .select('restaurant_id, table_id, room_id')
       .eq('id', orderId)
       .single()
+
+    // Modalità di invio della comanda alla cucina:
+    // 'now' = inviata subito, 'staged' = da inviare a mano, 'scheduled' = invio programmato
+    const mode = delivery?.mode || 'now'
+    const now = new Date().toISOString()
+    const sent = mode === 'now'
+    const sendAt = mode === 'scheduled' ? delivery.sendAt : null
 
     // Aggiungi items con nuovo batch
     const orderItems = items.map(item => ({
@@ -558,6 +658,9 @@ export const addProductsToOrder = async (orderId, items, staffId) => {
       subtotal: item.subtotal,
       batch_number: batchNumber,
       prepared: false,
+      sent,
+      sent_at: sent ? now : null,
+      send_at: sendAt,
       added_by_staff_id: staffId,
       variant_id: item.variant_id || null,
       variant_title: item.variant_title || null
@@ -587,14 +690,20 @@ export const addProductsToOrder = async (orderId, items, staffId) => {
         createdByType: 'staff'
       }),
       data: {
-        notes: `Aggiunti ${items.length} prodotti (Batch #${batchNumber})`,
+        notes: mode === 'now'
+          ? `Comanda ${batchNumber} inviata (${items.length} prodotti)`
+          : mode === 'scheduled'
+            ? `Comanda ${batchNumber} programmata (${items.length} prodotti)`
+            : `Comanda ${batchNumber} salvata come portata (${items.length} prodotti)`,
         changes: {
           batch_number: batchNumber,
           items_count: items.length,
+          sent,
+          send_at: sendAt,
           products: items.map(i => ({ name: i.product_name, qty: i.quantity }))
         },
         isExpandable: true,
-        detailsSummary: `${items.length} prodotto${items.length !== 1 ? 'i' : ''} aggiunto${items.length !== 1 ? 'i' : ''} - Batch #${batchNumber}`
+        detailsSummary: `${items.length} prodotto${items.length !== 1 ? 'i' : ''} - Comanda ${batchNumber}`
       }
     })
 
@@ -612,6 +721,67 @@ export const addProductsToOrder = async (orderId, items, staffId) => {
     return { success: true, batchNumber }
   } catch (error) {
     console.error('Errore aggiungiunta prodotti:', error)
+    return { success: false, error }
+  }
+}
+
+/**
+ * Invia alla cucina una comanda finora "da inviare" o programmata.
+ */
+export const sendBatch = async (orderId, batchNumber, staffId) => {
+  try {
+    const now = new Date().toISOString()
+    const { data, error } = await supabase
+      .from('order_items')
+      .update({ sent: true, sent_at: now, send_at: null })
+      .eq('order_id', orderId)
+      .eq('batch_number', batchNumber)
+      .eq('sent', false)
+      .select('id')
+
+    if (error) throw error
+    if (!data || data.length === 0) throw new Error('Comanda già inviata o inesistente')
+
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.ITEM_ADDED,
+      eventSource: EVENT_SOURCE.TABLE_SERVICE,
+      operator: buildOperatorInfo({ staffId, createdByType: 'staff' }),
+      data: { notes: `Comanda ${batchNumber} inviata alla cucina`, changes: { batch_number: batchNumber, sent: true } }
+    }).catch(e => console.error('timeline sendBatch:', e))
+
+    return { success: true }
+  } catch (error) {
+    console.error('Errore invio comanda:', error)
+    return { success: false, error }
+  }
+}
+
+/**
+ * Invia le comande programmate scadute (send_at <= adesso) per un ristorante.
+ * Fallback client-side: usata quando non c'è il job server (pg_cron).
+ */
+export const releaseDueScheduledBatches = async (restaurantId) => {
+  try {
+    const { data: due, error } = await supabase
+      .from('order_items')
+      .select('order_id, batch_number, orders!inner(restaurant_id)')
+      .eq('orders.restaurant_id', restaurantId)
+      .eq('sent', false)
+      .not('send_at', 'is', null)
+      .lte('send_at', new Date().toISOString())
+
+    if (error) throw error
+    const seen = new Set()
+    for (const row of due || []) {
+      const key = `${row.order_id}:${row.batch_number}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      await sendBatch(row.order_id, row.batch_number, null)
+    }
+    return { success: true, released: seen.size }
+  } catch (error) {
+    console.error('Errore invio comande programmate:', error)
     return { success: false, error }
   }
 }
@@ -980,20 +1150,21 @@ export const getOrders = async ({
  */
 export const generatePreconto = async (orderId, staffId) => {
   try {
-    const order = await getOrderWithItems(orderId)
-    if (!order) throw new Error('Ordine non trovato')
+    const { success, order, error: loadError } = await getOrderWithItems(orderId)
+    if (!success || !order) throw loadError || new Error('Ordine non trovato')
 
     const precontoTimestamp = new Date().toISOString()
 
-    // Marca metadata che è stato generato preconto con timestamp
-    await supabase
+    // Marca nei metadata che è stato generato il preconto (la stampa procede comunque)
+    const { error: updateError } = await supabase
       .from('orders')
       .update({
-        metadata: { ...order.metadata, preconto_generated: true, preconto_at: precontoTimestamp },
-        preconto_generated_at: precontoTimestamp, // Campo dedicated per timestamp
+        metadata: { ...(order.metadata || {}), preconto_generated: true, preconto_at: precontoTimestamp },
         modified_by_staff_id: staffId
       })
       .eq('id', orderId)
+
+    if (updateError) console.error('Errore salvataggio preconto:', updateError)
 
     // Timeline: Preconto generato
     // 🆕 MIGRATO a nuovo timelineService.js
@@ -1036,29 +1207,37 @@ export const generatePreconto = async (orderId, staffId) => {
  * Ottieni prossimo numero scontrino giornaliero
  */
 export const getNextReceiptNumber = async (restaurantId) => {
-  try {
-    const today = new Date().toISOString().split('T')[0]
+  if (!restaurantId) throw new Error('Ristorante mancante per la numerazione scontrini')
 
-    const { data, error } = await supabase
-      .from('orders')
-      .select('metadata')
-      .eq('restaurant_id', restaurantId)
-      .gte('created_at', `${today}T00:00:00`)
-      .lte('created_at', `${today}T23:59:59`)
-      .order('created_at', { ascending: false })
-      .limit(1)
+  // Numerazione giornaliera: inizio della giornata nell'ora locale del locale
+  const startOfDay = new Date()
+  startOfDay.setHours(0, 0, 0, 0)
 
-    if (error) throw error
+  // Tutti gli scontrini emessi oggi (non l'ultimo ordine creato, che potrebbe non averne)
+  const { data, error } = await supabase
+    .from('orders')
+    .select('metadata')
+    .eq('restaurant_id', restaurantId)
+    .not('metadata->receipt_number', 'is', null)
+    .gte('closed_at', startOfDay.toISOString())
 
-    if (data && data.length > 0 && data[0].metadata?.receipt_number) {
-      return data[0].metadata.receipt_number + 1
-    }
-
-    return 1
-  } catch (error) {
+  if (error) {
     console.error('Errore get next receipt number:', error)
-    return 1
+    throw error
   }
+
+  return nextReceiptNumber(data)
+}
+
+/**
+ * Calcola il prossimo numero a partire dagli ordini con scontrino della giornata
+ */
+export const nextReceiptNumber = (ordersWithReceipt = []) => {
+  const maxNumber = ordersWithReceipt.reduce(
+    (max, o) => Math.max(max, Number(o.metadata?.receipt_number) || 0),
+    0
+  )
+  return maxNumber + 1
 }
 
 /**
@@ -1066,8 +1245,8 @@ export const getNextReceiptNumber = async (restaurantId) => {
  */
 export const generateScontrino = async (orderId, staffId) => {
   try {
-    const order = await getOrderWithItems(orderId)
-    if (!order) throw new Error('Ordine non trovato')
+    const { success, order, error: loadError } = await getOrderWithItems(orderId)
+    if (!success || !order) throw loadError || new Error('Ordine non trovato')
 
     // Ottieni numero scontrino
     const receiptNumber = await getNextReceiptNumber(order.restaurant_id)
@@ -1089,8 +1268,8 @@ export const generateScontrino = async (orderId, staffId) => {
  */
 export const closeTableWithoutReceipt = async (orderId, staffId) => {
   try {
-    const order = await getOrderWithItems(orderId)
-    if (!order) throw new Error('Ordine non trovato')
+    const { success, order, error: loadError } = await getOrderWithItems(orderId)
+    if (!success || !order) throw loadError || new Error('Ordine non trovato')
 
     // Chiudi tavolo senza numero scontrino
     const result = await closeTableOrder(orderId, staffId, null)
@@ -1100,6 +1279,66 @@ export const closeTableWithoutReceipt = async (orderId, staffId) => {
     return { success: true, order }
   } catch (error) {
     console.error('Errore chiusura tavolo:', error)
+    return { success: false, error }
+  }
+}
+
+/**
+ * Chiudi tavolo come NON PAGATO (es. clienti scappati senza pagare).
+ * Il tavolo si libera, l'ordine resta come traccia, l'incasso è considerato
+ * PERSO: payment_status='unpaid' lo esclude dai ricavi e lo conta come mancato incasso.
+ */
+export const closeTableUnpaid = async (orderId, staffId, reason = null) => {
+  try {
+    const { success, order, error: loadError } = await getOrderWithItems(orderId)
+    if (!success || !order) throw loadError || new Error('Ordine non trovato')
+
+    const lostAmount = Number(order.total_amount || 0)
+
+    // Chiudi (solo se ancora aperto) marcandolo non pagato
+    const { data: closed, error } = await supabase
+      .from('orders')
+      .update({
+        status: 'completed',
+        closed_at: new Date().toISOString(),
+        payment_status: 'unpaid',
+        modified_by_staff_id: staffId,
+        metadata: { ...(order.metadata || {}), unpaid: true, lost_amount: lostAmount, unpaid_reason: reason || 'Clienti usciti senza pagare' }
+      })
+      .eq('id', orderId)
+      .in('status', OPEN_ORDER_STATUSES)
+      .is('deleted_at', null)
+      .select()
+      .maybeSingle()
+
+    if (error) throw error
+    if (!closed) throw new Error('Ordine già chiuso o eliminato')
+
+    await addTimelineEntryNew({
+      orderId,
+      action: TIMELINE_ACTION.COMPLETED,
+      eventSource: EVENT_SOURCE.CASHIER,
+      operator: buildOperatorInfo({ staffId, createdByType: 'staff' }),
+      data: {
+        previousStatus: order.status,
+        newStatus: 'completed',
+        notes: `Tavolo chiuso NON pagato · incasso perso €${lostAmount.toFixed(2)}`,
+        changes: { payment_status: 'unpaid', lost_amount: lostAmount }
+      }
+    }).catch(e => console.error('timeline closeUnpaid:', e))
+
+    await trackEvent('order_unpaid', {
+      restaurant_id: order.restaurant_id,
+      order_id: orderId,
+      table_id: order.table_id,
+      room_id: order.room_id,
+      staff_id: staffId,
+      lost_amount: lostAmount
+    })
+
+    return { success: true, order: closed, lostAmount }
+  } catch (error) {
+    console.error('Errore chiusura non pagata:', error)
     return { success: false, error }
   }
 }

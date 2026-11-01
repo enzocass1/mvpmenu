@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
 import { Card, Button, Spinner } from './ui'
+import ThemeHomeEditor from './ThemeHomeEditor'
 
 function ThemeCustomizer({ restaurantId }) {
+  const [showHomeEditor, setShowHomeEditor] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loadingRestaurant, setLoadingRestaurant] = useState(true)
   const [restaurant, setRestaurant] = useState(null)
@@ -52,6 +54,78 @@ function ThemeCustomizer({ restaurantId }) {
 
   // Preset di temi
   const themePresets = [
+    {
+      name: '🌃 Neon Notte (Cyberpunk)',
+      config: {
+        primaryColor: '#07070F',
+        secondaryColor: '#12122A',
+        accentColor: '#00E5FF',
+        textPrimaryColor: '#F2F7FF',
+        textSecondaryColor: '#F2F7FF',
+        borderColor: '#2A2A55',
+        textTertiaryColor: '#9AA0C7',
+        errorColor: '#FF3D71',
+        successColor: '#2DE2A6',
+        warningColor: '#FFC857',
+        backgroundTertiary: '#141433',
+        favoriteActiveColor: '#FF2E97',
+        deleteColor: '#FF3D71',
+        inputBackground: '#12122A',
+        inputBorder: '#2A2A55',
+        inputBorderFocus: '#00E5FF',
+        inputText: '#F2F7FF',
+        overlayBackground: 'rgba(5,5,15,0.7)',
+        cardBackground: '#12122A',
+        cardBorder: '#2A2A55',
+        emptyStateText: '#9AA0C7',
+        linkColor: '#00E5FF',
+        linkHoverColor: '#FF2E97',
+        buttonColor: '#FF2E97',          // CTA neon magenta
+        buttonTextColor: '#07070F',
+        fontFamily: 'spacegrotesk',
+        headingFontFamily: 'orbitron',   // titoli tech
+        headingGlow: '#00E5FF',          // bagliore neon ciano
+        headingUppercase: true,
+        cardStyle: 'modern',
+        borderRadius: '8',
+        layoutStyle: 'carousel'
+      }
+    },
+    {
+      name: '✨ Elegante (Avorio & Oro)',
+      config: {
+        primaryColor: '#F6F1EA',        // sfondo pagina: avorio caldo
+        secondaryColor: '#FFFFFF',       // sfondo card
+        accentColor: '#B08D57',          // oro/bronzo
+        textPrimaryColor: '#2A2521',     // titoli (su avorio)
+        textSecondaryColor: '#2A2521',   // testo su card chiare
+        borderColor: '#E6DCCB',
+        textTertiaryColor: '#8C7F6D',
+        errorColor: '#D14D3B',
+        successColor: '#4CAF50',
+        warningColor: '#D8A657',
+        backgroundTertiary: '#EFE7DA',   // sfondo carosello
+        favoriteActiveColor: '#C0623A',
+        deleteColor: '#D14D3B',
+        inputBackground: '#FFFFFF',
+        inputBorder: '#E6DCCB',
+        inputBorderFocus: '#B08D57',
+        inputText: '#2A2521',
+        overlayBackground: 'rgba(42,37,33,0.55)',
+        cardBackground: '#FFFFFF',
+        cardBorder: '#ECE3D5',
+        emptyStateText: '#8C7F6D',
+        linkColor: '#B08D57',
+        linkHoverColor: '#2A2521',
+        buttonColor: '#2A2521',          // CTA espresso (risalta sull'avorio)
+        buttonTextColor: '#F6F1EA',
+        fontFamily: 'inter',             // testo pulito
+        headingFontFamily: 'playfair',   // titoli serif eleganti
+        cardStyle: 'modern',
+        borderRadius: '14',
+        layoutStyle: 'carousel'
+      }
+    },
     {
       name: 'Dark Elegance (Default)',
       config: {
@@ -859,7 +933,7 @@ function ThemeCustomizer({ restaurantId }) {
             gap: tokens.spacing.lg
           }}>
             <div>
-              <label style={labelStyles}>Font</label>
+              <label style={labelStyles}>Font testo</label>
               <select
                 value={theme.fontFamily}
                 onChange={(e) => setTheme({...theme, fontFamily: e.target.value})}
@@ -869,6 +943,34 @@ function ThemeCustomizer({ restaurantId }) {
                 <option value="serif">Serif (Elegante)</option>
                 <option value="sans-serif">Sans-Serif (Moderno)</option>
                 <option value="cursive">Cursive (Decorativo)</option>
+                <option value="inter">Inter (Web, pulito)</option>
+                <option value="poppins">Poppins (Web, moderno)</option>
+                <option value="montserrat">Montserrat (Web)</option>
+                <option value="playfair">Playfair Display (Web, serif)</option>
+                <option value="cormorant">Cormorant (Web, serif)</option>
+                <option value="spacegrotesk">Space Grotesk (Web)</option>
+                <option value="orbitron">Orbitron (Web, tech)</option>
+                <option value="bebas">Bebas Neue (Web, display)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyles}>Font titoli</label>
+              <select
+                value={theme.headingFontFamily || theme.fontFamily}
+                onChange={(e) => setTheme({...theme, headingFontFamily: e.target.value})}
+                style={inputStyles}
+              >
+                <option value="system">Come il testo</option>
+                <option value="serif">Serif (Georgia)</option>
+                <option value="playfair">Playfair Display (serif)</option>
+                <option value="cormorant">Cormorant (serif)</option>
+                <option value="montserrat">Montserrat</option>
+                <option value="poppins">Poppins</option>
+                <option value="inter">Inter</option>
+                <option value="orbitron">Orbitron (tech)</option>
+                <option value="bebas">Bebas Neue (display)</option>
+                <option value="spacegrotesk">Space Grotesk</option>
               </select>
             </div>
 
@@ -900,20 +1002,32 @@ function ThemeCustomizer({ restaurantId }) {
             </div>
 
             <div>
-              <label style={labelStyles}>Layout Categorie</label>
+              <label style={labelStyles}>Layout menu</label>
               <select
                 value={theme.layoutStyle}
                 onChange={(e) => setTheme({...theme, layoutStyle: e.target.value})}
                 style={inputStyles}
               >
-                <option value="carousel">Carousel (Scorrimento)</option>
-                <option value="grid">Griglia</option>
-                <option value="list">Lista</option>
+                <option value="carousel">Carosello (classico)</option>
+                <option value="store">Store (e-commerce)</option>
+                <option value="builder">Builder — Home a caroselli (nuovo)</option>
               </select>
             </div>
           </div>
+
+          {theme.layoutStyle === 'builder' && (
+            <div style={{ marginTop: tokens.spacing.lg, padding: tokens.spacing.lg, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: tokens.borderRadius.md }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>Home a caroselli</div>
+              <div style={{ fontSize: 13, color: '#64748B', marginBottom: 10 }}>Componi la home con caroselli di prodotti o categorie.</div>
+              <Button variant="primary" onClick={() => setShowHomeEditor(true)}>Apri Editor Home</Button>
+            </div>
+          )}
         </div>
       </Card>
+
+      {showHomeEditor && (
+        <ThemeHomeEditor restaurantId={restaurantId} onClose={() => { setShowHomeEditor(false); loadRestaurantAndTheme() }} />
+      )}
 
       {/* Anteprima */}
       <Card>

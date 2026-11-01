@@ -23,6 +23,7 @@ function ProductManager({ restaurantId, restaurant }) {
     name: '',
     description: '',
     price: '',
+    cost: '',
     image_url: '',
     category_id: '',
   })
@@ -91,6 +92,7 @@ function ProductManager({ restaurantId, restaurant }) {
             name: formData.name,
             description: formData.description,
             price: parseFloat(formData.price),
+            cost: parseFloat(formData.cost) || 0,
             image_url: formData.image_url,
             category_id: formData.category_id,
           })
@@ -109,6 +111,7 @@ function ProductManager({ restaurantId, restaurant }) {
               name: formData.name,
               description: formData.description,
               price: parseFloat(formData.price),
+              cost: parseFloat(formData.cost) || 0,
               image_url: formData.image_url,
               order: maxOrder + 1,
               is_visible: true,
@@ -135,6 +138,7 @@ function ProductManager({ restaurantId, restaurant }) {
       name: product.name,
       description: product.description || '',
       price: product.price.toString(),
+      cost: (product.cost ?? 0).toString(),
       image_url: product.image_url || '',
       category_id: product.category_id || '',
     })
@@ -243,6 +247,7 @@ function ProductManager({ restaurantId, restaurant }) {
       name: '',
       description: '',
       price: '',
+      cost: '',
       image_url: '',
       category_id: '',
     })
@@ -400,7 +405,7 @@ function ProductManager({ restaurantId, restaurant }) {
                   fontWeight: '500',
                   color: '#333'
                 }}>
-                  Prezzo (€) *
+                  Prezzo di vendita (€, IVA inclusa) *
                 </label>
                 <input
                   type="number"
@@ -421,6 +426,43 @@ function ProductManager({ restaurantId, restaurant }) {
                     outline: 'none'
                   }}
                 />
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#333'
+                }}>
+                  Costo prodotto (€, IVA inclusa)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.cost}
+                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                  placeholder="Es: 2.50 — quanto ti costa"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '6px',
+                    background: '#FFFFFF',
+                    color: '#000000',
+                    boxSizing: 'border-box',
+                    outline: 'none'
+                  }}
+                />
+                {formData.price && formData.cost && parseFloat(formData.price) > 0 && (
+                  <div style={{ marginTop: '6px', fontSize: '13px', color: '#16A34A' }}>
+                    Margine: €{(parseFloat(formData.price) - parseFloat(formData.cost)).toFixed(2)}
+                    {' '}({Math.round((1 - parseFloat(formData.cost) / parseFloat(formData.price)) * 100)}%)
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '24px' }}>

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
 function ConversionFunnel() {
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('last7days')
@@ -36,29 +36,14 @@ function ConversionFunnel() {
   const [monthlyData, setMonthlyData] = useState([])
   const [yearlyData, setYearlyData] = useState([])
 
-  // Prova prima da location.state, poi da localStorage
-  let restaurant = location.state?.restaurant
-  if (!restaurant) {
-    const stored = localStorage.getItem('analytics_restaurant')
-    if (stored) {
-      try {
-        restaurant = JSON.parse(stored)
-      } catch (error) {
-        console.error('Errore parsing restaurant da localStorage:', error)
-        restaurant = null
-      }
-    }
-  }
-
-  // Se non c'è un ristorante, reindirizza alla dashboard
-  if (!restaurant) {
-    navigate('/dashboard')
-    return null
-  }
+  const restaurant = useAnalyticsRestaurant()
 
   useEffect(() => {
-    loadFunnelData()
-  }, [timeRange, customStartDate, customEndDate])
+    if (restaurant) loadFunnelData()
+  }, [restaurant, timeRange, customStartDate, customEndDate])
+
+  // In attesa del ristorante (tutti gli hook sono sopra questa riga)
+  if (!restaurant) return null
 
   const getDateRange = () => {
     const now = new Date()

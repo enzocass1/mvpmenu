@@ -22,13 +22,6 @@ function OrderSettings({ restaurant }) {
     priority_order_price: 0
   })
   const [staff, setStaff] = useState([])
-  const [showAddStaff, setShowAddStaff] = useState(false)
-  const [newStaff, setNewStaff] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'waiter'
-  })
   const [message, setMessage] = useState({ text: '', type: '' })
 
   useEffect(() => {
@@ -156,48 +149,6 @@ function OrderSettings({ restaurant }) {
     } catch (error) {
       console.error('Errore salvataggio:', error)
       showMessage('Errore salvataggio prezzo', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleAddStaff = async (e) => {
-    e.preventDefault()
-
-    if (!newStaff.name || !newStaff.email || !newStaff.password) {
-      showMessage('Compila tutti i campi', 'error')
-      return
-    }
-
-    setSaving(true)
-    try {
-      // Hash password (in produzione usa bcrypt o simile)
-      const password_hash = btoa(newStaff.password) // Semplice encoding per demo
-
-      const { error } = await supabase
-        .from('restaurant_staff')
-        .insert({
-          restaurant_id: restaurant.id,
-          name: newStaff.name,
-          email: newStaff.email,
-          password_hash,
-          password: newStaff.password, // Salva password in chiaro per visualizzazione
-          role: newStaff.role
-        })
-
-      if (error) throw error
-
-      showMessage('Cameriere aggiunto con successo', 'success')
-      setNewStaff({ name: '', email: '', password: '', role: 'waiter' })
-      setShowAddStaff(false)
-      loadStaff()
-    } catch (error) {
-      console.error('Errore aggiunta staff:', error)
-      if (error.code === '23505') {
-        showMessage('Email già esistente per questo ristorante', 'error')
-      } else {
-        showMessage('Errore aggiunta cameriere', 'error')
-      }
     } finally {
       setSaving(false)
     }
@@ -518,76 +469,12 @@ function OrderSettings({ restaurant }) {
                   Gestisci il personale che può accedere agli ordini
                 </p>
               </div>
-              <button
-                onClick={() => setShowAddStaff(!showAddStaff)}
-                style={styles.addButton}
-              >
-                {showAddStaff ? 'Annulla' : '+ Aggiungi Cameriere'}
-              </button>
+              {/* Nuovi membri si aggiungono dalla pagina Utenti (con ruolo e permessi):
+                  il vecchio modulo qui scriveva una colonna "role" inesistente e falliva sempre */}
+              <a href="#/utenti" style={{ ...styles.addButton, textDecoration: 'none' }}>
+                + Aggiungi da Utenti
+              </a>
             </div>
-
-            {/* Form Aggiungi Cameriere */}
-            {showAddStaff && (
-              <form onSubmit={handleAddStaff} style={styles.form}>
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Nome</label>
-                    <input
-                      type="text"
-                      value={newStaff.name}
-                      onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
-                      style={styles.input}
-                      placeholder="Nome completo"
-                      required
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Email</label>
-                    <input
-                      type="email"
-                      value={newStaff.email}
-                      onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
-                      style={styles.input}
-                      placeholder="email@esempio.com"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.formRow}>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Password</label>
-                    <input
-                      type="password"
-                      value={newStaff.password}
-                      onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
-                      style={styles.input}
-                      placeholder="Password"
-                      required
-                    />
-                  </div>
-                  <div style={styles.formGroup}>
-                    <label style={styles.label}>Ruolo</label>
-                    <select
-                      value={newStaff.role}
-                      onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
-                      style={styles.select}
-                    >
-                      <option value="waiter">Cameriere</option>
-                      <option value="manager">Manager</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={styles.submitButton}
-                >
-                  {saving ? 'Aggiunta...' : 'Aggiungi Cameriere'}
-                </button>
-              </form>
-            )}
 
             {/* Lista Camerieri */}
             {staff.length > 0 ? (

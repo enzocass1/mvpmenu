@@ -47,8 +47,8 @@ function AnalyticsPage({ session }) {
       if (error) throw error
       setRestaurant(data)
 
-      const premium = await checkPremiumAccess(data.id)
-      setHasPremium(premium)
+      // checkPremiumAccess vuole il ristorante e restituisce un oggetto: serve hasValidAccess
+      setHasPremium(checkPremiumAccess(data).hasValidAccess)
     } catch (error) {
       console.error('Errore caricamento ristorante:', error)
     } finally {

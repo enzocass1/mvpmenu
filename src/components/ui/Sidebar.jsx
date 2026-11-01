@@ -2,6 +2,7 @@ import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { tokens } from '../../styles/tokens'
 import Badge from './Badge'
+import { hasUnreadUpdates } from '../../lib/appUpdates'
 
 /**
  * Sidebar Navigation Component - Shopify-like Design System
@@ -31,7 +32,6 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
       label: 'Cassa',
       path: '/cassa',
       section: 'main',
-      badge: 'Nuova',
       requiredPermission: 'cashier.access',
     },
     {
@@ -189,6 +189,15 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
 
   const [hoveredItem, setHoveredItem] = React.useState(null)
 
+  // Badge "NOVITÀ": mostrato finché l'utente non apre la pagina Aggiornamenti
+  const [unreadUpdates, setUnreadUpdates] = React.useState(hasUnreadUpdates())
+  React.useEffect(() => {
+    const sync = () => setUnreadUpdates(hasUnreadUpdates())
+    sync()
+    window.addEventListener('app-updates-seen', sync)
+    return () => window.removeEventListener('app-updates-seen', sync)
+  }, [location.pathname])
+
   return (
     <>
       {/* Sidebar */}
@@ -276,6 +285,35 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
                   </button>
                 )
               })}
+
+            {/* Aggiornamenti app (changelog) con badge NOVITÀ */}
+            <button
+              onClick={() => handleNavigation('/aggiornamenti')}
+              onMouseEnter={() => setHoveredItem('/aggiornamenti')}
+              onMouseLeave={() => setHoveredItem(null)}
+              style={{
+                ...navItemStyles(isActive('/aggiornamenti')),
+                ...(hoveredItem === '/aggiornamenti' && !isActive('/aggiornamenti') && {
+                  backgroundColor: tokens.colors.gray[50],
+                }),
+              }}
+            >
+              <span>Aggiornamenti</span>
+              {unreadUpdates && !isActive('/aggiornamenti') && (
+                <span style={{
+                  display: 'inline-block',
+                  padding: '2px 8px',
+                  borderRadius: 999,
+                  backgroundColor: '#dc2626',
+                  color: '#fff',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  letterSpacing: '0.4px',
+                }}>
+                  NOVITÀ
+                </span>
+              )}
+            </button>
 
             {/* Separator before logout */}
             <div style={separatorStyles} />

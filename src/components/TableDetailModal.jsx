@@ -111,11 +111,12 @@ function TableDetailModal({
         alert('Ordine confermato!')
         onOrderUpdated?.()
       } else {
-        throw new Error(result.error)
+        throw result.error
       }
     } catch (error) {
       console.error('Errore conferma:', error)
-      alert('Errore durante la conferma')
+      alert(`Errore durante la conferma: ${error?.message || ''}`)
+      onOrderUpdated?.()
     } finally {
       setLoading(false)
     }
@@ -151,11 +152,12 @@ function TableDetailModal({
         onOrderUpdated?.()
         onClose()
       } else {
-        throw new Error(result.error)
+        throw result.error
       }
     } catch (error) {
       console.error('Errore scontrino:', error)
-      alert('Errore durante la generazione dello scontrino')
+      alert(`Errore durante la generazione dello scontrino: ${error?.message || ''}`)
+      onOrderUpdated?.()
     } finally {
       setLoading(false)
     }
@@ -193,14 +195,57 @@ function TableDetailModal({
         onOrderUpdated?.()
         onClose()
       } else {
-        throw new Error(result.error)
+        throw result.error
       }
     } catch (error) {
       console.error('Errore chiusura tavolo:', error)
-      alert('Errore durante la chiusura del tavolo')
+      alert(`Errore durante la chiusura del tavolo: ${error?.message || ''}`)
+      onOrderUpdated?.()
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCloseUnpaid = async () => {
+    const total = (order.items || []).reduce((s, i) => s + parseFloat(i.subtotal || 0), 0)
+    if (!confirm(`Chiudere il tavolo come NON PAGATO?\nL'incasso di €${total.toFixed(2)} sarà considerato perso.\nL'ordine resta registrato, il tavolo si libera.`)) return
+
+    setLoading(true)
+    try {
+      const result = await ordersService.closeTableUnpaid(order.id, null)
+      if (result.success) {
+        alert(`Tavolo chiuso come non pagato. Incasso perso: €${(result.lostAmount || 0).toFixed(2)}`)
+        onOrderUpdated?.()
+        onClose()
+      } else {
+        throw result.error
+      }
+    } catch (error) {
+      console.error('Errore chiusura non pagata:', error)
+      alert(`Errore: ${error?.message || ''}`)
+      onOrderUpdated?.()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const sendBatchNow = async (batchNumber) => {
+    const result = await ordersService.sendBatch(order.id, batchNumber, null)
+    if (result.success) onOrderUpdated?.()
+    else alert(`Errore invio: ${result.error?.message || ''}`)
+  }
+
+  const toggleBatchPrepared = async (batchNumber, prepared) => {
+    const result = await ordersService.markBatchPrepared(order.id, batchNumber, null, prepared)
+    if (result.success) onOrderUpdated?.()
+    else alert(`Errore: ${result.error?.message || ''}`)
+  }
+
+  const removeItem = async (item) => {
+    if (!confirm(`Rimuovere ${item.quantity}× ${item.product_name}?`)) return
+    const result = await ordersService.removeProductFromOrder(item.id, null)
+    if (result.success) onOrderUpdated?.()
+    else alert(`Errore: ${result.error?.message || ''}`)
   }
 
   const printReceipt = (orderData, isScontrino, receiptNumber) => {
@@ -437,6 +482,9 @@ function TableDetailModal({
               {batchNumbers.map((batchNum, index) => {
                 const batchItems = batches[batchNum]
                 const isFirstBatch = index === 0
+                const batchSent = batchItems.every(i => i.sent)
+                const batchPrepared = batchItems.every(i => i.prepared)
+                const scheduledAt = batchItems.find(i => i.send_at)?.send_at
 
                 return (
                   <div key={batchNum}>
@@ -449,6 +497,22 @@ function TableDetailModal({
                         </span>
                       </div>
                     )}
+
+                    {/* Azioni comanda: invio / preparato */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', margin: '4px 0 8px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: tokens.colors.gray[600] }}>
+                        Comanda {batchNum} · {batchSent ? (batchPrepared ? 'preparata ✓' : 'in cucina') : scheduledAt ? `programmata ${new Date(scheduledAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : 'da inviare'}
+                      </span>
+                      {!batchSent ? (
+                        <button onClick={() => sendBatchNow(Number(batchNum))} style={{ border: 'none', borderRadius: '8px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: '#2563EB', color: '#fff' }}>
+                          Invia ora
+                        </button>
+                      ) : order.status === 'preparing' && (
+                        <button onClick={() => toggleBatchPrepared(Number(batchNum), !batchPrepared)} style={{ border: 'none', borderRadius: '8px', padding: '5px 10px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: batchPrepared ? '#E8F5E9' : '#000', color: batchPrepared ? '#2E7D32' : '#fff' }}>
+                          {batchPrepared ? 'Preparata' : 'Segna preparata'}
+                        </button>
+                      )}
+                    </div>
 
                     {batchItems.map((item, idx) => (
                       <div key={item.id || idx} className={`product-item ${item.prepared ? 'prepared' : ''}`}>
@@ -495,6 +559,15 @@ function TableDetailModal({
                         }}>
                           €{parseFloat(item.subtotal).toFixed(2)}
                         </div>
+                        {!batchPrepared && order.status !== 'completed' && (
+                          <button
+                            onClick={() => removeItem(item)}
+                            title="Rimuovi prodotto"
+                            style={{ marginLeft: '8px', border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}
+                          >
+                            ×
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -584,6 +657,9 @@ function TableDetailModal({
                 </Button>
                 <Button variant="secondary" onClick={handleCloseTable} disabled={loading}>
                   Chiudi Tavolo
+                </Button>
+                <Button variant="danger" onClick={handleCloseUnpaid} disabled={loading}>
+                  Chiudi non pagato
                 </Button>
                 <Button variant="ghost" onClick={handleDelete} disabled={loading}>
                   Elimina

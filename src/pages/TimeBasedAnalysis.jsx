@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
+import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
 function TimeBasedAnalysis() {
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('last30days')
@@ -37,29 +37,14 @@ function TimeBasedAnalysis() {
   const [drillDownLoading, setDrillDownLoading] = useState(false)
   const [productData, setProductData] = useState([])
 
-  // Prova prima da location.state, poi da localStorage
-  let restaurant = location.state?.restaurant
-  if (!restaurant) {
-    const stored = localStorage.getItem('analytics_restaurant')
-    if (stored) {
-      try {
-        restaurant = JSON.parse(stored)
-      } catch (error) {
-        console.error('Errore parsing restaurant da localStorage:', error)
-        restaurant = null
-      }
-    }
-  }
-
-  // Se non c'è un ristorante, reindirizza alla dashboard
-  if (!restaurant) {
-    navigate('/dashboard')
-    return null
-  }
+  const restaurant = useAnalyticsRestaurant()
 
   useEffect(() => {
-    loadTimeData()
-  }, [timeRange, customStartDate, customEndDate, viewMode, comparisonType, customComparisonStart, customComparisonEnd])
+    if (restaurant) loadTimeData()
+  }, [restaurant, timeRange, customStartDate, customEndDate, viewMode, comparisonType, customComparisonStart, customComparisonEnd])
+
+  // In attesa del ristorante (tutti gli hook sono sopra questa riga)
+  if (!restaurant) return null
 
   const loadTimeData = async () => {
     setLoading(true)
@@ -116,6 +101,9 @@ function TimeBasedAnalysis() {
           )
         `)
         .eq('orders.restaurant_id', restaurant.id)
+        .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+        .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+        .is('orders.deleted_at', null)
         .gte('orders.created_at', startDate)
         .lte('orders.created_at', endDate)
 
@@ -134,6 +122,9 @@ function TimeBasedAnalysis() {
             )
           `)
           .eq('orders.restaurant_id', restaurant.id)
+          .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+          .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+          .is('orders.deleted_at', null)
           .gte('orders.created_at', previousStartDate)
           .lte('orders.created_at', previousEndDate)
       }
@@ -252,7 +243,7 @@ function TimeBasedAnalysis() {
     setProductData([])
 
     try {
-      const dateRange = getDateRange()
+      const dateRange = getDateRangeFromTimeRange(timeRange, customStartDate, customEndDate)
       if (!dateRange) return
 
       const { startDate, endDate } = dateRange
@@ -269,6 +260,9 @@ function TimeBasedAnalysis() {
           )
         `)
         .eq('orders.restaurant_id', restaurant.id)
+        .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+        .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+        .is('orders.deleted_at', null)
         .gte('orders.created_at', startDate)
         .lte('orders.created_at', endDate)
 

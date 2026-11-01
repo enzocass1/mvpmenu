@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
+import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
 function RevenueAnalytics() {
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('last30days')
@@ -44,29 +44,14 @@ function RevenueAnalytics() {
   const [productMonthlyData, setProductMonthlyData] = useState([])
   const [productYearlyData, setProductYearlyData] = useState([])
 
-  // Prova prima da location.state, poi da localStorage
-  let restaurant = location.state?.restaurant
-  if (!restaurant) {
-    const stored = localStorage.getItem('analytics_restaurant')
-    if (stored) {
-      try {
-        restaurant = JSON.parse(stored)
-      } catch (error) {
-        console.error('Errore parsing restaurant da localStorage:', error)
-        restaurant = null
-      }
-    }
-  }
-
-  // Se non c'è un ristorante, reindirizza alla dashboard
-  if (!restaurant) {
-    navigate('/dashboard')
-    return null
-  }
+  const restaurant = useAnalyticsRestaurant()
 
   useEffect(() => {
-    loadRevenueData()
-  }, [timeRange, customStartDate, customEndDate, comparisonType, customComparisonStart, customComparisonEnd])
+    if (restaurant) loadRevenueData()
+  }, [restaurant, timeRange, customStartDate, customEndDate, comparisonType, customComparisonStart, customComparisonEnd])
+
+  // In attesa del ristorante (tutti gli hook sono sopra questa riga)
+  if (!restaurant) return null
 
   const loadRevenueData = async () => {
     setLoading(true)
@@ -115,6 +100,9 @@ function RevenueAnalytics() {
         .from('orders')
         .select('*')
         .eq('restaurant_id', restaurant.id)
+        .eq('status', 'completed') // fatturato: solo ordini chiusi
+        .neq('payment_status', 'unpaid') // esclude i non pagati
+        .is('deleted_at', null)
         .gte('created_at', startDate)
         .lte('created_at', endDate)
         .order('created_at', { ascending: true })
@@ -131,10 +119,14 @@ function RevenueAnalytics() {
             restaurant_id,
             created_at,
             total_amount,
-            is_priority_order
+            is_priority_order,
+            order_type
           )
         `)
         .eq('orders.restaurant_id', restaurant.id)
+        .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+        .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+        .is('orders.deleted_at', null)
         .gte('orders.created_at', startDate)
         .lte('orders.created_at', endDate)
 
@@ -145,6 +137,27 @@ function RevenueAnalytics() {
       const totalOrders = orders?.length || 0
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
 
+      // Margine netto (COGS): ricavo - costo prodotti. Tutto IVA inclusa.
+      const totalCost = (orderItems || []).reduce((sum, it) => sum + Number(it.product_cost || 0) * Number(it.quantity || 0), 0)
+      const netMargin = totalRevenue - totalCost
+      const marginPct = totalRevenue > 0 ? (netMargin / totalRevenue) * 100 : 0
+
+      // Suddivisione ricavo/margine per canale (tavolo vs banco)
+      const revByType = { table: 0, counter: 0 }
+      for (const o of orders || []) {
+        const t = o.order_type === 'counter' ? 'counter' : 'table'
+        revByType[t] += Number(o.total_amount || 0)
+      }
+      const costByType = { table: 0, counter: 0 }
+      for (const it of orderItems || []) {
+        const t = it.orders?.order_type === 'counter' ? 'counter' : 'table'
+        costByType[t] += Number(it.product_cost || 0) * Number(it.quantity || 0)
+      }
+      const marginByType = {
+        table: revByType.table - costByType.table,
+        counter: revByType.counter - costByType.counter
+      }
+
       // Query per periodo precedente (se necessario)
       let previousOrders = []
       if (previousStartDate && previousEndDate) {
@@ -152,6 +165,9 @@ function RevenueAnalytics() {
           .from('orders')
           .select('total_amount')
           .eq('restaurant_id', restaurant.id)
+          .eq('status', 'completed') // fatturato: solo ordini chiusi
+          .neq('payment_status', 'unpaid') // esclude i non pagati
+          .is('deleted_at', null)
           .gte('created_at', previousStartDate)
           .lte('created_at', previousEndDate)
         previousOrders = data || []
@@ -172,7 +188,12 @@ function RevenueAnalytics() {
         totalRevenue,
         avgOrderValue,
         totalOrders,
-        revenueGrowth
+        revenueGrowth,
+        totalCost,
+        netMargin,
+        marginPct,
+        revByType,
+        marginByType
       })
 
       // Time Series Data (per giorno)
@@ -295,6 +316,9 @@ function RevenueAnalytics() {
           )
         `)
         .eq('orders.restaurant_id', restaurant.id)
+        .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+        .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+        .is('orders.deleted_at', null)
         .eq('product_name', product.name)
         .gte('orders.created_at', startDate)
         .lte('orders.created_at', endDate)
@@ -526,6 +550,29 @@ function RevenueAnalytics() {
               <div style={styles.statLabel}>Revenue per Ordine</div>
               <div style={styles.statValue}>{formatCurrency(revenueData.avgOrderValue)}</div>
               <ComparisonBadge current={revenueData.avgOrderValue} previous={previousData.avgOrderValue} />
+            </div>
+          </div>
+
+          {/* Margine Netto (COGS) - tutto IVA inclusa */}
+          <div style={styles.statsGrid}>
+            <div style={styles.statCard}>
+              <div style={styles.statLabel}>Costo Prodotti (COGS)</div>
+              <div style={styles.statValue}>{formatCurrency(revenueData.totalCost || 0)}</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statLabel}>Margine Netto</div>
+              <div style={{ ...styles.statValue, color: '#16A34A' }}>{formatCurrency(revenueData.netMargin || 0)}</div>
+              <div style={{ fontSize: '13px', color: '#64748B' }}>{(revenueData.marginPct || 0).toFixed(1)}% sul ricavo</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statLabel}>Margine Tavoli</div>
+              <div style={styles.statValue}>{formatCurrency(revenueData.marginByType?.table || 0)}</div>
+              <div style={{ fontSize: '13px', color: '#64748B' }}>su ricavo {formatCurrency(revenueData.revByType?.table || 0)}</div>
+            </div>
+            <div style={styles.statCard}>
+              <div style={styles.statLabel}>Margine Banco</div>
+              <div style={styles.statValue}>{formatCurrency(revenueData.marginByType?.counter || 0)}</div>
+              <div style={{ fontSize: '13px', color: '#64748B' }}>su ricavo {formatCurrency(revenueData.revByType?.counter || 0)}</div>
             </div>
           </div>
 

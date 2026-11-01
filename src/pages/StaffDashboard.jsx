@@ -80,27 +80,32 @@ function StaffDashboard() {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      // Load today's orders count
+      // Load today's orders (la colonna corretta è total_amount, non total)
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('id, total')
+        .select('id, total_amount, status, payment_status')
         .eq('restaurant_id', staffSession.restaurant_id)
+        .is('deleted_at', null)
+        .neq('status', 'cancelled')
         .gte('created_at', today.toISOString())
 
       if (ordersError) throw ordersError
 
-      // Load active orders count
+      // Load active orders count (stati reali: pending, confirmed, preparing)
       const { data: activeData, error: activeError } = await supabase
         .from('orders')
         .select('id')
         .eq('restaurant_id', staffSession.restaurant_id)
-        .in('status', ['pending', 'in_progress', 'ready'])
+        .is('deleted_at', null)
+        .in('status', ['pending', 'confirmed', 'preparing'])
 
       if (activeError) throw activeError
 
-      // Calculate stats
+      // Calculate stats: l'incasso conta solo gli ordini chiusi
       const ordersToday = ordersData?.length || 0
-      const revenueToday = ordersData?.reduce((sum, order) => sum + (order.total || 0), 0) || 0
+      const revenueToday = (ordersData || [])
+        .filter(order => order.status === 'completed' && order.payment_status !== 'unpaid')
+        .reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
       const ordersActive = activeData?.length || 0
 
       setStats({
@@ -191,15 +196,8 @@ function StaffDashboard() {
               Visualizza Ordini
             </Button>
           )}
-          {staffSession?.permissions?.includes('cashier.access') && (
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => navigate('/cassa')}
-            >
-              Apri Cassa
-            </Button>
-          )}
+          {/* "Apri Cassa" rimosso: /cassa richiede il login del proprietario e lo staff
+              veniva rimandato al login. Tornerà con il nuovo login staff (step sicurezza). */}
         </div>
       </Card>
     </DashboardLayout>

@@ -535,7 +535,8 @@ function CassaPage({ session }) {
         quantity: item.quantity,
         variant_id: item.variant_id || null,
         variant_title: item.variant_title || null,
-        notes: item.notes || null
+        notes: item.notes || null,
+        subtotal: item.price * item.quantity
       }))
 
       // Create counter order using ordersService
@@ -640,7 +641,7 @@ function CassaPage({ session }) {
         setCart([])
         alert(`Scontrino #${result.receiptNumber} generato con successo!`)
       } else {
-        throw new Error(result.error)
+        throw result.error instanceof Error ? result.error : new Error(result.error?.message || 'Errore sconosciuto')
       }
     } catch (error) {
       console.error('Errore generazione scontrino:', error)
@@ -778,56 +779,6 @@ function CassaPage({ session }) {
   }
 
   // Old functions removed - now using TableDetailModal and ordersService
-
-  const handleInviaOrdine = async () => {
-    if (!selectedTable || cart.length === 0) {
-      alert('Seleziona tavolo e aggiungi prodotti')
-      return
-    }
-
-    try {
-      // Create or update order
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          restaurant_id: restaurant.id,
-          table_number: selectedTable.number,
-          status: 'pending',
-          total_amount: getCartTotal(),
-        })
-        .select()
-        .single()
-
-      if (orderError) throw orderError
-
-      // Insert order items
-      const orderItems = cart.map((item) => ({
-        order_id: orderData.id,
-        product_id: item.id,
-        product_name: item.name,
-        product_price: item.price,
-        quantity: item.quantity,
-        variant_id: item.variant_id,
-        variant_title: item.variant_title,
-        notes: item.notes,
-        subtotal: item.price * item.quantity,
-      }))
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems)
-
-      if (itemsError) throw itemsError
-
-      alert('Ordine inviato con successo!')
-      setCart([])
-      setShowTableModal(false)
-      setSelectedTable(null)
-    } catch (error) {
-      console.error('Errore invio ordine:', error)
-      alert('Errore durante l\'invio dell\'ordine')
-    }
-  }
 
   // Helper function: Get tables for room from database
   const getTablesForRoom = (room) => {

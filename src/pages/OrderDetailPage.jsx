@@ -158,6 +158,25 @@ function OrderDetailPage({ session }) {
     }
   }
 
+  const sendBatchNow = async (batchNumber) => {
+    const result = await ordersService.sendBatch(orderId, batchNumber, null)
+    if (result.success) loadData()
+    else alert(`Errore invio: ${result.error?.message || ''}`)
+  }
+
+  const toggleBatchPrepared = async (batchNumber, prepared) => {
+    const result = await ordersService.markBatchPrepared(orderId, batchNumber, null, prepared)
+    if (result.success) loadData()
+    else alert(`Errore: ${result.error?.message || ''}`)
+  }
+
+  const removeItem = async (item) => {
+    if (!confirm(`Rimuovere ${item.quantity}× ${item.product_name}?`)) return
+    const result = await ordersService.removeProductFromOrder(item.id, null)
+    if (result.success) loadData()
+    else alert(`Errore: ${result.error?.message || ''}`)
+  }
+
   const deleteOrder = async () => {
     if (!confirm('Sei sicuro di voler eliminare questo ordine? Verrà spostato nella sezione Eliminati.')) {
       return
@@ -187,6 +206,7 @@ function OrderDetailPage({ session }) {
       preparing: 'In Preparazione',
       completed: 'Completato',
       cancelled: 'Annullato',
+      ready: 'Pronto',
       created: 'Creato',
       updated: 'Aggiornato',
       item_added: 'Prodotto Aggiunto',
@@ -204,8 +224,18 @@ function OrderDetailPage({ session }) {
       preparing: 'info',
       completed: 'success',
       cancelled: 'error',
+      ready: 'success',
     }
     return variants[status] || 'default'
+  }
+
+  // "Pronto" = tutte le comande GIÀ INVIATE sono preparate (il tavolo resta aperto)
+  const getDisplayStatus = () => {
+    const sent = (order?.order_items || []).filter(i => i.sent)
+    if (order?.status === 'preparing' && sent.length > 0 && sent.every(i => i.prepared)) {
+      return 'ready'
+    }
+    return order?.status
   }
 
   const getNextAction = (status) => {
@@ -438,8 +468,8 @@ function OrderDetailPage({ session }) {
           <h1 style={titleStyles}>Ordine #{order.order_number || order.id.substring(0, 8).toUpperCase()}</h1>
         </div>
         <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
-          <Badge variant={order.deleted_at ? 'error' : getStatusVariant(order.status)} size="md">
-            {order.deleted_at ? 'Eliminato' : getStatusLabel(order.status)}
+          <Badge variant={order.deleted_at ? 'error' : getStatusVariant(getDisplayStatus())} size="md">
+            {order.deleted_at ? 'Eliminato' : getStatusLabel(getDisplayStatus())}
           </Badge>
 
           {/* Cambia Tavolo - nascosto se preparing, completed o deleted */}
@@ -529,41 +559,63 @@ function OrderDetailPage({ session }) {
           />
         ) : (
           <div>
-            {order.order_items.map((item) => (
-              <div key={item.id} style={productItemStyles}>
-                <div style={{ flex: 1 }}>
-                  <div style={productNameStyles}>
-                    <span style={{ fontWeight: tokens.typography.fontWeight.semibold, marginRight: tokens.spacing.sm }}>
-                      {item.quantity}x
-                    </span>
-                    {item.product_name}
-                    {item.variant_title && (
-                      <Badge variant="default" size="sm" style={{ marginLeft: tokens.spacing.sm }}>
-                        {item.variant_title}
-                      </Badge>
-                    )}
-                  </div>
-                  <div style={productQuantityStyles}>€{item.product_price.toFixed(2)} cad.</div>
-                  {item.notes && (
-                    <div
-                      style={{
-                        marginTop: tokens.spacing.xs,
-                        fontSize: tokens.typography.fontSize.xs,
-                        color: tokens.colors.gray[700],
-                        fontStyle: 'italic',
-                        padding: tokens.spacing.xs,
-                        backgroundColor: tokens.colors.warning.light,
-                        borderRadius: tokens.borderRadius.sm,
-                        border: `1px solid ${tokens.colors.warning.base}`
-                      }}
-                    >
-                      Note: {item.notes}
+            {Object.entries(
+              order.order_items.reduce((acc, item) => {
+                const b = item.batch_number || 1
+                ;(acc[b] = acc[b] || []).push(item)
+                return acc
+              }, {})
+            )
+              .sort((a, b) => Number(a[0]) - Number(b[0]))
+              .map(([batch, items]) => {
+                const batchSent = items.every(i => i.sent)
+                const batchPrepared = items.every(i => i.prepared)
+                const scheduledAt = items.find(i => i.send_at)?.send_at
+                const canEdit = !batchPrepared
+                return (
+                  <div key={batch} style={{ marginBottom: tokens.spacing.md }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: tokens.spacing.xs }}>
+                      <span style={{ fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.gray[700] }}>
+                        Comanda {batch} · {batchSent ? (batchPrepared ? 'preparata ✓' : 'in cucina') : scheduledAt ? `programmata ${new Date(scheduledAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : 'da inviare'}
+                      </span>
+                      {!batchSent ? (
+                        <Button variant="primary" size="sm" onClick={() => sendBatchNow(Number(batch))}>Invia ora</Button>
+                      ) : order.status === 'preparing' && (
+                        <Button variant={batchPrepared ? 'secondary' : 'primary'} size="sm" onClick={() => toggleBatchPrepared(Number(batch), !batchPrepared)}>
+                          {batchPrepared ? 'Preparata' : 'Segna preparata'}
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div style={productPriceStyles}>€{item.subtotal.toFixed(2)}</div>
-              </div>
-            ))}
+                    {items.map((item) => (
+                      <div key={item.id} style={{ ...productItemStyles, opacity: item.prepared ? 0.6 : 1 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={productNameStyles}>
+                            <span style={{ fontWeight: tokens.typography.fontWeight.semibold, marginRight: tokens.spacing.sm }}>
+                              {item.quantity}x
+                            </span>
+                            {item.product_name}
+                            {item.variant_title && (
+                              <Badge variant="default" size="sm" style={{ marginLeft: tokens.spacing.sm }}>
+                                {item.variant_title}
+                              </Badge>
+                            )}
+                          </div>
+                          <div style={productQuantityStyles}>€{item.product_price.toFixed(2)} cad.</div>
+                          {item.notes && (
+                            <div style={{ marginTop: tokens.spacing.xs, fontSize: tokens.typography.fontSize.xs, color: tokens.colors.gray[700], fontStyle: 'italic' }}>
+                              Note: {item.notes}
+                            </div>
+                          )}
+                        </div>
+                        <div style={productPriceStyles}>€{item.subtotal.toFixed(2)}</div>
+                        {canEdit && order.status !== 'completed' && (
+                          <button onClick={() => removeItem(item)} title="Rimuovi prodotto" style={{ marginLeft: '8px', border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}>×</button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
 
             {/* Total */}
             <div

@@ -277,11 +277,11 @@ vercel --prod
 
 ### Quick Links
 
-- **[Complete Events Schema](./COMPLETE_EVENTS_SCHEMA.md)** - Tutti i 42 eventi documentati
-- **[Implementation Guide](./ANALYTICS_IMPLEMENTATION_GUIDE.md)** - Guida step-by-step
-- **[Quick Reference](./ANALYTICS_QUICK_REFERENCE.md)** - Reference card per sviluppatori
-- **[Migration Log](./DATABASE_MIGRATION_LOG.md)** - Log migrations database
-- **[Session Summary](./SESSION_ANALYTICS_IMPLEMENTATION.md)** - Riepilogo lavoro svolto
+- **[Complete Events Schema](./docs/archivio/COMPLETE_EVENTS_SCHEMA.md)** - Tutti i 42 eventi documentati
+- **[Implementation Guide](./docs/archivio/ANALYTICS_IMPLEMENTATION_GUIDE.md)** - Guida step-by-step
+- **[Quick Reference](./docs/archivio/ANALYTICS_QUICK_REFERENCE.md)** - Reference card per sviluppatori
+- **[Migration Log](./docs/archivio/DATABASE_MIGRATION_LOG.md)** - Log migrations database
+- **[Session Summary](./docs/archivio/SESSION_ANALYTICS_IMPLEMENTATION.md)** - Riepilogo lavoro svolto
 
 ### Event Categories (42 Total)
 

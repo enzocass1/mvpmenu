@@ -140,11 +140,16 @@ function ChangeTableModal({
       const newTable = tables.find(t => t.id === selectedTableId)
       const newRoomName = rooms.find(r => r.id === selectedRoomId)?.name
 
-      // Update order's table_id and room_id
+      if (!newTable) throw new Error('Tavolo di destinazione non trovato')
+
+      // Aggiorna tavolo dell'ordine: table_id, table_number e room_id INSIEME,
+      // altrimenti le viste si disallineano (la Cassa usa table_id, il menu
+      // cliente usa table_number) e il tavolo sbagliato risulta occupato.
       const { error: updateError } = await supabase
         .from('orders')
         .update({
           table_id: selectedTableId,
+          table_number: newTable.number,
           room_id: selectedRoomId,
           updated_at: new Date().toISOString()
         })

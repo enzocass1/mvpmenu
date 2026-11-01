@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
 /**
  * IMPOSTAZIONI FISCALI
@@ -8,27 +9,7 @@ import { supabase } from '../supabaseClient'
  */
 function FiscalSettings() {
   const navigate = useNavigate()
-  const location = useLocation()
-
-  // Prova prima da location.state, poi da localStorage
-  let restaurant = location.state?.restaurant
-  if (!restaurant) {
-    const stored = localStorage.getItem('analytics_restaurant')
-    if (stored) {
-      try {
-        restaurant = JSON.parse(stored)
-      } catch (error) {
-        console.error('Errore parsing restaurant da localStorage:', error)
-        restaurant = null
-      }
-    }
-  }
-
-  // Se non c'è un ristorante, reindirizza alla dashboard
-  if (!restaurant) {
-    navigate('/dashboard')
-    return null
-  }
+  const restaurant = useAnalyticsRestaurant()
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -76,7 +57,7 @@ function FiscalSettings() {
   const [message, setMessage] = useState({ text: '', type: '' })
 
   useEffect(() => {
-    loadAll()
+    if (restaurant?.id) loadAll()
   }, [restaurant?.id])
 
   useEffect(() => {
@@ -86,6 +67,9 @@ function FiscalSettings() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // In attesa del ristorante (tutti gli hook sono sopra questa riga)
+  if (!restaurant) return null
 
   const loadAll = async () => {
     setLoading(true)

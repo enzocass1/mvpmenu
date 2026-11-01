@@ -7,12 +7,21 @@ import { useState, useEffect } from 'react'
 import { trackTrafficSource } from '../utils/richAnalytics'
 
 /**
- * Parse UTM parameters from URL
+ * Parse UTM parameters from URL.
+ * Con HashRouter i parametri stanno dopo il "#" (es. /#/menu/bar?utm_source=instagram),
+ * quindi si leggono sia dalla query normale sia da quella dentro l'hash.
  */
-const parseUTMParams = () => {
-  if (typeof window === 'undefined') return {}
+export const getUrlParams = (loc = typeof window !== 'undefined' ? window.location : null) => {
+  const params = new URLSearchParams(loc?.search || '')
+  const hashQuery = (loc?.hash || '').split('?')[1] || ''
+  new URLSearchParams(hashQuery).forEach((value, key) => {
+    if (!params.has(key)) params.set(key, value)
+  })
+  return params
+}
 
-  const params = new URLSearchParams(window.location.search)
+export const parseUTMParams = (loc) => {
+  const params = getUrlParams(loc)
 
   return {
     source: params.get('utm_source'),
@@ -52,9 +61,9 @@ const detectSocialPlatform = (referrer, utmParams) => {
 /**
  * Detect traffic source
  */
-const detectTrafficSource = (tableId, tableNumber, referrer, utmParams) => {
-  // Se arriva da QR (ha tableId nei params)
-  if (tableId || tableNumber) {
+export const detectTrafficSource = (tableId, tableNumber, referrer, utmParams, fromQr = false) => {
+  // Se arriva da QR (source=qr nel link del QR, oppure tableId nei params)
+  if (fromQr || tableId || tableNumber) {
     return {
       source: 'qr',
       medium: 'qr',
@@ -126,9 +135,10 @@ export const useTrafficSource = (restaurantId, tableId = null, tableNumber = nul
       try {
         const referrer = document.referrer || null
         const utmParams = parseUTMParams()
+        const fromQr = getUrlParams().get('source') === 'qr'
 
         // Detect source
-        const detectedSource = detectTrafficSource(tableId, tableNumber, referrer, utmParams)
+        const detectedSource = detectTrafficSource(tableId, tableNumber, referrer, utmParams, fromQr)
 
         setTrafficSource({
           ...detectedSource,

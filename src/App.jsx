@@ -26,6 +26,7 @@ import ProductsPage from './pages/ProductsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ChannelsPage from './pages/ChannelsPage'
 import SettingsPage from './pages/SettingsPage'
+import UpdatesPage from './pages/UpdatesPage'
 import PlanPage from './pages/PlanPage'
 import CassaPage from './pages/CassaPage'
 import UsersPage from './pages/UsersPage'
@@ -175,8 +176,10 @@ function App() {
       {/* Landing Page - accessibile a tutti */}
       <Route path="/landing" element={<Landing />} />
 
-      {/* Design System Demo - accessibile a tutti (development) */}
-      <Route path="/design-system-demo" element={<DesignSystemDemo />} />
+      {/* Design System Demo - solo in sviluppo locale */}
+      {import.meta.env.DEV && (
+        <Route path="/design-system-demo" element={<DesignSystemDemo />} />
+      )}
       
       {/* Login - solo se NON loggato */}
       <Route 
@@ -272,6 +275,12 @@ function App() {
       <Route
         path="/impostazioni"
         element={session ? <SettingsPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Aggiornamenti app (changelog) - solo se loggato */}
+      <Route
+        path="/aggiornamenti"
+        element={session ? <UpdatesPage session={session} /> : <Navigate to="/login" replace />}
       />
 
       {/* Users Page (Ruoli + Membri) - solo se loggato */}

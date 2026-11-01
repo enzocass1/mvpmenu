@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import * as ordersService from '../lib/ordersService'
+import { buildOperatorInfo } from '../lib/timelineService'
 import CreateOrderModal from '../components/CreateOrderModal'
 
 function StaffOrders() {
@@ -214,56 +216,63 @@ function StaffOrders() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      // Get current order status before update
-      const currentOrder = orders.find(o => o.id === orderId)
-
-      const updates = {
-        status: newStatus,
-        confirmed_by: staffSession.staff_id || null,
-        updated_at: new Date().toISOString()
+      // Lo staff non può chiudere il tavolo: quello è compito della Cassa.
+      if (newStatus === 'completed') {
+        alert('Solo la Cassa può chiudere il tavolo.')
+        return
       }
 
-      if (newStatus === 'confirmed') {
-        updates.confirmed_at = new Date().toISOString()
-      } else if (newStatus === 'preparing') {
-        updates.preparing_at = new Date().toISOString()
-      } else if (newStatus === 'completed') {
-        updates.completed_at = new Date().toISOString()
+      // Approvazione: passa da confirmOrder così la cronologia registra chi e quando
+      if (newStatus === 'preparing') {
+        const operator = buildOperatorInfo({
+          staffId: staffSession.staff_id || null,
+          userId: staffSession.user_id || null,
+          staffName: staffSession.name || null,
+          createdByType: staffSession.staff_id ? 'staff' : 'owner'
+        })
+        const result = await ordersService.confirmOrder(orderId, staffSession.staff_id || null, operator)
+        if (!result.success) {
+          alert(`Impossibile approvare: ${result.error?.message || ''}`)
+        }
+        loadOrders(staffSession.restaurant_id)
+        return
       }
 
       const { error } = await supabase
         .from('orders')
-        .update(updates)
+        .update({ status: newStatus, confirmed_by: staffSession.staff_id || null, updated_at: new Date().toISOString() })
         .eq('id', orderId)
+        .in('status', ['pending', 'confirmed'])
+        .is('deleted_at', null)
 
       if (error) throw error
-
-      // Track analytics event for operator action
-      if (staffSession?.staff_id) {
-        await supabase
-          .from('analytics_events')
-          .insert({
-            restaurant_id: staffSession.restaurant_id,
-            event_type: 'operator_order_action',
-            metadata: {
-              order_id: orderId,
-              staff_id: staffSession.staff_id,
-              staff_name: staffSession.name,
-              action: newStatus,
-              previous_status: currentOrder?.status,
-              table_number: currentOrder?.table_number
-            }
-          })
-          .select()
-      }
-
-      // La timeline viene gestita automaticamente dal trigger del database
 
       loadOrders(staffSession.restaurant_id)
     } catch (error) {
       console.error('Errore aggiornamento stato:', error)
       alert('Errore durante l\'aggiornamento dello stato')
     }
+  }
+
+  const reloadList = () => loadOrders(staffSession.restaurant_id)
+
+  const sendBatchNow = async (orderId, batchNumber) => {
+    const result = await ordersService.sendBatch(orderId, batchNumber, staffSession?.staff_id || null)
+    if (result.success) reloadList()
+    else alert(`Errore invio: ${result.error?.message || ''}`)
+  }
+
+  const toggleBatchPrepared = async (orderId, batchNumber, prepared) => {
+    const result = await ordersService.markBatchPrepared(orderId, batchNumber, staffSession?.staff_id || null, prepared)
+    if (result.success) reloadList()
+    else alert(`Errore: ${result.error?.message || ''}`)
+  }
+
+  const removeItem = async (item) => {
+    if (!confirm(`Rimuovere ${item.quantity}× ${item.product_name}?`)) return
+    const result = await ordersService.removeProductFromOrder(item.id, staffSession?.staff_id || null)
+    if (result.success) reloadList()
+    else alert(`Errore: ${result.error?.message || ''}`)
   }
 
   const getStatusLabel = (status) => {
@@ -273,6 +282,7 @@ function StaffOrders() {
       case 'preparing': return 'In Preparazione'
       case 'completed': return 'Completato'
       case 'cancelled': return 'Annullato'
+      case 'ready': return 'Pronto'
       default: return status
     }
   }
@@ -284,8 +294,19 @@ function StaffOrders() {
       case 'preparing': return '#AB47BC'
       case 'completed': return '#66BB6A'
       case 'cancelled': return '#EF5350'
+      case 'ready': return '#16A34A'
       default: return '#999'
     }
+  }
+
+  // "Pronto" quando è aperto (preparing) e tutte le comande sono preparate.
+  // Il tavolo resta aperto: lo chiude solo la Cassa.
+  const getDisplayStatus = (order) => {
+    const sent = (order.order_items || []).filter(i => i.sent)
+    if (order.status === 'preparing' && sent.length > 0 && sent.every(i => i.prepared)) {
+      return 'ready'
+    }
+    return order.status
   }
 
   const calculateWaitTime = (order) => {
@@ -318,9 +339,10 @@ function StaffOrders() {
 
   const getNextAction = (status) => {
     switch (status) {
-      case 'pending': return { label: 'Conferma', nextStatus: 'confirmed', color: '#000' }
-      case 'confirmed': return { label: 'Prepara', nextStatus: 'preparing', color: '#000' }
-      case 'preparing': return { label: 'Completa', nextStatus: 'completed', color: '#000' }
+      // Lo staff APPROVA la comanda (pending/confirmed → preparing): da lì parte.
+      case 'pending': return { label: 'Approva', nextStatus: 'preparing', color: '#000' }
+      case 'confirmed': return { label: 'Approva', nextStatus: 'preparing', color: '#000' }
+      // In preparazione: la chiusura spetta SOLO alla Cassa, nessun bottone qui.
       default: return null
     }
   }
@@ -818,10 +840,10 @@ function StaffOrders() {
                       <span style={styles.cardLabel}>Stato</span>
                       <span style={{
                         ...styles.statusBadge,
-                        backgroundColor: getStatusColor(order.status) + '15',
-                        color: getStatusColor(order.status)
+                        backgroundColor: getStatusColor(getDisplayStatus(order)) + '15',
+                        color: getStatusColor(getDisplayStatus(order))
                       }}>
-                        {getStatusLabel(order.status)}
+                        {getStatusLabel(getDisplayStatus(order))}
                       </span>
                     </div>
                     <div style={styles.cardRow}>
@@ -829,24 +851,50 @@ function StaffOrders() {
                       <span style={styles.cardValue}>{calculateWaitTime(order)}</span>
                     </div>
 
-                    {/* Lista Prodotti con cornici */}
+                    {/* Comande (batch): invio, preparato, elimina */}
                     {order.order_items && order.order_items.length > 0 && (
                       <div style={styles.productsSection}>
-                        <div style={styles.productsSectionTitle}>Prodotti:</div>
-                        <div style={styles.productsList}>
-                          {order.order_items.map((item, idx) => (
-                            <div key={idx} style={styles.productItem}>
-                              <span style={styles.productQuantity}>{item.quantity}x</span>
-                              <span style={styles.productName}>
-                                {item.product_name}
-                                {item.variant_title && (
-                                  <span style={styles.productVariant}> ({item.variant_title})</span>
-                                )}
-                              </span>
-                              <span style={styles.productPrice}>€{item.subtotal.toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
+                        {Object.entries(
+                          order.order_items.reduce((acc, it) => {
+                            const b = it.batch_number || 1
+                            ;(acc[b] = acc[b] || []).push(it)
+                            return acc
+                          }, {})
+                        )
+                          .sort((a, b) => Number(a[0]) - Number(b[0]))
+                          .map(([batch, items]) => {
+                            const batchSent = items.every(i => i.sent)
+                            const batchPrepared = items.every(i => i.prepared)
+                            const scheduledAt = items.find(i => i.send_at)?.send_at
+                            const canEdit = !batchPrepared
+                            return (
+                              <div key={batch} style={{ marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#555' }}>
+                                    Comanda {batch} · {batchSent ? (batchPrepared ? 'preparata ✓' : 'in cucina') : scheduledAt ? `programmata ${new Date(scheduledAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : 'da inviare'}
+                                  </span>
+                                  {!batchSent ? (
+                                    <button onClick={(e) => { e.stopPropagation(); sendBatchNow(order.id, Number(batch)) }} style={{ border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: '#2563EB', color: '#fff' }}>Invia ora</button>
+                                  ) : order.status === 'preparing' && (
+                                    <button onClick={(e) => { e.stopPropagation(); toggleBatchPrepared(order.id, Number(batch), !batchPrepared) }} style={{ border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, background: batchPrepared ? '#E8F5E9' : '#000', color: batchPrepared ? '#2E7D32' : '#fff' }}>{batchPrepared ? 'Preparata' : 'Segna preparata'}</button>
+                                  )}
+                                </div>
+                                {items.map((item, idx) => (
+                                  <div key={idx} style={styles.productItem}>
+                                    <span style={styles.productQuantity}>{item.quantity}x</span>
+                                    <span style={styles.productName}>
+                                      {item.product_name}
+                                      {item.variant_title && (<span style={styles.productVariant}> ({item.variant_title})</span>)}
+                                    </span>
+                                    <span style={styles.productPrice}>€{item.subtotal.toFixed(2)}</span>
+                                    {canEdit && order.status !== 'completed' && (
+                                      <button onClick={(e) => { e.stopPropagation(); removeItem(item) }} title="Rimuovi" style={{ marginLeft: '6px', border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: '16px', lineHeight: 1 }}>×</button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          })}
                       </div>
                     )}
 

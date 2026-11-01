@@ -34,6 +34,10 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
   const [selectedTableId, setSelectedTableId] = useState(null)
   const [roomsLoadAttempted, setRoomsLoadAttempted] = useState(false)
 
+  // Modalità di invio della comanda (solo quando si aggiunge a un ordine aperto)
+  const [deliveryMode, setDeliveryMode] = useState('now') // 'now' | 'staged' | 'scheduled'
+  const [scheduledTime, setScheduledTime] = useState('')  // "HH:MM"
+
   // Variant selection states
   const [showVariantModal, setShowVariantModal] = useState(false)
   const [productForVariants, setProductForVariants] = useState(null)
@@ -184,37 +188,40 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       if (error) throw error
       setCategories(data || [])
 
-      // Load products for each category with variants
+      // Carica TUTTI i prodotti e TUTTE le varianti in poche query (invece di
+      // una query per prodotto: così il menu compare subito anche con 300+ prodotti)
       if (data && data.length > 0) {
-        const productsData = {}
-        for (const category of data) {
-          const { data: categoryProducts, error: productsError } = await supabase
-            .from('products')
+        const categoryIds = data.map(c => c.id)
+
+        const { data: allProducts, error: productsError } = await supabase
+          .from('products')
+          .select('*')
+          .in('category_id', categoryIds)
+          .eq('is_visible', true)
+          .order('name')
+
+        if (productsError) throw productsError
+
+        const productIds = (allProducts || []).map(p => p.id)
+        let variantsByProduct = {}
+        if (productIds.length > 0) {
+          const { data: allVariants } = await supabase
+            .from('v_product_variants')
             .select('*')
-            .eq('category_id', category.id)
-            .eq('is_visible', true)
-            .order('name')
+            .in('product_id', productIds)
+            .eq('is_available', true)
+            .order('position')
 
-          if (!productsError && categoryProducts) {
-            // Load variants for each product
-            const productsWithVariants = await Promise.all(
-              categoryProducts.map(async (product) => {
-                const { data: variantsData, error: variantsError } = await supabase
-                  .from('v_product_variants')
-                  .select('*')
-                  .eq('product_id', product.id)
-                  .eq('is_available', true)
-                  .order('position')
-
-                return {
-                  ...product,
-                  variants: variantsData || [],
-                  hasVariants: (variantsData || []).length > 0
-                }
-              })
-            )
-            productsData[category.id] = productsWithVariants
+          for (const v of allVariants || []) {
+            ;(variantsByProduct[v.product_id] = variantsByProduct[v.product_id] || []).push(v)
           }
+        }
+
+        const productsData = {}
+        for (const product of allProducts || []) {
+          const variants = variantsByProduct[product.id] || []
+          const withVariants = { ...product, variants, hasVariants: variants.length > 0 }
+          ;(productsData[product.category_id] = productsData[product.category_id] || []).push(withVariants)
         }
         setProducts(productsData)
       }
@@ -480,115 +487,60 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
     if (itemsError) {
       console.error('❌ Errore inserimento order_items:', itemsError)
       console.error('📦 Items che hanno causato errore:', orderItems)
+      // Non lasciare un ordine senza prodotti
+      await ordersService.discardOrphanOrder(order.id)
       throw itemsError
     }
 
     console.log('✅ Order items inseriti con successo:', insertedItems)
-
-    // Se è un ordine priority, aggiungi il supplemento come item separato
-    // SOLO se riesce a trovare/creare un prodotto virtuale per il priority order
-    if (isPriorityOrder && priorityAmount > 0) {
-      try {
-        // Cerca se esiste già un prodotto "Priority Order" per questo ristorante
-        let { data: priorityProduct, error: prioritySearchError } = await supabase
-          .from('products')
-          .select('id')
-          .eq('restaurant_id', restaurantId)
-          .eq('name', '⚡ Ordine Prioritario')
-          .maybeSingle()
-
-        if (prioritySearchError) {
-          console.error('Errore ricerca prodotto priority:', prioritySearchError)
+    // Da qui l'ordine è salvato: timeline e statistiche non devono far fallire
+    // l'operazione, altrimenti lo staff riprova e crea un ordine doppio
+    try {
+      // ✅ Timeline Event - usando timelineService centralizzato
+      await addTimelineEntry({
+        orderId: order.id,
+        action: TIMELINE_ACTION.CREATED,
+        eventSource: EVENT_SOURCE.TABLE_SERVICE, // Staff crea ordine dalla cassa
+        operator: buildOperatorInfo({
+          staffId: staffSession?.staff_id || null,
+          userId: staffSession?.isOwner ? staffSession?.user_id : null,
+          createdByType: staffSession?.isOwner ? 'owner' : (staffSession?.staff_id ? 'staff' : 'system'),
+          staffName: staffSession?.name || null
+        }),
+        data: {
+          newStatus: 'pending',
+          notes: `Ordine creato dallo staff${customerName ? ` per ${customerName}` : ''}`,
+          changes: {
+            items_count: selectedProducts.length,
+            is_priority: isPriorityOrder,
+            total_amount: total,
+            table_number: selectedTable.number,
+            room_id: selectedRoomId
+          },
+          isExpandable: true,
+          detailsSummary: `${selectedProducts.length} prodotto${selectedProducts.length !== 1 ? 'i' : ''}${isPriorityOrder ? ' - PRIORITARIO' : ''} - Tavolo ${selectedTable.number}`
         }
-
-        // Se non esiste, crealo
-        if (!priorityProduct) {
-          const { data: newPriorityProduct, error: createError } = await supabase
-            .from('products')
-            .insert({
-              restaurant_id: restaurantId,
-              category_id: null,
-              name: '⚡ Ordine Prioritario',
-              description: 'Supplemento per ordine prioritario',
-              price: priorityAmount,
-              is_visible: false, // Non visibile nel menu pubblico
-              image_url: null
-            })
-            .select('id')
-            .single()
-
-          if (createError) {
-            console.error('Errore creazione prodotto priority:', createError)
-            // Se fallisce la creazione, continua senza inserire l'item
-          } else {
-            priorityProduct = newPriorityProduct
-          }
-        }
-
-        // Inserisci l'item priority order se abbiamo un product_id valido
-        if (priorityProduct?.id) {
-          await supabase
-            .from('order_items')
-            .insert({
-              order_id: order.id,
-              product_id: priorityProduct.id,
-              product_name: '⚡ Ordine Prioritario',
-              product_price: priorityAmount,
-              quantity: 1,
-              notes: 'Supplemento per ordine prioritario',
-              subtotal: priorityAmount
-            })
-
-          console.log('✅ Priority order item inserito con successo')
-        }
-      } catch (priorityError) {
-        console.error('Errore gestione priority order item:', priorityError)
-        // Non bloccare l'ordine se fallisce solo il priority item
-      }
-    }
-
-    // ✅ Timeline Event - usando timelineService centralizzato
-    await addTimelineEntry({
-      orderId: order.id,
-      action: TIMELINE_ACTION.CREATED,
-      eventSource: EVENT_SOURCE.TABLE_SERVICE, // Staff crea ordine dalla cassa
-      operator: buildOperatorInfo({
-        staffId: staffSession?.staff_id || null,
-        userId: staffSession?.isOwner ? staffSession?.user_id : null,
-        createdByType: staffSession?.isOwner ? 'owner' : (staffSession?.staff_id ? 'staff' : 'system'),
-        staffName: staffSession?.name || null
-      }),
-      data: {
-        newStatus: 'pending',
-        notes: `Ordine creato dallo staff${customerName ? ` per ${customerName}` : ''}`,
-        changes: {
-          items_count: selectedProducts.length,
-          is_priority: isPriorityOrder,
+      })
+  
+      // ✅ Analytics Event - ordine creato (NON completed!)
+      await trackEvent('table_order_pending', {
+        restaurant_id: restaurantId,
+        order_id: order.id,
+        table_id: selectedTable.id,
+        room_id: selectedRoomId,
+        items_count: selectedProducts.length,
+        is_priority: isPriorityOrder,
+        metadata: {
           total_amount: total,
-          table_number: selectedTable.number,
-          room_id: selectedRoomId
-        },
-        isExpandable: true,
-        detailsSummary: `${selectedProducts.length} prodotto${selectedProducts.length !== 1 ? 'i' : ''}${isPriorityOrder ? ' - PRIORITARIO' : ''} - Tavolo ${selectedTable.number}`
-      }
-    })
-
-    // ✅ Analytics Event - ordine creato (NON completed!)
-    await trackEvent('table_order_pending', {
-      restaurant_id: restaurantId,
-      order_id: order.id,
-      table_id: selectedTable.id,
-      room_id: selectedRoomId,
-      items_count: selectedProducts.length,
-      is_priority: isPriorityOrder,
-      metadata: {
-        total_amount: total,
-        created_by_staff: true,
-        staff_id: staffSession?.staff_id,
-        staff_name: staffSession?.name,
-        customer_name: customerName
-      }
-    })
+          created_by_staff: true,
+          staff_id: staffSession?.staff_id,
+          staff_name: staffSession?.name,
+          customer_name: customerName
+        }
+      })
+    } catch (trackingError) {
+      console.error('Errore timeline/analytics (ordine comunque creato):', trackingError)
+    }
 
     onOrderCreated()
     onClose()
@@ -611,11 +563,26 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
 
     console.log('🔄 Aggiungendo prodotti a ordine esistente:', existingOrder.id)
 
+    // Costruisci la modalità di invio
+    let delivery = { mode: deliveryMode }
+    if (deliveryMode === 'scheduled') {
+      if (!scheduledTime) {
+        alert('Indica l\'ora di invio programmato')
+        return
+      }
+      const [hh, mm] = scheduledTime.split(':').map(Number)
+      const when = new Date()
+      when.setHours(hh, mm, 0, 0)
+      if (when.getTime() <= Date.now()) when.setDate(when.getDate() + 1) // se è già passata, domani
+      delivery.sendAt = when.toISOString()
+    }
+
     // Usa ordersService.addProductsToOrder che calcola automaticamente il batch number
     const result = await ordersService.addProductsToOrder(
       existingOrder.id,
       items,
-      staffSession?.staff_id || null
+      staffSession?.staff_id || null,
+      delivery
     )
 
     if (!result.success) {
@@ -624,8 +591,10 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
 
     console.log('✅ Prodotti aggiunti con successo! Batch:', result.batchNumber)
 
-    // Mostra notifica con batch number
-    alert(`Prodotti aggiunti con successo come Batch ${result.batchNumber}!`)
+    const esito = deliveryMode === 'now' ? 'inviata alla cucina'
+      : deliveryMode === 'scheduled' ? `programmata per le ${scheduledTime}`
+      : 'salvata come portata (da inviare)'
+    alert(`Comanda ${result.batchNumber} ${esito}!`)
 
     onOrderCreated()
     onClose()
@@ -1024,6 +993,47 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
               </div>
             )}
           </div>
+
+          {/* Modalità di invio (solo quando si aggiunge una comanda a un tavolo aperto) */}
+          {isEditMode && (
+            <div style={{ marginTop: '12px', padding: '12px', border: '1px solid #E2E8F0', borderRadius: '10px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>Invio della comanda</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  { k: 'now', label: 'Invia subito' },
+                  { k: 'staged', label: 'Salva come portata' },
+                  { k: 'scheduled', label: 'Programma invio' }
+                ].map(opt => (
+                  <button
+                    key={opt.k}
+                    type="button"
+                    onClick={() => setDeliveryMode(opt.k)}
+                    style={{
+                      border: `1px solid ${deliveryMode === opt.k ? '#000' : '#CBD5E1'}`,
+                      background: deliveryMode === opt.k ? '#000' : '#fff',
+                      color: deliveryMode === opt.k ? '#fff' : '#334155',
+                      borderRadius: '8px', padding: '8px 12px', fontSize: '13px', fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {deliveryMode === 'scheduled' && (
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  style={{ marginTop: '10px', padding: '8px', border: '1px solid #CBD5E1', borderRadius: '8px', fontSize: '14px' }}
+                />
+              )}
+              <div style={{ fontSize: '12px', color: '#64748B', marginTop: '8px' }}>
+                {deliveryMode === 'now' && 'La comanda arriva subito in cucina.'}
+                {deliveryMode === 'staged' && 'Resta "da inviare": la invii tu quando vuoi.'}
+                {deliveryMode === 'scheduled' && 'Verrà inviata automaticamente all\'ora scelta.'}
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={styles.footer}>

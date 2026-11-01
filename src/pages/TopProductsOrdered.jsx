@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
+import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
 function TopProductsOrdered() {
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('last7days')
@@ -41,29 +41,14 @@ function TopProductsOrdered() {
   const [monthlyData, setMonthlyData] = useState([])
   const [yearlyData, setYearlyData] = useState([])
 
-  // Prova prima da location.state, poi da localStorage
-  let restaurant = location.state?.restaurant
-  if (!restaurant) {
-    const stored = localStorage.getItem('analytics_restaurant')
-    if (stored) {
-      try {
-        restaurant = JSON.parse(stored)
-      } catch (error) {
-        console.error('Errore parsing restaurant da localStorage:', error)
-        restaurant = null
-      }
-    }
-  }
-
-  // Se non c'è un ristorante, reindirizza alla dashboard
-  if (!restaurant) {
-    navigate('/dashboard')
-    return null
-  }
+  const restaurant = useAnalyticsRestaurant()
 
   useEffect(() => {
-    loadProductsData()
-  }, [timeRange, customStartDate, customEndDate, sortBy, comparisonType, customComparisonStart, customComparisonEnd])
+    if (restaurant) loadProductsData()
+  }, [restaurant, timeRange, customStartDate, customEndDate, sortBy, comparisonType, customComparisonStart, customComparisonEnd])
+
+  // In attesa del ristorante (tutti gli hook sono sopra questa riga)
+  if (!restaurant) return null
 
   const loadProductsData = async () => {
     setLoading(true)
@@ -125,6 +110,9 @@ function TopProductsOrdered() {
           )
         `)
         .eq('orders.restaurant_id', restaurant.id)
+        .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+        .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+        .is('orders.deleted_at', null)
         .gte('orders.created_at', startDate)
         .lte('orders.created_at', endDate)
 
@@ -143,6 +131,9 @@ function TopProductsOrdered() {
             )
           `)
           .eq('orders.restaurant_id', restaurant.id)
+          .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+          .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+          .is('orders.deleted_at', null)
           .gte('orders.created_at', previousStartDate)
           .lte('orders.created_at', previousEndDate)
       }
@@ -301,7 +292,7 @@ function TopProductsOrdered() {
     setYearlyData([])
 
     try {
-      const dateRange = getDateRange()
+      const dateRange = getDateRangeFromTimeRange(timeRange, customStartDate, customEndDate)
       if (!dateRange) return
 
       const { startDate, endDate } = dateRange
@@ -319,6 +310,9 @@ function TopProductsOrdered() {
           )
         `)
         .eq('orders.restaurant_id', restaurant.id)
+        .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+        .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+        .is('orders.deleted_at', null)
         .eq('product_id', product.id)
         .gte('orders.created_at', startDate)
         .lte('orders.created_at', endDate)

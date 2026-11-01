@@ -3,6 +3,9 @@ import { supabase } from '../supabaseClient'
 import { trackOrderCreated, trackCartViewed, trackCartItemRemoved, trackCheckoutStarted } from '../utils/richAnalytics'
 import { getOrCreateAnonymousCustomer } from '../utils/customerUtils'
 import { getOccupiedTables } from '../lib/orderOperations'
+import { discardOrphanOrder } from '../lib/ordersService'
+import { addTimelineEntry, buildOperatorInfo, EVENT_SOURCE, TIMELINE_ACTION } from '../lib/timelineService'
+import { cartLineKey } from '../utils/cart'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -180,8 +183,8 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
   }
 
   // Wrapper for onRemoveItem to track analytics
-  const handleRemoveItem = async (productId, notes) => {
-    const item = cartItems.find(i => i.id === productId && i.notes === notes)
+  const handleRemoveItem = async (lineKey) => {
+    const item = cartItems.find(i => cartLineKey(i) === lineKey)
     if (!item) return
 
     try {
@@ -190,7 +193,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
 
       // Track before removing
       const itemAddedAt = item.addedAt || Date.now()
-      const newCart = cartItems.filter(i => !(i.id === productId && i.notes === notes))
+      const newCart = cartItems.filter(i => cartLineKey(i) !== lineKey)
 
       await trackCartItemRemoved({
         restaurantId: restaurant.id,
@@ -212,13 +215,14 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
     }
 
     // Call original remove function
-    onRemoveItem(productId, notes)
+    onRemoveItem(lineKey)
   }
 
-  // Filtra i tavoli disponibili in base alla sala selezionata
+  // Tavoli selezionabili: quelli della sala scelta, esclusi quelli occupati
+  // (un tavolo con un ordine aperto non è ordinabile dal cliente)
   const getAvailableTables = () => {
     if (!selectedRoomId) return []
-    return tables.filter(table => table.room_id === selectedRoomId)
+    return tables.filter(table => table.room_id === selectedRoomId && !isTableOccupied(table.number))
   }
 
   // Controlla se un tavolo è occupato
@@ -293,16 +297,18 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
     setSubmitting(true)
     setError('')
 
+    let order = null
+    let orderItems = []
+    const priorityAmount = (isPriorityOrder && orderSettings?.priority_order_enabled)
+      ? (orderSettings.priority_order_price || 0)
+      : 0
+
+    // Trova il tavolo selezionato per ottenere il room_id
+    const selectedTable = tables.find(t => t.number === parseInt(tableNumber) && t.room_id === selectedRoomId)
+
+    // FASE 1: salvataggio ordine. Se fallisce, il cliente può riprovare.
     try {
-      // 1. Crea ordine
-      const priorityAmount = (isPriorityOrder && orderSettings?.priority_order_enabled)
-        ? (orderSettings.priority_order_price || 0)
-        : 0
-
-      // Trova il tavolo selezionato per ottenere il room_id
-      const selectedTable = tables.find(t => t.number === parseInt(tableNumber) && t.room_id === selectedRoomId)
-
-      const { data: order, error: orderError } = await supabase
+      const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
           restaurant_id: restaurant.id,
@@ -320,9 +326,11 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         .single()
 
       if (orderError) throw orderError
+      order = createdOrder
 
-      // 2. Aggiungi prodotti all'ordine (con varianti se presenti)
-      const orderItems = cartItems.map(item => ({
+      // Aggiungi prodotti all'ordine (con varianti se presenti).
+      // Il supplemento priority è salvato sull'ordine (priority_order_amount), non come prodotto.
+      orderItems = cartItems.map(item => ({
         order_id: order.id,
         product_id: item.id,
         product_name: item.name,
@@ -339,55 +347,32 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         .insert(orderItems)
 
       if (itemsError) throw itemsError
+    } catch (err) {
+      console.error('Errore invio ordine:', err)
+      // Non lasciare in cucina un ordine senza prodotti
+      if (order?.id) await discardOrphanOrder(order.id)
+      setError('Errore durante l\'invio dell\'ordine. Riprova.')
+      setSubmitting(false)
+      return
+    }
 
-      // Se è un ordine priority, aggiungi il supplemento come item separato
-      if (isPriorityOrder && orderSettings?.priority_order_enabled && priorityAmount > 0) {
-        try {
-          // Cerca o crea il prodotto virtuale "Priority Order"
-          let { data: priorityProduct } = await supabase
-            .from('products')
-            .select('id')
-            .eq('restaurant_id', restaurant.id)
-            .eq('name', '⚡ Ordine Prioritario')
-            .maybeSingle()
-
-          if (!priorityProduct) {
-            const { data: newPriorityProduct } = await supabase
-              .from('products')
-              .insert({
-                restaurant_id: restaurant.id,
-                category_id: null,
-                name: '⚡ Ordine Prioritario',
-                description: 'Supplemento per ordine prioritario',
-                price: priorityAmount,
-                is_visible: false,
-                image_url: null
-              })
-              .select('id')
-              .single()
-
-            priorityProduct = newPriorityProduct
-          }
-
-          if (priorityProduct?.id) {
-            await supabase
-              .from('order_items')
-              .insert({
-                order_id: order.id,
-                product_id: priorityProduct.id,
-                product_name: '⚡ Ordine Prioritario',
-                product_price: priorityAmount,
-                quantity: 1,
-                notes: 'Supplemento per ordine prioritario',
-                subtotal: priorityAmount
-              })
-          }
-        } catch (priorityError) {
-          console.error('Errore gestione priority order in Cart:', priorityError)
-        }
+    // Cronologia: registra la comanda inviata dal cliente (chi/cosa/quando)
+    await addTimelineEntry({
+      orderId: order.id,
+      action: TIMELINE_ACTION.CREATED,
+      eventSource: EVENT_SOURCE.PUBLIC_MENU,
+      operator: buildOperatorInfo({ createdByType: 'customer', staffName: customerName || null }),
+      data: {
+        newStatus: 'pending',
+        notes: `Comanda inviata dal cliente${customerName ? ` (${customerName})` : ''} · Tavolo ${tableNumber}`,
+        changes: { items_count: cartItems.length, total_amount: calculateTotal() }
       }
+    }).catch(e => console.error('[Cart] timeline created:', e))
 
-      // 3. Get or create anonymous customer
+    // FASE 2: statistiche. L'ordine è già inviato: un errore qui non deve
+    // mostrare "Riprova" al cliente, altrimenti la cucina riceve un ordine doppio.
+    try {
+      // Get or create anonymous customer
       const sessionId = localStorage.getItem('session_id') || crypto.randomUUID()
       if (!localStorage.getItem('session_id')) {
         localStorage.setItem('session_id', sessionId)
@@ -397,7 +382,9 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
 
       // 4. Build complete items array with all product details
       const completeItems = orderItems.map(item => {
-        const cartItem = cartItems.find(ci => ci.id === item.product_id)
+        const cartItem = cartItems.find(ci =>
+          ci.id === item.product_id && (ci.variant_id || null) === item.variant_id
+        )
         return {
           product_id: item.product_id,
           product_name: item.product_name,
@@ -454,16 +441,14 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
           has_customer_notes: !!customerNotes
         }
       })
-
-      // Successo - redirect alla thank you page
-      onClearCart()
-      window.location.hash = `#/order-confirmation/${order.id}`
-    } catch (err) {
-      console.error('Errore invio ordine:', err)
-      setError('Errore durante l\'invio dell\'ordine. Riprova.')
-    } finally {
-      setSubmitting(false)
+    } catch (trackingError) {
+      console.error('[Cart] Errore tracking ordine (ordine comunque inviato):', trackingError)
     }
+
+    // Successo - redirect alla thank you page
+    setSubmitting(false)
+    onClearCart()
+    window.location.hash = `#/order-confirmation/${order.id}`
   }
 
   // Non mostrare se ordini disabilitati
@@ -508,12 +493,12 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
               {/* Step 1: Lista prodotti */}
               {currentStep === 1 && (
                 <div style={styles.itemsList}>
-                {cartItems.map((item, index) => {
-                  // Crea una chiave unica che combina id, notes e index per gestire prodotti identici con note diverse
-                  const uniqueKey = `${item.id}-${item.notes || 'no-notes'}-${index}`
+                {cartItems.map((item) => {
+                  // Una riga = prodotto + variante + note
+                  const lineKey = cartLineKey(item)
 
                   return (
-                    <div key={uniqueKey} style={styles.cartItem}>
+                    <div key={lineKey} style={styles.cartItem}>
                       {/* Foto prodotto */}
                       {item.image_url && (
                         <img
@@ -540,7 +525,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
                       <div style={styles.itemControlsWrapper}>
                         <div style={styles.itemControls}>
                           <button
-                            onClick={() => onUpdateQuantity(item.id, item.notes, item.quantity - 1)}
+                            onClick={() => onUpdateQuantity(lineKey, item.quantity - 1)}
                             style={{
                               ...styles.controlButton,
                               opacity: item.quantity <= 1 ? 0.5 : 1,
@@ -553,14 +538,14 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
                           </button>
                           <span style={styles.quantityDisplay}>{item.quantity}</span>
                           <button
-                            onClick={() => onUpdateQuantity(item.id, item.notes, item.quantity + 1)}
+                            onClick={() => onUpdateQuantity(lineKey, item.quantity + 1)}
                             style={styles.controlButton}
                             aria-label="Aumenta quantità"
                           >
                             +
                           </button>
                           <button
-                            onClick={() => handleRemoveItem(item.id, item.notes)}
+                            onClick={() => handleRemoveItem(lineKey)}
                             style={styles.deleteButton}
                             aria-label="Rimuovi prodotto"
                           >
@@ -625,20 +610,17 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
                     required
                   >
                     <option value="">
-                      {rooms.length > 1 && !selectedRoomId ? 'Prima seleziona una sala' : 'Seleziona un tavolo'}
+                      {rooms.length > 1 && !selectedRoomId
+                        ? 'Prima seleziona una sala'
+                        : getAvailableTables().length === 0
+                          ? 'Nessun tavolo libero'
+                          : 'Seleziona un tavolo'}
                     </option>
-                    {getAvailableTables().map(table => {
-                      const occupied = isTableOccupied(table.number)
-                      return (
-                        <option
-                          key={table.id}
-                          value={table.number}
-                          disabled={occupied}
-                        >
-                          Tavolo {table.number} {occupied ? '(Occupato)' : ''}
-                        </option>
-                      )
-                    })}
+                    {getAvailableTables().map(table => (
+                      <option key={table.id} value={table.number}>
+                        Tavolo {table.number}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

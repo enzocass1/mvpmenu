@@ -453,8 +453,9 @@ function Dashboard({ session }) {
       return
     }
     
-    const menuUrl = `${window.location.origin}/#/menu/${restaurant.subdomain}`
-    
+    // source=qr: distingue le scansioni del QR dalle visite al link condiviso
+    const menuUrl = `${window.location.origin}/#/menu/${restaurant.subdomain}?source=qr`
+
     try {
       const qrCodeDataURL = await QRCode.toDataURL(menuUrl, {
         width: 512,
@@ -1787,7 +1788,7 @@ Inviato il: ${new Date().toLocaleString('it-IT')}
 
               <button
                 type="button"
-                onClick={() => setFeedbackModal(false)}
+                onClick={() => setShowFeedbackModal(false)}
                 style={{
                   width: '100%',
                   padding: '14px',

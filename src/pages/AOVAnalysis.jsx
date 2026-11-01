@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
+import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
 function AOVAnalysis() {
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('last30days')
@@ -44,27 +44,14 @@ function AOVAnalysis() {
   const [drillDownLoading, setDrillDownLoading] = useState(false)
   const [orderItems, setOrderItems] = useState([])
 
-  let restaurant = location.state?.restaurant
-  if (!restaurant) {
-    const stored = localStorage.getItem('analytics_restaurant')
-    if (stored) {
-      try {
-        restaurant = JSON.parse(stored)
-      } catch (error) {
-        console.error('Errore parsing restaurant da localStorage:', error)
-        restaurant = null
-      }
-    }
-  }
-
-  if (!restaurant) {
-    navigate('/dashboard')
-    return null
-  }
+  const restaurant = useAnalyticsRestaurant()
 
   useEffect(() => {
-    loadAOVData()
-  }, [timeRange, customStartDate, customEndDate, comparisonType, customComparisonStart, customComparisonEnd])
+    if (restaurant) loadAOVData()
+  }, [restaurant, timeRange, customStartDate, customEndDate, comparisonType, customComparisonStart, customComparisonEnd])
+
+  // In attesa del ristorante (tutti gli hook sono sopra questa riga)
+  if (!restaurant) return null
 
   const loadAOVData = async () => {
     setLoading(true)
@@ -118,6 +105,9 @@ function AOVAnalysis() {
           .from('orders')
           .select('*')
           .eq('restaurant_id', restaurant.id)
+          .eq('status', 'completed') // fatturato: solo ordini chiusi
+          .neq('payment_status', 'unpaid') // esclude i non pagati
+          .is('deleted_at', null)
           .gte('created_at', startDate)
           .lte('created_at', endDate)
           .order('created_at', { ascending: true }),
@@ -132,6 +122,9 @@ function AOVAnalysis() {
             )
           `)
           .eq('orders.restaurant_id', restaurant.id)
+          .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+          .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+          .is('orders.deleted_at', null)
           .gte('orders.created_at', startDate)
           .lte('orders.created_at', endDate)
       ])
@@ -144,6 +137,9 @@ function AOVAnalysis() {
             .from('orders')
             .select('*')
             .eq('restaurant_id', restaurant.id)
+            .eq('status', 'completed') // fatturato: solo ordini chiusi
+            .neq('payment_status', 'unpaid') // esclude i non pagati
+            .is('deleted_at', null)
             .gte('created_at', previousStartDate)
             .lte('created_at', previousEndDate),
           supabase
@@ -157,6 +153,9 @@ function AOVAnalysis() {
               )
             `)
             .eq('orders.restaurant_id', restaurant.id)
+            .eq('orders.status', 'completed') // fatturato: solo ordini chiusi
+            .neq('orders.payment_status', 'unpaid') // esclude i non pagati
+            .is('orders.deleted_at', null)
             .gte('orders.created_at', previousStartDate)
             .lte('orders.created_at', previousEndDate)
         ])

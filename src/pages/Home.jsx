@@ -58,21 +58,43 @@ function Home({ session }) {
 
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('total_amount, status')
+        .select('total_amount, status, payment_status')
         .eq('restaurant_id', restaurantData.id)
+        .is('deleted_at', null)
+        .neq('status', 'cancelled')
         .gte('created_at', today.toISOString())
 
       if (ordersError) throw ordersError
 
-      // Calculate stats
-      const totalOrders = ordersData?.length || 0
-      const totalRevenue = ordersData?.reduce((sum, order) => sum + order.total_amount, 0) || 0
-      const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
-      const pendingOrders = ordersData?.filter(o => o.status === 'pending').length || 0
+      // Calculate stats: l'incasso conta solo gli ordini CHIUSI e PAGATI.
+      // I "non pagati" (clienti scappati) non sono ricavo: sono mancato incasso.
+      const orders = ordersData || []
+      const completedOrders = orders.filter(o => o.status === 'completed')
+      const paidOrders = completedOrders.filter(o => o.payment_status !== 'unpaid')
+      const unpaidOrders = completedOrders.filter(o => o.payment_status === 'unpaid')
+      const totalOrders = orders.length
+      const totalRevenue = paidOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+      const lostRevenue = unpaidOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0)
+      const avgOrderValue = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0
+      const pendingOrders = orders.filter(o => o.status === 'pending').length
+
+      // Margine netto: ricavo - costo (COGS), solo ordini chiusi e pagati di oggi
+      const { data: marginsData } = await supabase
+        .from('v_order_margins')
+        .select('margin')
+        .eq('restaurant_id', restaurantData.id)
+        .eq('status', 'completed')
+        .neq('payment_status', 'unpaid')
+        .is('deleted_at', null)
+        .gte('created_at', today.toISOString())
+
+      const netMargin = (marginsData || []).reduce((sum, r) => sum + Number(r.margin || 0), 0)
 
       setStats({
         totalOrders,
         totalRevenue,
+        lostRevenue,
+        netMargin,
         avgOrderValue,
         pendingOrders,
       })
@@ -237,21 +259,25 @@ function Home({ session }) {
         <KPICard
           title="Ordini Oggi"
           value={stats?.totalOrders?.toString() || '0'}
-          subtitle="Totale ordini ricevuti"
-          trend={stats?.totalOrders > 0 ? '+100%' : null}
-          trendDirection={stats?.totalOrders > 0 ? 'up' : 'neutral'}
+          subtitle="Ordini ricevuti (esclusi annullati)"
+          trendDirection="neutral"
         />
         <KPICard
           title="Incasso Oggi"
           value={`€${stats?.totalRevenue?.toFixed(2) || '0.00'}`}
-          subtitle="Revenue giornaliero"
-          trend={stats?.totalRevenue > 0 ? '+100%' : null}
-          trendDirection={stats?.totalRevenue > 0 ? 'up' : 'neutral'}
+          subtitle="Ordini chiusi oggi"
+          trendDirection="neutral"
+        />
+        <KPICard
+          title="Margine Netto Oggi"
+          value={`€${stats?.netMargin?.toFixed(2) || '0.00'}`}
+          subtitle="Ricavo − costo prodotti (IVA incl.)"
+          trendDirection={stats?.netMargin > 0 ? 'up' : 'neutral'}
         />
         <KPICard
           title="Valore Medio Ordine"
           value={`€${stats?.avgOrderValue?.toFixed(2) || '0.00'}`}
-          subtitle="AOV oggi"
+          subtitle="Media ordini chiusi oggi"
           trendDirection="neutral"
         />
         <KPICard
@@ -260,6 +286,13 @@ function Home({ session }) {
           subtitle="Da confermare"
           trend={stats?.pendingOrders > 0 ? 'Azione richiesta' : null}
           trendDirection={stats?.pendingOrders > 0 ? 'warning' : 'neutral'}
+        />
+        <KPICard
+          title="Mancato Incasso"
+          value={`€${stats?.lostRevenue?.toFixed(2) || '0.00'}`}
+          subtitle="Tavoli chiusi non pagati oggi"
+          trend={stats?.lostRevenue > 0 ? 'Perso' : null}
+          trendDirection={stats?.lostRevenue > 0 ? 'down' : 'neutral'}
         />
       </div>
 

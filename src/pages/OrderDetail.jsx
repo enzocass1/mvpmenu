@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import * as ordersService from '../lib/ordersService'
+import { buildOperatorInfo } from '../lib/timelineService'
 import CreateOrderModal from '../components/CreateOrderModal'
 
 function OrderDetail() {
@@ -126,6 +128,7 @@ function OrderDetail() {
           notes,
           staff_name,
           staff_role_display,
+          event_source,
           created_at
         `)
         .eq('order_id', orderId)
@@ -141,24 +144,35 @@ function OrderDetail() {
 
   const updateOrderStatus = async (newStatus) => {
     try {
-      const updates = {
-        status: newStatus,
-        confirmed_by: staffSession.staff_id || null,
-        updated_at: new Date().toISOString()
+      // Lo staff non può chiudere il tavolo: quello è compito della Cassa.
+      if (newStatus === 'completed') {
+        alert('Solo la Cassa può chiudere il tavolo.')
+        return
       }
 
-      if (newStatus === 'confirmed') {
-        updates.confirmed_at = new Date().toISOString()
-      } else if (newStatus === 'preparing') {
-        updates.preparing_at = new Date().toISOString()
-      } else if (newStatus === 'completed') {
-        updates.completed_at = new Date().toISOString()
+      // Approvazione: passa da confirmOrder così la cronologia registra chi e quando
+      if (newStatus === 'preparing') {
+        const operator = buildOperatorInfo({
+          staffId: staffSession.staff_id || null,
+          userId: staffSession.user_id || null,
+          staffName: staffSession.name || null,
+          createdByType: staffSession.staff_id ? 'staff' : 'owner'
+        })
+        const result = await ordersService.confirmOrder(orderId, staffSession.staff_id || null, operator)
+        if (!result.success) {
+          alert(`Impossibile approvare: ${result.error?.message || ''}`)
+        }
+        loadOrder()
+        loadTimeline()
+        return
       }
 
       const { error } = await supabase
         .from('orders')
-        .update(updates)
+        .update({ status: newStatus, confirmed_by: staffSession.staff_id || null, updated_at: new Date().toISOString() })
         .eq('id', orderId)
+        .in('status', ['pending', 'confirmed'])
+        .is('deleted_at', null)
 
       if (error) throw error
 
@@ -223,6 +237,7 @@ function OrderDetail() {
       case 'preparing': return 'In Preparazione'
       case 'completed': return 'Completato'
       case 'cancelled': return 'Annullato'
+      case 'ready': return 'Pronto'
       case 'created': return 'Creato'
       case 'updated': return 'Aggiornato'
       case 'item_added': return 'Prodotto Aggiunto'
@@ -233,6 +248,40 @@ function OrderDetail() {
     }
   }
 
+  // Etichetta "cosa è successo" per un evento della cronologia
+  const getTimelineLabel = (action) => {
+    switch (action) {
+      case 'created': return 'Comanda inviata'
+      case 'confirmed': return 'Comanda approvata'
+      case 'preparing': return 'In preparazione'
+      case 'completed': return 'Tavolo chiuso'
+      case 'cancelled': return 'Comanda rifiutata'
+      case 'updated': return 'Aggiornamento'
+      case 'item_added': return 'Prodotti aggiunti'
+      case 'item_removed': return 'Prodotto rimosso'
+      case 'item_updated': return 'Quantità aggiornata'
+      case 'table_changed': return 'Cambio tavolo'
+      case 'preconto_generated': return 'Preconto generato'
+      default: return action
+    }
+  }
+
+  // Etichetta "chi" per un evento: ruolo + nome, oppure Cliente
+  const getTimelineActor = (event) => {
+    if (event.created_by_type === 'customer') return 'Cliente'
+    const where = event.event_source === 'cashier' ? 'Cassa' : event.event_source === 'table_service' ? 'Sala' : null
+    const who = event.staff_name || (event.created_by_type === 'owner' ? 'Titolare' : event.staff_role_display)
+    if (where && who) return `${where} · ${who}`
+    return who || where || (event.created_by_type === 'system' ? 'Sistema' : null)
+  }
+
+  // Prodotti collegati a un evento: quelli della comanda (batch) a cui si riferisce
+  const getEventItems = (event) => {
+    const batch = event.changes?.batch_number ?? (event.action === 'created' ? 1 : null)
+    if (batch == null) return []
+    return (order?.order_items || []).filter(i => (i.batch_number || 1) === Number(batch))
+  }
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return '#FFA726'
@@ -240,16 +289,67 @@ function OrderDetail() {
       case 'preparing': return '#AB47BC'
       case 'completed': return '#66BB6A'
       case 'cancelled': return '#EF5350'
+      case 'ready': return '#16A34A'
       default: return '#999'
     }
   }
 
+  // Stato mostrato a schermo: se è aperto (preparing) e TUTTE le comande sono
+  // preparate, mostra "Pronto" (il tavolo resta aperto: lo chiude solo la Cassa)
+  const getDisplayStatus = () => {
+    // "Pronto" = tutte le comande GIÀ INVIATE sono preparate (le portate da inviare non contano)
+    const sent = (order?.order_items || []).filter(i => i.sent)
+    if (order?.status === 'preparing' && sent.length > 0 && sent.every(i => i.prepared)) {
+      return 'ready'
+    }
+    return order?.status
+  }
+
   const getNextAction = (status) => {
     switch (status) {
-      case 'pending': return { label: 'Conferma', nextStatus: 'confirmed' }
-      case 'confirmed': return { label: 'In Preparazione', nextStatus: 'preparing' }
-      case 'preparing': return { label: 'Completa', nextStatus: 'completed' }
+      // Approvazione: la comanda parte. La chiusura è solo della Cassa.
+      case 'pending': return { label: 'Approva comanda', nextStatus: 'preparing' }
+      case 'confirmed': return { label: 'Approva comanda', nextStatus: 'preparing' }
       default: return null
+    }
+  }
+
+  const rejectPendingOrder = async () => {
+    if (!confirm('Rifiutare questa comanda? Il tavolo tornerà libero.')) return
+    const result = await ordersService.rejectOrder(orderId, staffSession?.staff_id || null)
+    if (result.success) {
+      navigate(`/staff/${subdomain}/orders`)
+    } else {
+      alert(`Impossibile rifiutare: ${result.error?.message || ''}`)
+      loadOrder()
+    }
+  }
+
+  const toggleBatchPrepared = async (batchNumber, prepared) => {
+    const result = await ordersService.markBatchPrepared(orderId, batchNumber, staffSession?.staff_id || null, prepared)
+    if (result.success) {
+      loadOrder()
+    } else {
+      alert(`Errore: ${result.error?.message || ''}`)
+    }
+  }
+
+  const sendBatchNow = async (batchNumber) => {
+    const result = await ordersService.sendBatch(orderId, batchNumber, staffSession?.staff_id || null)
+    if (result.success) {
+      loadOrder(); loadTimeline()
+    } else {
+      alert(`Errore invio: ${result.error?.message || ''}`)
+    }
+  }
+
+  const removeItem = async (item) => {
+    if (!confirm(`Rimuovere ${item.quantity}× ${item.product_name}?`)) return
+    const result = await ordersService.removeProductFromOrder(item.id, staffSession?.staff_id || null)
+    if (result.success) {
+      loadOrder(); loadTimeline()
+    } else {
+      alert(`Errore: ${result.error?.message || ''}`)
     }
   }
 
@@ -329,10 +429,10 @@ function OrderDetail() {
             <div style={styles.infoLabel}>Stato</div>
             <div style={{
               ...styles.statusBadge,
-              backgroundColor: getStatusColor(order.status) + '15',
-              color: getStatusColor(order.status)
+              backgroundColor: getStatusColor(getDisplayStatus()) + '15',
+              color: getStatusColor(getDisplayStatus())
             }}>
-              {getStatusLabel(order.status)}
+              {getStatusLabel(getDisplayStatus())}
             </div>
           </div>
           <div style={styles.infoItem}>
@@ -375,23 +475,83 @@ function OrderDetail() {
           </div>
         ) : (
           <div style={styles.productsList}>
-            {order.order_items.map((item) => (
-              <div key={item.id} style={styles.productCard}>
-                <div style={styles.productHeader}>
-                  <span style={styles.productQuantity}>{item.quantity}x</span>
-                  <div style={styles.productInfo}>
-                    <span style={styles.productName}>{item.product_name}</span>
-                    {item.variant_title && (
-                      <span style={styles.variantBadge}>{item.variant_title}</span>
-                    )}
+            {Object.entries(
+              order.order_items.reduce((acc, item) => {
+                const b = item.batch_number || 1
+                ;(acc[b] = acc[b] || []).push(item)
+                return acc
+              }, {})
+            )
+              .sort((a, b) => Number(a[0]) - Number(b[0]))
+              .map(([batch, items]) => {
+                const batchPrepared = items.every(i => i.prepared)
+                const batchSent = items.every(i => i.sent)
+                const scheduledAt = items.find(i => i.send_at)?.send_at
+                const canEdit = !batchPrepared // si modifica solo una comanda non ancora preparata
+                return (
+                  <div key={batch} style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 8px', gap: '8px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#555' }}>
+                        Comanda {batch}
+                        {batchSent
+                          ? (batchPrepared ? ' · preparata ✓' : ' · in cucina')
+                          : scheduledAt
+                            ? ` · programmata ${new Date(scheduledAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`
+                            : ' · da inviare'}
+                      </span>
+                      {/* Non inviata: pulsante Invia ora */}
+                      {!batchSent && (
+                        <button
+                          onClick={() => sendBatchNow(Number(batch))}
+                          style={{ border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: '#2563EB', color: '#fff' }}
+                        >
+                          Invia ora
+                        </button>
+                      )}
+                      {/* Inviata e tavolo aperto: Segna preparata */}
+                      {batchSent && order.status === 'preparing' && (
+                        <button
+                          onClick={() => toggleBatchPrepared(Number(batch), !batchPrepared)}
+                          style={{
+                            border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer',
+                            fontSize: '13px', fontWeight: 600,
+                            background: batchPrepared ? '#E8F5E9' : '#000',
+                            color: batchPrepared ? '#2E7D32' : '#fff'
+                          }}
+                        >
+                          {batchPrepared ? 'Preparata' : 'Segna preparata'}
+                        </button>
+                      )}
+                    </div>
+                    {items.map((item) => (
+                      <div key={item.id} style={{ ...styles.productCard, opacity: item.prepared ? 0.6 : 1 }}>
+                        <div style={styles.productHeader}>
+                          <span style={styles.productQuantity}>{item.quantity}x</span>
+                          <div style={styles.productInfo}>
+                            <span style={styles.productName}>{item.product_name}</span>
+                            {item.variant_title && (
+                              <span style={styles.variantBadge}>{item.variant_title}</span>
+                            )}
+                          </div>
+                          <span style={styles.productPrice}>€{item.subtotal.toFixed(2)}</span>
+                          {canEdit && order.status !== 'completed' && (
+                            <button
+                              onClick={() => removeItem(item)}
+                              title="Rimuovi prodotto"
+                              style={{ marginLeft: '8px', border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: '18px', lineHeight: 1 }}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                        {item.notes && (
+                          <div style={styles.productNotes}>Note: {item.notes}</div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <span style={styles.productPrice}>€{item.subtotal.toFixed(2)}</span>
-                </div>
-                {item.notes && (
-                  <div style={styles.productNotes}>Note: {item.notes}</div>
-                )}
-              </div>
-            ))}
+                )
+              })}
           </div>
         )}
 
@@ -432,21 +592,36 @@ function OrderDetail() {
               <div key={event.id} style={styles.timelineItem}>
                 <div style={styles.timelineDot}></div>
                 <div style={styles.timelineContent}>
-                  <div style={styles.timelineAction}>{getStatusLabel(event.action)}</div>
+                  {/* COSA */}
+                  <div style={styles.timelineAction}>{getTimelineLabel(event.action)}</div>
+                  {/* Dettaglio: nota dell'evento (es. "Batch 3 preparato", "Scontrino N. 3"),
+                      solo se aggiunge informazione rispetto all'etichetta */}
+                  {event.notes && event.notes !== getTimelineLabel(event.action) && (
+                    <div style={{ ...styles.timelineStaff, color: '#334155', marginTop: '2px' }}>
+                      {event.notes}
+                    </div>
+                  )}
                   {event.action === 'table_changed' && event.changes && (
-                    <div style={{ ...styles.timelineStaff, color: '#64748B', marginTop: '4px' }}>
+                    <div style={{ ...styles.timelineStaff, color: '#64748B', marginTop: '2px' }}>
                       {event.changes.old_room_name} T{event.changes.old_table_number} → {event.changes.new_room_name} T{event.changes.new_table_number}
                     </div>
                   )}
-                  {(event.staff_role_display || event.staff_name || event.created_by_type === 'customer') && (
-                    <div style={styles.timelineStaff}>
-                      {event.created_by_type === 'customer'
-                        ? 'Cliente Incognito'
-                        : event.staff_role_display && event.staff_name
-                          ? `da ${event.staff_role_display} - ${event.staff_name}`
-                          : event.staff_role_display || event.staff_name || null}
+                  {/* Prodotti della comanda collegata all'evento */}
+                  {getEventItems(event).length > 0 && (
+                    <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      {getEventItems(event).map(it => (
+                        <div key={it.id} style={{ fontSize: '13px', color: '#475569' }}>
+                          {it.quantity}× {it.product_name}{it.variant_title ? ` (${it.variant_title})` : ''}
+                          {it.prepared ? ' ✓' : ''}
+                        </div>
+                      ))}
                     </div>
                   )}
+                  {/* CHI */}
+                  {getTimelineActor(event) && (
+                    <div style={styles.timelineStaff}>{getTimelineActor(event)}</div>
+                  )}
+                  {/* QUANDO */}
                   <div style={styles.timelineDate}>{formatDateTime(event.created_at)}</div>
                 </div>
               </div>
@@ -495,6 +670,19 @@ function OrderDetail() {
           >
             {nextAction.label}
           </button>
+        )}
+        {order.status === 'pending' && (
+          <button
+            onClick={rejectPendingOrder}
+            style={{ ...styles.actionButton, backgroundColor: '#EF4444' }}
+          >
+            Rifiuta comanda
+          </button>
+        )}
+        {order.status === 'preparing' && (
+          <span style={{ fontSize: '13px', color: '#777', alignSelf: 'center' }}>
+            Il tavolo si chiude dalla Cassa
+          </span>
         )}
         {staffSession?.role === 'manager' && (
           <button

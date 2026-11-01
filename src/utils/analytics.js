@@ -174,10 +174,10 @@ export const trackQRScanned = (restaurantId) => {
 }
 
 /**
- * Hook per tracciare il tempo di sessione automaticamente
- * Usa nei componenti con useEffect
+ * Avvia il tracciamento del tempo di sessione (non è un hook React:
+ * va chiamata dentro un useEffect e restituisce la funzione di cleanup)
  */
-export const useSessionTracking = (restaurantId) => {
+export const startSessionTracking = (restaurantId) => {
   let startTime = Date.now()
   let isTracked = false
 

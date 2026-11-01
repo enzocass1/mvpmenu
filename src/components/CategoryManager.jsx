@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import ImageUpload from './ImageUpload'
+import ProductsOrderModal from './ProductsOrderModal'
 import {
   checkPremiumAccess,
   canAddCategory,
@@ -14,6 +15,76 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
   const [showModal, setShowModal] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [productCounts, setProductCounts] = useState({})
+  const [reorder, setReorder] = useState(null) // { title, subtitle, items, sortOptions, onSave }
+
+  // Apre il riordino dei PRODOTTI di una categoria (con prezzo, data, bestseller)
+  const openProductReorder = async (category) => {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, name, image_url, order, is_visible, price, created_at')
+      .eq('category_id', category.id)
+      .order('order', { ascending: true })
+    const ids = (products || []).map(p => p.id)
+    // Vendite per prodotto (quantità totale venduta) per l'ordinamento "bestseller"
+    const salesMap = {}
+    if (ids.length > 0) {
+      const { data: soldItems } = await supabase
+        .from('order_items')
+        .select('product_id, quantity')
+        .in('product_id', ids)
+      for (const it of soldItems || []) salesMap[it.product_id] = (salesMap[it.product_id] || 0) + Number(it.quantity || 0)
+    }
+    const items = (products || []).map(p => ({
+      id: p.id, name: p.name, imageUrl: p.image_url, hidden: p.is_visible === false,
+      price: Number(p.price || 0), createdAt: new Date(p.created_at).getTime(), sales: salesMap[p.id] || 0,
+      subLabel: `€${Number(p.price || 0).toFixed(2)}${(salesMap[p.id] || 0) > 0 ? ` · ${salesMap[p.id]} venduti` : ''}`
+    }))
+    setReorder({
+      title: 'Ordina prodotti',
+      subtitle: category.name,
+      items,
+      sortOptions: [
+        { value: 'name_az', label: 'Nome A → Z', compare: (a, b) => a.name.localeCompare(b.name) },
+        { value: 'name_za', label: 'Nome Z → A', compare: (a, b) => b.name.localeCompare(a.name) },
+        { value: 'price_lo', label: 'Prezzo: dal più basso', compare: (a, b) => a.price - b.price },
+        { value: 'price_hi', label: 'Prezzo: dal più alto', compare: (a, b) => b.price - a.price },
+        { value: 'recent', label: 'Più recenti', compare: (a, b) => b.createdAt - a.createdAt },
+        { value: 'oldest', label: 'Meno recenti', compare: (a, b) => a.createdAt - b.createdAt },
+        { value: 'best', label: 'Più venduti', compare: (a, b) => b.sales - a.sales },
+        { value: 'worst', label: 'Meno venduti', compare: (a, b) => a.sales - b.sales }
+      ],
+      onSave: async (ordered) => {
+        await Promise.all(ordered.map((it, index) =>
+          supabase.from('products').update({ order: index }).eq('id', it.id)))
+      }
+    })
+  }
+
+  // Apre il riordino delle CATEGORIE
+  const openCategoryReorder = () => {
+    const items = categories.map(c => ({
+      id: c.id, name: c.name, imageUrl: c.image_url, hidden: c.is_visible === false,
+      createdAt: new Date(c.created_at).getTime(), count: productCounts[c.id] || 0,
+      subLabel: `${productCounts[c.id] || 0} prodotti`
+    }))
+    setReorder({
+      title: 'Ordina categorie',
+      subtitle: 'Trascina per cambiare l\'ordine nel menu',
+      items,
+      sortOptions: [
+        { value: 'name_az', label: 'Nome A → Z', compare: (a, b) => a.name.localeCompare(b.name) },
+        { value: 'name_za', label: 'Nome Z → A', compare: (a, b) => b.name.localeCompare(a.name) },
+        { value: 'count_hi', label: 'Più prodotti', compare: (a, b) => b.count - a.count },
+        { value: 'count_lo', label: 'Meno prodotti', compare: (a, b) => a.count - b.count },
+        { value: 'recent', label: 'Più recenti', compare: (a, b) => b.createdAt - a.createdAt },
+        { value: 'oldest', label: 'Meno recenti', compare: (a, b) => a.createdAt - b.createdAt }
+      ],
+      onSave: async (ordered) => {
+        await Promise.all(ordered.map((it, index) =>
+          supabase.from('categories').update({ order: index }).eq('id', it.id)))
+      }
+    })
+  }
 
   const [formData, setFormData] = useState({
     name: '',
@@ -437,22 +508,40 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
                 )}
               </div>
 
-              <button
-                onClick={handleCreateClick}
-                style={{
-                  padding: '12px 24px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: !canAddNewCategory ? '#000000' : '#FFFFFF',
-                  background: !canAddNewCategory ? '#FF9800' : '#000000',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s ease'
-                }}
-              >
-                {canAddNewCategory ? '+ Nuova Categoria' : 'Passa a Premium'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {categories.length > 1 && (
+                  <button
+                    onClick={openCategoryReorder}
+                    style={{
+                      padding: '12px 18px', fontSize: '14px', fontWeight: '500',
+                      color: '#000', background: '#fff', border: '1px solid #E0E0E0',
+                      borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M3.5 2a.5.5 0 0 1 .5.5v9.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L3 12.293V2.5a.5.5 0 0 1 .5-.5z"/>
+                      <path d="M7 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5z"/>
+                    </svg>
+                    Ordina categorie
+                  </button>
+                )}
+                <button
+                  onClick={handleCreateClick}
+                  style={{
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: !canAddNewCategory ? '#000000' : '#FFFFFF',
+                    background: !canAddNewCategory ? '#FF9800' : '#000000',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s ease'
+                  }}
+                >
+                  {canAddNewCategory ? '+ Nuova Categoria' : 'Passa a Premium'}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -585,6 +674,28 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
                       </button>
 
                       <button
+                        onClick={() => openProductReorder(category)}
+                        title="Ordina prodotti"
+                        style={{
+                          padding: '10px',
+                          color: '#000000',
+                          background: '#FFFFFF',
+                          border: '1px solid #E0E0E0',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <path d="M3.5 2a.5.5 0 0 1 .5.5v9.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L3 12.293V2.5a.5.5 0 0 1 .5-.5z"/>
+                          <path d="M7 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5z"/>
+                        </svg>
+                      </button>
+
+                      <button
                         onClick={() => toggleVisibility(category)}
                         title={category.is_visible === false ? 'Mostra' : 'Nascondi'}
                         style={{
@@ -662,6 +773,20 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
           </div>
         )}
       </div>
+
+      {reorder && (
+        <ProductsOrderModal
+          title={reorder.title}
+          subtitle={reorder.subtitle}
+          items={reorder.items}
+          sortOptions={reorder.sortOptions}
+          onSave={reorder.onSave}
+          onClose={(saved) => {
+            setReorder(null)
+            if (saved) loadCategories() // ricarica (il menu usa order salvato)
+          }}
+        />
+      )}
     </>
   )
 }

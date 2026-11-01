@@ -27,7 +27,8 @@ export function checkPremiumAccess(restaurant) {
   }
 
   const isPremiumTier = restaurant.subscription_tier === 'premium'
-  const validStatuses = ['active', 'trialing']
+  // 'trialing' arriva da Stripe, 'trial' dal pannello super-admin
+  const validStatuses = ['active', 'trialing', 'trial']
   const isActiveStatus = validStatuses.includes(restaurant.subscription_status)
   const hasValidAccess = isPremiumTier && isActiveStatus
 
@@ -132,7 +133,7 @@ export function getSubscriptionHealth(restaurant) {
 
   const status = restaurant.subscription_status
 
-  if (status === 'active' || status === 'trialing') {
+  if (status === 'active' || status === 'trialing' || status === 'trial') {
     return null
   }
 

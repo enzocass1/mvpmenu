@@ -15,11 +15,15 @@ import {
   trackProductViewed,
   trackCategoryViewed,
   trackQRScanned,
-  useSessionTracking
+  startSessionTracking
 } from '../utils/analytics'
+import { addCartItem, updateCartItemQuantity, removeCartItem, countCartPieces } from '../utils/cart'
 import useTrafficSource from '../hooks/useTrafficSource'
 import Cart from '../components/Cart'
 import AddToCartModal from '../components/AddToCartModal'
+import MenuStoreLayout from '../components/MenuStoreLayout'
+import MenuBuilderLayout from '../components/MenuBuilderLayout'
+import MenuTopBar from '../components/MenuTopBar'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -30,6 +34,10 @@ const getThemeStyles = (themeConfig) => {
     primaryColor: themeConfig.primaryColor || '#000000',
     secondaryColor: themeConfig.secondaryColor || '#ffffff',
     accentColor: themeConfig.accentColor || '#4CAF50',
+    // Colore dei pulsanti CTA, separato dallo sfondo pagina (fallback = primaryColor
+    // per non cambiare i temi esistenti)
+    buttonColor: themeConfig.buttonColor || themeConfig.primaryColor || '#000000',
+    buttonTextColor: themeConfig.buttonTextColor || themeConfig.textPrimaryColor || '#ffffff',
     textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
     textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
 
@@ -57,22 +65,60 @@ const getThemeStyles = (themeConfig) => {
 
     // Font e stili
     fontFamily: getFontFamily(themeConfig.fontFamily || 'system'),
+    // Font dei titoli (nome locale, categorie, prodotti): se non specificato usa quello del corpo
+    headingFontFamily: getFontFamily(themeConfig.headingFontFamily || themeConfig.fontFamily || 'system'),
+    // Bagliore neon sui titoli (opzionale): colore per il text-shadow
+    headingGlow: themeConfig.headingGlow || null,
+    // Maiuscolo e spaziatura lettere sui titoli (per look audaci)
+    headingUppercase: themeConfig.headingUppercase || false,
     borderRadius: getBorderRadius(themeConfig.borderRadius || '16'),
+    // Settaggi MACRO (layout Builder): dimensione testi/card, spazio caroselli,
+    // badge categorie. Passati "grezzi" perché MenuBuilderLayout li legge direttamente.
+    textScale: themeConfig.textScale,
+    cardSize: themeConfig.cardSize,
+    sectionGap: themeConfig.sectionGap,
+    showCategoryChips: themeConfig.showCategoryChips,
   }
 }
 
-const getFontFamily = (fontType) => {
-  const fontMap = {
-    'system': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    'serif': 'Georgia, "Times New Roman", serif',
-    'sans-serif': '"Helvetica Neue", Arial, sans-serif',
-    'cursive': '"Comic Sans MS", cursive'
-  }
-  return fontMap[fontType] || fontMap['system']
+// Mappa dei font. Le voci "web" richiedono il caricamento Google Fonts (ensureThemeFonts).
+const FONT_MAP = {
+  system: { stack: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+  serif: { stack: 'Georgia, "Times New Roman", serif' },
+  'sans-serif': { stack: '"Helvetica Neue", Arial, sans-serif' },
+  cursive: { stack: '"Comic Sans MS", cursive' },
+  // Web fonts (eleganti/moderni)
+  playfair: { stack: '"Playfair Display", Georgia, serif', google: 'Playfair+Display:wght@500;600;700' },
+  cormorant: { stack: '"Cormorant Garamond", Georgia, serif', google: 'Cormorant+Garamond:wght@500;600;700' },
+  inter: { stack: '"Inter", -apple-system, sans-serif', google: 'Inter:wght@400;500;600' },
+  poppins: { stack: '"Poppins", -apple-system, sans-serif', google: 'Poppins:wght@400;500;600' },
+  montserrat: { stack: '"Montserrat", -apple-system, sans-serif', google: 'Montserrat:wght@400;500;600' },
+  // Display audaci (temi "stravolgenti")
+  orbitron: { stack: '"Orbitron", sans-serif', google: 'Orbitron:wght@600;700;800' },
+  bebas: { stack: '"Bebas Neue", sans-serif', google: 'Bebas+Neue' },
+  spacegrotesk: { stack: '"Space Grotesk", sans-serif', google: 'Space+Grotesk:wght@400;500;600;700' }
 }
+
+const getFontFamily = (fontType) => (FONT_MAP[fontType] || FONT_MAP.system).stack
 
 const getBorderRadius = (radius) => {
   return radius + 'px'
+}
+
+// Carica una volta sola i Google Fonts richiesti dal tema (corpo + titoli)
+const ensureThemeFonts = (themeConfig) => {
+  if (!themeConfig || typeof document === 'undefined') return
+  const keys = [themeConfig.fontFamily, themeConfig.headingFontFamily].filter(Boolean)
+  const families = keys.map(k => FONT_MAP[k]?.google).filter(Boolean)
+  for (const fam of families) {
+    const id = 'gfont-' + fam.replace(/[^a-z0-9]/gi, '')
+    if (document.getElementById(id)) continue
+    const link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    link.href = `https://fonts.googleapis.com/css2?family=${fam}&display=swap`
+    document.head.appendChild(link)
+  }
 }
 
 function PublicMenu() {
@@ -80,6 +126,8 @@ function PublicMenu() {
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [restaurant, setRestaurant] = useState(null)
+  // Anteprima live dall'editor tema (postMessage): sovrascrive il theme_config
+  const [previewOverride, setPreviewOverride] = useState(null)
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState({})
   const [selectedCategory, setSelectedCategory] = useState(null)
@@ -120,10 +168,28 @@ function PublicMenu() {
   const [currentTranslate, setCurrentTranslate] = useState(0)
   const carouselRef = useRef(null)
 
-  // Calcola stili dinamici basati sul theme_config del ristorante
+  // Ascolta la bozza dall'editor tema (anteprima live) quando ?preview=1
+  useEffect(() => {
+    if (searchParams.get('preview') !== '1') return
+    const onMsg = (e) => {
+      if (e.data?.source === 'theme-editor' && e.data.config) setPreviewOverride(e.data.config)
+    }
+    window.addEventListener('message', onMsg)
+    return () => window.removeEventListener('message', onMsg)
+  }, [searchParams])
+
+  // Configurazione tema effettiva: bozza dell'anteprima oppure quella salvata
+  const effectiveThemeConfig = previewOverride || restaurant?.theme_config
+
+  // Calcola stili dinamici basati sul theme_config effettivo
   const themeStyles = useMemo(() => {
-    return getThemeStyles(restaurant?.theme_config)
-  }, [restaurant])
+    return getThemeStyles(effectiveThemeConfig)
+  }, [effectiveThemeConfig])
+
+  // Carica i Google Fonts richiesti dal tema (titoli/corpo)
+  useEffect(() => {
+    ensureThemeFonts(effectiveThemeConfig)
+  }, [effectiveThemeConfig])
 
   // Genera stili completi con il tema applicato
   const styles = useMemo(() => {
@@ -183,7 +249,7 @@ function PublicMenu() {
     }
 
     // Inizia tracciamento sessione
-    const cleanup = useSessionTracking(restaurant.id)
+    const cleanup = startSessionTracking(restaurant.id)
 
     return cleanup
   }, [restaurant?.id, searchParams])
@@ -201,7 +267,7 @@ function PublicMenu() {
           .single()
 
         setOrderSettingsEnabled(data?.orders_enabled || false)
-      } catch (err) {
+      } catch {
         console.log('Ordini non configurati per questo ristorante')
         setOrderSettingsEnabled(false)
       }
@@ -239,23 +305,11 @@ function PublicMenu() {
     updateFavorites()
   }
 
-  // Cart functions
+  // Cart functions (le righe sono identificate da prodotto + variante + note)
   const handleAddToCart = (productWithDetails) => {
-    const existing = cartItems.find(item => item.id === productWithDetails.id && item.notes === productWithDetails.notes)
+    setCartItems(items => addCartItem(items, productWithDetails))
 
-    if (existing) {
-      // Aggiorna quantità se stesso prodotto con stesse note
-      setCartItems(cartItems.map(item =>
-        item.id === productWithDetails.id && item.notes === productWithDetails.notes
-          ? { ...item, quantity: item.quantity + productWithDetails.quantity }
-          : item
-      ))
-    } else {
-      // Aggiungi nuovo item
-      setCartItems([...cartItems, productWithDetails])
-    }
-
-    // Traccia analytics
+    // Traccia analytics (senza await/then la query non partirebbe mai)
     if (restaurant?.id) {
       supabase.from('analytics_events').insert({
         restaurant_id: restaurant.id,
@@ -263,24 +317,21 @@ function PublicMenu() {
         product_id: productWithDetails.id,
         metadata: {
           quantity: productWithDetails.quantity,
+          variant_id: productWithDetails.variant_id || null,
           has_notes: !!productWithDetails.notes
         }
+      }).then(({ error }) => {
+        if (error) console.error('Errore tracking order_item_added:', error)
       })
     }
   }
 
-  const handleUpdateQuantity = (productId, notes, newQuantity) => {
-    if (newQuantity < 1) {
-      handleRemoveFromCart(productId, notes)
-      return
-    }
-    setCartItems(cartItems.map(item =>
-      item.id === productId && item.notes === notes ? { ...item, quantity: newQuantity } : item
-    ))
+  const handleUpdateQuantity = (lineKey, newQuantity) => {
+    setCartItems(items => updateCartItemQuantity(items, lineKey, newQuantity))
   }
 
-  const handleRemoveFromCart = (productId, notes) => {
-    setCartItems(cartItems.filter(item => !(item.id === productId && item.notes === notes)))
+  const handleRemoveFromCart = (lineKey) => {
+    setCartItems(items => removeCartItem(items, lineKey))
   }
 
   const handleClearCart = () => {
@@ -532,6 +583,104 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
     )
   }
 
+  // Overlay condivisi (preferiti, carrello, modale aggiungi) riusati dal layout Store
+  const sharedOverlays = (
+    <>
+      {isFavoritesSidebarOpen && (
+        <>
+          <div style={styles.sidebarOverlay} onClick={() => setIsFavoritesSidebarOpen(false)} />
+          <div style={styles.sidebar}>
+            <div style={styles.sidebarHeader}>
+              <h2 style={styles.sidebarTitle}>I Tuoi Preferiti</h2>
+              <button onClick={() => setIsFavoritesSidebarOpen(false)} style={styles.sidebarCloseButton} aria-label="Chiudi preferiti">✕</button>
+            </div>
+            <div style={styles.sidebarContent}>
+              {favorites.length === 0 ? (
+                <div style={styles.emptyFavorites}>
+                  <p style={{ color: themeStyles.textTertiaryColor || '#999', fontSize: '16px', margin: 0 }}>Nessun preferito ancora</p>
+                  <p style={{ color: themeStyles.textTertiaryColor || '#ccc', fontSize: '14px', marginTop: '8px' }}>Tocca il cuore sui prodotti per salvarli</p>
+                </div>
+              ) : (
+                favorites.map((fav) => (
+                  <div key={fav.id} style={styles.favoriteItem}>
+                    <div style={{ flex: 1 }}>
+                      <div style={styles.favoriteItemName}>{fav.name}</div>
+                      <div style={styles.favoriteItemCategory}>{fav.categoryName}</div>
+                      <div style={styles.favoriteItemPrice}>€{fav.price.toFixed(2)}</div>
+                      {orderSettingsEnabled && (
+                        <div onClick={() => setAddToCartModalProduct({ id: fav.id, name: fav.name, price: fav.price, image_url: fav.image_url, description: fav.description })} style={styles.favoriteOrderButton} role="button" tabIndex={0}>ORDINA</div>
+                      )}
+                    </div>
+                    <button onClick={() => handleRemoveFromFavorites(fav.id)} style={styles.removeFavoriteButton} aria-label="Rimuovi dai preferiti">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+      <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} restaurant={restaurant} cartItems={cartItems} onUpdateQuantity={handleUpdateQuantity} onRemoveItem={handleRemoveFromCart} onClearCart={handleClearCart} trafficSource={trafficSource} />
+      <AddToCartModal isOpen={!!addToCartModalProduct} onClose={() => setAddToCartModalProduct(null)} product={addToCartModalProduct} onAddToCart={handleAddToCart} restaurant={restaurant} />
+    </>
+  )
+
+  // Layout "Builder": home a sezioni/caroselli configurate nel tema
+  if ((effectiveThemeConfig?.layoutStyle || 'carousel') === 'builder') {
+    return (
+      <>
+        <style>{globalStyles}</style>
+        <MenuBuilderLayout
+          restaurant={restaurant}
+          categories={categories}
+          products={products}
+          openingHours={openingHours}
+          theme={themeStyles}
+          subdomain={subdomain}
+          orderSettingsEnabled={orderSettingsEnabled}
+          favoritesCount={favoritesCount}
+          cartCount={countCartPieces(cartItems)}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenFavorites={() => setIsFavoritesSidebarOpen(true)}
+          onAddProduct={(p) => setAddToCartModalProduct(p)}
+          onToggleFavorite={handleToggleFavorite}
+          isFav={(id) => isFavorite(subdomain, id)}
+          trackProductViewed={trackProductViewed}
+          sections={effectiveThemeConfig?.homeSections || []}
+        />
+        {sharedOverlays}
+      </>
+    )
+  }
+
+  // Layout "Store" (storefront e-commerce) se selezionato nel tema
+  if ((effectiveThemeConfig?.layoutStyle || 'carousel') === 'store') {
+    return (
+      <>
+        <style>{globalStyles}</style>
+        <MenuStoreLayout
+          restaurant={restaurant}
+          categories={categories}
+          products={products}
+          openingHours={openingHours}
+          theme={themeStyles}
+          subdomain={subdomain}
+          orderSettingsEnabled={orderSettingsEnabled}
+          favoritesCount={favoritesCount}
+          cartCount={countCartPieces(cartItems)}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenFavorites={() => setIsFavoritesSidebarOpen(true)}
+          onAddProduct={(p) => setAddToCartModalProduct(p)}
+          onToggleFavorite={handleToggleFavorite}
+          isFav={(id) => isFavorite(subdomain, id)}
+          trackProductViewed={trackProductViewed}
+        />
+        {sharedOverlays}
+      </>
+    )
+  }
+
   if (selectedCategory) {
     const categoryData = categories.find(c => c.id === selectedCategory)
     const categoryProducts = products[selectedCategory] || []
@@ -577,7 +726,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
                     </svg>
                     {cartItems.length > 0 && (
-                      <span style={styles.cartBadge}>{cartItems.length}</span>
+                      <span style={styles.cartBadge}>{countCartPieces(cartItems)}</span>
                     )}
                   </button>
                 )}
@@ -839,11 +988,24 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
     <>
       <style>{globalStyles}</style>
       <div style={styles.pageContainer}>
+        <MenuTopBar
+          restaurant={restaurant}
+          categories={categories}
+          products={products}
+          theme={themeStyles}
+          subdomain={subdomain}
+          orderSettingsEnabled={orderSettingsEnabled}
+          favoritesCount={favoritesCount}
+          cartCount={countCartPieces(cartItems)}
+          onOpenFavorites={() => setIsFavoritesSidebarOpen(true)}
+          onOpenCart={() => setIsCartOpen(true)}
+          onAddProduct={(p) => setAddToCartModalProduct(p)}
+        />
         <div style={styles.header}>
           {restaurant.logo_url && (
-            <img 
-              src={restaurant.logo_url} 
-              alt={restaurant.name} 
+            <img
+              src={restaurant.logo_url}
+              alt={restaurant.name}
               style={styles.logo}
             />
           )}
@@ -1125,9 +1287,12 @@ const getStyles = (theme = {}) => ({
   
   restaurantName: {
     color: theme.textPrimaryColor || '#fff',
+    fontFamily: theme.headingFontFamily,
     fontSize: 'clamp(28px, 8vw, 48px)',
     fontWeight: '600',
-    letterSpacing: '1px',
+    letterSpacing: theme.headingUppercase ? '3px' : '1px',
+    textTransform: theme.headingUppercase ? 'uppercase' : 'none',
+    textShadow: theme.headingGlow ? `0 0 10px ${theme.headingGlow}, 0 0 28px ${theme.headingGlow}` : 'none',
     margin: '0 0 12px 0',
     overflowWrap: 'break-word',
   },
@@ -1175,7 +1340,7 @@ const getStyles = (theme = {}) => ({
     boxShadow: 'none',
     transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
     transformStyle: 'preserve-3d',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.backgroundTertiary || '#f5f5f5',
   },
 
   categoryImage: {
@@ -1201,10 +1366,13 @@ const getStyles = (theme = {}) => ({
 
   categoryName: {
     margin: 0,
+    fontFamily: theme.headingFontFamily,
     fontSize: 'clamp(22px, 6vw, 28px)',
     fontWeight: 'bold',
     overflowWrap: 'break-word',
-    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+    letterSpacing: theme.headingUppercase ? '2px' : 'normal',
+    textTransform: theme.headingUppercase ? 'uppercase' : 'none',
+    textShadow: theme.headingGlow ? `0 0 8px ${theme.headingGlow}, 0 0 20px ${theme.headingGlow}` : '0 2px 4px rgba(0,0,0,0.3)',
     color: theme.textPrimaryColor || 'white',
   },
   
@@ -1229,7 +1397,7 @@ const getStyles = (theme = {}) => ({
     height: '10px',
     borderRadius: '50%',
     border: 'none',
-    background: '#ccc',
+    background: theme.borderColor || '#ccc',
     cursor: 'pointer',
     padding: 0,
     transition: 'all 0.3s',
@@ -1326,6 +1494,7 @@ const getStyles = (theme = {}) => ({
   },
   
   productName: {
+    fontFamily: theme.headingFontFamily,
     fontSize: 'clamp(15px, 4vw, 17px)',
     fontWeight: '500',
     overflowWrap: 'break-word',
@@ -1537,9 +1706,10 @@ const getStyles = (theme = {}) => ({
     display: 'flex',
     gap: '12px',
     padding: '12px',
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    // Usa lo sfondo card del tema (prima era bianco fisso: incoerente con i temi scuri)
+    backgroundColor: theme.cardBackground || '#ffffff',
     borderTop: `1px solid ${theme.borderColor || '#e0e0e0'}`,
-    boxShadow: 'none',
+    boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
     zIndex: 1000,
     backdropFilter: 'blur(10px)',
   },
@@ -1551,8 +1721,8 @@ const getStyles = (theme = {}) => ({
     justifyContent: 'center',
     gap: '8px',
     padding: '16px',
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
+    backgroundColor: theme.buttonColor,
+    color: theme.buttonTextColor,
     textDecoration: 'none',
     borderRadius: theme.borderRadius || '12px',
     fontWeight: '600',

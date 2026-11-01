@@ -26,4 +26,11 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Funzioni serverless Vercel e script di manutenzione girano su Node
+    files: ['api/**/*.js', 'scripts/**/*.js', 'setup-analytics-table.js', 'vite.config.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

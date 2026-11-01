@@ -33,7 +33,8 @@ function ChannelsPage({ session }) {
       setRestaurant(data)
 
       if (data?.subdomain) {
-        const menuUrl = `${window.location.origin}/#/menu/${data.subdomain}`
+        // source=qr: distingue le scansioni del QR dalle visite al link condiviso
+        const menuUrl = `${window.location.origin}/#/menu/${data.subdomain}?source=qr`
         const qrUrl = await QRCode.toDataURL(menuUrl, {
           width: 300,
           margin: 2,

@@ -12,6 +12,8 @@ const getThemeStyles = (themeConfig) => {
     textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
     textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
     textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+    buttonColor: themeConfig.buttonColor || themeConfig.primaryColor || '#000000',
+    buttonTextColor: themeConfig.buttonTextColor || themeConfig.textPrimaryColor || '#ffffff',
 
     // Colori funzionali
     borderColor: themeConfig.borderColor || '#e0e0e0',
@@ -266,29 +268,38 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
           {!loadingVariants && hasVariants && (
             <div style={styles.variantsSection}>
               <h5 style={styles.variantsSectionTitle}>Seleziona opzioni</h5>
-              {options.map((option) => (
-                <div key={option.id} style={styles.optionGroup}>
-                  <label style={styles.optionLabel}>{option.name}</label>
-                  <div style={styles.optionValues}>
-                    {option.values.map((value) => {
-                      const isSelected = selectedOptions[option.name] === value.value
-                      return (
-                        <button
-                          key={value.id}
-                          type="button"
-                          onClick={() => handleOptionChange(option.name, value.value)}
-                          style={{
-                            ...styles.optionButton,
-                            ...(isSelected ? styles.optionButtonSelected : {})
-                          }}
-                        >
-                          {value.value}
-                        </button>
-                      )
-                    })}
+              {options.map((option) => {
+                // Mostra solo i valori che hanno davvero una variante disponibile
+                // (evita opzioni "fantasma" che porterebbero a "combinazione non disponibile")
+                const valueSet = new Set(variants.map(v => (v.option_values || {})[option.name]).filter(Boolean))
+                const shownValues = variants.length > 0
+                  ? option.values.filter(val => valueSet.has(val.value))
+                  : option.values
+                if (shownValues.length === 0) return null
+                return (
+                  <div key={option.id} style={styles.optionGroup}>
+                    <label style={styles.optionLabel}>{option.name}</label>
+                    <div style={styles.optionValues}>
+                      {shownValues.map((value) => {
+                        const isSelected = selectedOptions[option.name] === value.value
+                        return (
+                          <button
+                            key={value.id}
+                            type="button"
+                            onClick={() => handleOptionChange(option.name, value.value)}
+                            style={{
+                              ...styles.optionButton,
+                              ...(isSelected ? styles.optionButtonSelected : {})
+                            }}
+                          >
+                            {value.value}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
               {selectedVariant && (
                 <div style={styles.variantInfo}>
                   <span style={styles.variantInfoLabel}>Variante selezionata:</span>
@@ -596,7 +607,7 @@ const getStyles = (theme = {}) => ({
     gap: '10px'
   },
   cancelButton: {
-    padding: '12px',
+    padding: '14px 12px',
     backgroundColor: 'transparent',
     color: theme.textTertiaryColor || '#666',
     border: `1px solid ${theme.cardBorder || theme.borderColor || '#ddd'}`,
@@ -604,18 +615,27 @@ const getStyles = (theme = {}) => ({
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center'
   },
   addButton: {
-    padding: '12px',
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
+    padding: '14px 12px',
+    backgroundColor: theme.buttonColor || theme.primaryColor || '#000',
+    color: theme.buttonTextColor || theme.textPrimaryColor || '#fff',
     border: 'none',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    lineHeight: 1.2
   },
   variantsSection: {
     marginBottom: '20px',

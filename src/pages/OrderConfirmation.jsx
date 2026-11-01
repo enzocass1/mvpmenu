@@ -115,8 +115,8 @@ function OrderConfirmation() {
         <div style={styles.successIcon}>✓</div>
 
         {/* Title */}
-        <h1 style={styles.title}>Ordine Confermato!</h1>
-        <p style={styles.subtitle}>Il tuo ordine è stato inviato alla cucina</p>
+        <h1 style={styles.title}>Ordine inviato!</h1>
+        <p style={styles.subtitle}>Il personale lo confermerà a breve</p>
 
         {/* Order Details */}
         <div style={styles.detailsCard}>

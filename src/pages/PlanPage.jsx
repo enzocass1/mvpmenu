@@ -34,7 +34,7 @@ function PlanPage({ session }) {
       if (error) throw error
       setRestaurant(data)
 
-      const info = getPlanInfo(data.subscription_tier)
+      const info = getPlanInfo(data)
       setPlanInfo(info)
     } catch (error) {
       console.error('Errore caricamento:', error)
