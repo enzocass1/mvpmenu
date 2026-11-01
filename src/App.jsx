@@ -1,6 +1,36 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+
+// Deep-link con login: se si apre una pagina protetta senza essere loggati,
+// salviamo la destinazione e, dopo l'accesso, ci torniamo (utile per i link
+// nelle email, es. /#/aggiornamenti).
+const REDIRECT_KEY = 'post_login_redirect'
+function saveRedirect() {
+  try {
+    const h = (window.location.hash || '').replace(/^#/, '')
+    if (h && h !== '/login' && h !== '/') sessionStorage.setItem(REDIRECT_KEY, h)
+  } catch { /* storage non disponibile */ }
+}
+function popRedirect() {
+  try {
+    const v = sessionStorage.getItem(REDIRECT_KEY)
+    if (v) { sessionStorage.removeItem(REDIRECT_KEY); return v }
+  } catch { /* storage non disponibile */ }
+  return '/dashboard'
+}
+// Route protetta: se non loggato, memorizza la destinazione e manda al login
+function RequireAuth({ session, children }) {
+  if (session) return children
+  saveRedirect()
+  return <Navigate to="/login" replace />
+}
+// /login: se gia' loggato, torna alla destinazione salvata (o alla dashboard)
+function LoginOrRedirect({ session }) {
+  const target = useMemo(() => popRedirect(), [])
+  if (session) return <Navigate to={target} replace />
+  return <Login />
+}
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Landing from './pages/Landing'
@@ -183,9 +213,9 @@ function App() {
       )}
       
       {/* Login - solo se NON loggato */}
-      <Route 
-        path="/login" 
-        element={session ? <Navigate to="/dashboard" replace /> : <Login />} 
+      <Route
+        path="/login"
+        element={<LoginOrRedirect session={session} />}
       />
       
       {/* Home/Overview - solo se loggato */}
@@ -281,11 +311,11 @@ function App() {
       {/* Aggiornamenti app (changelog) - solo se loggato */}
       <Route
         path="/aggiornamenti"
-        element={session ? <UpdatesPage session={session} /> : <Navigate to="/login" replace />}
+        element={<RequireAuth session={session}><UpdatesPage session={session} /></RequireAuth>}
       />
       <Route
         path="/aggiornamenti/:id"
-        element={session ? <UpdateDetailPage session={session} /> : <Navigate to="/login" replace />}
+        element={<RequireAuth session={session}><UpdateDetailPage session={session} /></RequireAuth>}
       />
 
       {/* Users Page (Ruoli + Membri) - solo se loggato */}
