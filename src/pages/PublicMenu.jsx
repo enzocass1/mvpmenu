@@ -1538,8 +1538,10 @@ const getStyles = (theme = {}) => ({
     fontFamily: theme.headingFontFamily,
     fontSize: 'clamp(15px, 4vw, 17px)',
     fontWeight: '500',
-    overflowWrap: 'break-word',
     color: theme.textSecondaryColor || '#000',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   },
 
   variantTitle: {
