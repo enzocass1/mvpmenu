@@ -12,6 +12,7 @@ function Card({
   className,
   onClick,
   hoverable = false,
+  style,
   ...props
 }) {
   const paddingStyles = {
@@ -62,6 +63,9 @@ function Card({
     ...baseStyles,
     ...(hoverable && isHovered && hoverStyles[':hover']),
     ...(hoverable && { cursor: 'pointer' }),
+    // Lo `style` passato dal chiamante AGGIUNGE/sovrascrive singole proprietà,
+    // senza cancellare padding/bordo/raggio della card (prima li azzerava)
+    ...style,
   }
 
   const handleClick = (e) => {
