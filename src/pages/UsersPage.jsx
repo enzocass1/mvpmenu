@@ -8,7 +8,7 @@
 import React, { useState } from 'react'
 import { tokens } from '../styles/tokens'
 import DashboardLayout from '../components/ui/DashboardLayout'
-import { Card, Spinner, PageHeader } from '../components/ui'
+import { Card, Spinner, PageHeader, ResponsiveTabs } from '../components/ui'
 
 // Import tabs (da creare)
 import RolesTab from '../components/users/RolesTab'
@@ -84,27 +84,11 @@ function UsersPage({ session }) {
     >
       <PageHeader title="Gestione Utenti" subtitle="Gestisci ruoli, permessi e membri del tuo staff" />
 
-      {/* Tabs */}
-      <div style={styles.tabsContainer}>
-        <button
-          onClick={() => setActiveTab('roles')}
-          style={{
-            ...styles.tab,
-            ...(activeTab === 'roles' ? styles.tabActive : {})
-          }}
-        >
-          Ruoli
-        </button>
-        <button
-          onClick={() => setActiveTab('members')}
-          style={{
-            ...styles.tab,
-            ...(activeTab === 'members' ? styles.tabActive : {})
-          }}
-        >
-          Membri
-        </button>
-      </div>
+      <ResponsiveTabs
+        tabs={[{ label: 'Ruoli', value: 'roles' }, { label: 'Membri', value: 'members' }]}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+      />
 
       {/* Tab Content */}
       <div style={styles.tabContent}>
