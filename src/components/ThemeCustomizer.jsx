@@ -545,6 +545,57 @@ function ThemeCustomizer({ restaurantId }) {
   ]
   const currentStyle = theme.layoutStyle || 'carousel'
 
+  // Colori PRINCIPALI usati da ogni stile. `styles` limita a certi layout
+  // (assente = usato da tutti). Così ogni stile mostra solo i colori che
+  // cambiano davvero qualcosa nel suo menu -> niente controlli "morti".
+  const COLOR_FIELDS = [
+    { key: 'primaryColor', label: 'Sfondo pagina' },
+    { key: 'cardBackground', label: 'Sfondo card' },
+    { key: 'secondaryColor', label: 'Sfondo sezioni', styles: ['carousel', 'builder'] },
+    { key: 'textSecondaryColor', label: 'Colore testo' },
+    { key: 'accentColor', label: 'Accento / link' },
+    { key: 'buttonColor', label: 'Sfondo pulsanti' },
+    { key: 'buttonTextColor', label: 'Testo pulsanti' },
+    { key: 'borderColor', label: 'Bordi' },
+    { key: 'textTertiaryColor', label: 'Testo tenue (sottotitoli)' },
+    { key: 'favoriteActiveColor', label: 'Cuore preferiti' },
+    { key: 'backgroundTertiary', label: 'Sfondo immagini mancanti' },
+    { key: 'inputBackground', label: 'Sfondo campo ricerca' },
+    { key: 'inputText', label: 'Testo campo ricerca' },
+  ]
+  // Colori AVANZATI: usati solo dal layout Classico
+  const ADVANCED_COLOR_FIELDS = [
+    { key: 'textPrimaryColor', label: 'Testo su sfondo scuro' },
+    { key: 'errorColor', label: 'Errore' },
+    { key: 'successColor', label: 'Successo' },
+    { key: 'warningColor', label: 'Avviso' },
+    { key: 'deleteColor', label: 'Elimina' },
+    { key: 'cardBorder', label: 'Bordo card' },
+    { key: 'inputBorder', label: 'Bordo campi' },
+    { key: 'inputBorderFocus', label: 'Bordo campo attivo' },
+    { key: 'linkColor', label: 'Link' },
+    { key: 'linkHoverColor', label: 'Link al passaggio' },
+    { key: 'overlayBackground', label: 'Sfondo overlay' },
+    { key: 'emptyStateText', label: 'Testo stati vuoti' },
+  ]
+  const mainColors = COLOR_FIELDS.filter(f => !f.styles || f.styles.includes(currentStyle))
+  const advancedColors = currentStyle === 'carousel' ? ADVANCED_COLOR_FIELDS : []
+  // Valore sicuro per l'input type=color (accetta solo #rrggbb)
+  const safeHex = (v) => {
+    if (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v)) return v
+    if (typeof v === 'string' && /^#[0-9a-fA-F]{3}$/.test(v)) return '#' + v.slice(1).split('').map(c => c + c).join('')
+    return '#000000'
+  }
+  const renderColorField = (f) => (
+    <div key={f.key}>
+      <label style={labelStyles}>{f.label}</label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
+        <input type="color" value={safeHex(theme[f.key])} onChange={(e) => setTheme({ ...theme, [f.key]: e.target.value })} style={colorInputStyles} />
+        <input type="text" value={theme[f.key] || ''} onChange={(e) => setTheme({ ...theme, [f.key]: e.target.value })} style={{ ...inputStyles, flex: 1 }} />
+      </div>
+    </div>
+  )
+
   if (loadingRestaurant) {
     return <Spinner size="lg" text="Caricamento..." centered />
   }
@@ -683,6 +734,13 @@ function ThemeCustomizer({ restaurantId }) {
             })}
           </div>
 
+          {/* Promemoria: lo stile scelto si applica solo salvando */}
+          {currentStyle !== (restaurant?.theme_config?.layoutStyle || 'carousel') && (
+            <div style={{ marginTop: tokens.spacing.md, padding: '12px 14px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: tokens.borderRadius.md, fontSize: 14, color: '#92400E' }}>
+              Hai scelto <strong>{MENU_STYLES.find(s => s.value === currentStyle)?.title}</strong>. Premi <strong>“Salva tema”</strong> in fondo per applicarlo al menu dei clienti.
+            </div>
+          )}
+
           {currentStyle === 'builder' && (
             <div style={{ marginTop: tokens.spacing.lg, padding: tokens.spacing.lg, background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: tokens.borderRadius.md, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
               <div style={{ minWidth: 220, flex: 1 }}>
@@ -746,100 +804,8 @@ function ThemeCustomizer({ restaurantId }) {
         <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
           <h3 style={sectionTitleStyles}>Personalizza</h3>
           <div style={subLabelStyles}>Colori</div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
-            gap: tokens.spacing.lg
-          }}>
-            <div>
-              <label style={labelStyles}>Sfondo Principale</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.primaryColor}
-                  onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.primaryColor}
-                  onChange={(e) => setTheme({...theme, primaryColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Sfondo Sezioni</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.secondaryColor}
-                  onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.secondaryColor}
-                  onChange={(e) => setTheme({...theme, secondaryColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Colore Accent (Pulsanti)</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.accentColor}
-                  onChange={(e) => setTheme({...theme, accentColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.accentColor}
-                  onChange={(e) => setTheme({...theme, accentColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Testo su Sfondo Scuro</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.textPrimaryColor}
-                  onChange={(e) => setTheme({...theme, textPrimaryColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.textPrimaryColor}
-                  onChange={(e) => setTheme({...theme, textPrimaryColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Testo su Sfondo Chiaro</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.textSecondaryColor}
-                  onChange={(e) => setTheme({...theme, textSecondaryColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.textSecondaryColor}
-                  onChange={(e) => setTheme({...theme, textSecondaryColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: tokens.spacing.lg }}>
+            {mainColors.map(renderColorField)}
           </div>
 
           <div style={{ ...subLabelStyles, marginTop: 24 }}>Testo e forma</div>
@@ -897,177 +863,30 @@ function ThemeCustomizer({ restaurantId }) {
         </div>
       </Card>
 
-      {/* Personalizzazione avanzata (colori funzionali) — a scomparsa */}
-      <button
-        onClick={() => setShowAdvanced(v => !v)}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 18px', border: `1px solid ${tokens.colors.gray[200]}`, borderRadius: tokens.borderRadius.lg, background: tokens.colors.white, cursor: 'pointer', fontSize: 15, fontWeight: 600, color: tokens.colors.black }}
-      >
-        <span>Personalizzazione avanzata <span style={{ fontWeight: 400, color: tokens.colors.gray[500], fontSize: 13 }}>— bordi, stati errore/successo, badge…</span></span>
-        <span style={{ fontSize: 13, color: tokens.colors.gray[500] }}>{showAdvanced ? '▲ Nascondi' : '▼ Mostra'}</span>
-      </button>
 
-      {showAdvanced && (
-      <Card>
-        <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
-          <h3 style={sectionTitleStyles}>Colori Funzionali</h3>
-          <p style={{
-            marginBottom: tokens.spacing.lg,
-            fontSize: tokens.typography.fontSize.sm,
-            color: tokens.colors.gray[600]
-          }}>
-            Colori per elementi specifici: bordi, stati di errore/successo, azioni
-          </p>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
-            gap: tokens.spacing.lg
-          }}>
-            <div>
-              <label style={labelStyles}>Colore Bordi</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.borderColor}
-                  onChange={(e) => setTheme({...theme, borderColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.borderColor}
-                  onChange={(e) => setTheme({...theme, borderColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
+      {/* Colori avanzati: solo per il layout Classico, a scomparsa */}
+      {advancedColors.length > 0 && (
+        <>
+          <button
+            onClick={() => setShowAdvanced(v => !v)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 18px', border: `1px solid ${tokens.colors.gray[200]}`, borderRadius: tokens.borderRadius.lg, background: tokens.colors.white, cursor: 'pointer', fontSize: 15, fontWeight: 600, color: tokens.colors.black }}
+          >
+            <span>Colori avanzati <span style={{ fontWeight: 400, color: tokens.colors.gray[500], fontSize: 13 }}>— stati errore/successo, link, overlay…</span></span>
+            <span style={{ fontSize: 13, color: tokens.colors.gray[500] }}>{showAdvanced ? '▲ Nascondi' : '▼ Mostra'}</span>
+          </button>
+          {showAdvanced && (
+            <Card>
+              <div style={{ padding: tokens.spacing.xl }} className="theme-card-padding">
+                <p style={{ margin: `0 0 ${tokens.spacing.lg}`, fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[600] }}>
+                  Colori di dettaglio usati dal layout Classico (stati, link, bordi fini).
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: tokens.spacing.lg }}>
+                  {advancedColors.map(renderColorField)}
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Testo Disabilitato</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.textTertiaryColor}
-                  onChange={(e) => setTheme({...theme, textTertiaryColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.textTertiaryColor}
-                  onChange={(e) => setTheme({...theme, textTertiaryColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Background Terziario</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.backgroundTertiary}
-                  onChange={(e) => setTheme({...theme, backgroundTertiary: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.backgroundTertiary}
-                  onChange={(e) => setTheme({...theme, backgroundTertiary: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Colore Errore</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.errorColor}
-                  onChange={(e) => setTheme({...theme, errorColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.errorColor}
-                  onChange={(e) => setTheme({...theme, errorColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Colore Successo</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.successColor}
-                  onChange={(e) => setTheme({...theme, successColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.successColor}
-                  onChange={(e) => setTheme({...theme, successColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Colore Warning</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.warningColor}
-                  onChange={(e) => setTheme({...theme, warningColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.warningColor}
-                  onChange={(e) => setTheme({...theme, warningColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Colore Preferiti Attivi</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.favoriteActiveColor}
-                  onChange={(e) => setTheme({...theme, favoriteActiveColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.favoriteActiveColor}
-                  onChange={(e) => setTheme({...theme, favoriteActiveColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyles}>Colore Elimina</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm }}>
-                <input
-                  type="color"
-                  value={theme.deleteColor}
-                  onChange={(e) => setTheme({...theme, deleteColor: e.target.value})}
-                  style={colorInputStyles}
-                />
-                <input
-                  type="text"
-                  value={theme.deleteColor}
-                  onChange={(e) => setTheme({...theme, deleteColor: e.target.value})}
-                  style={{ ...inputStyles, flex: 1 }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+            </Card>
+          )}
+        </>
       )}
 
       {showHomeEditor && (
