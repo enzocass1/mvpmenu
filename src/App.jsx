@@ -27,6 +27,7 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import ChannelsPage from './pages/ChannelsPage'
 import SettingsPage from './pages/SettingsPage'
 import UpdatesPage from './pages/UpdatesPage'
+import UpdateDetailPage from './pages/UpdateDetailPage'
 import PlanPage from './pages/PlanPage'
 import CassaPage from './pages/CassaPage'
 import UsersPage from './pages/UsersPage'
@@ -281,6 +282,10 @@ function App() {
       <Route
         path="/aggiornamenti"
         element={session ? <UpdatesPage session={session} /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/aggiornamenti/:id"
+        element={session ? <UpdateDetailPage session={session} /> : <Navigate to="/login" replace />}
       />
 
       {/* Users Page (Ruoli + Membri) - solo se loggato */}

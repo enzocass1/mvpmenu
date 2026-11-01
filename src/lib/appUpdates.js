@@ -108,6 +108,19 @@ export const APP_UPDATES = [
   }
 ]
 
+// Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
+export const EXAMPLE_IMAGE = {
+  '2026-11-01-live-editor': '/updates/live-editor.gif',
+  '2026-11-01-portate': '/updates/cassa.png',
+  '2026-11-01-stato-ordini': '/updates/ordini.png',
+  '2026-11-01-chiudi-non-pagato': '/updates/cassa.png',
+  '2026-11-01-margini': '/updates/analytics.png',
+  '2026-11-01-riordino': '/updates/riordino.gif',
+  '2026-11-01-temi-layout': '/updates/temi-layout.gif'
+}
+
+export const getUpdateById = (id) => APP_UPDATES.find((u) => u.id === id) || null
+
 export const LATEST_UPDATE_ID = APP_UPDATES[0].id
 const SEEN_KEY = 'app_updates_seen_id'
 
