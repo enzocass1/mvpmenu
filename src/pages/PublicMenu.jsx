@@ -1470,10 +1470,10 @@ const getStyles = (theme = {}) => ({
 
   productHeader: {
     width: '100%',
-    padding: '14px 16px',
+    padding: '12px 14px',
     display: 'flex',
-    alignItems: 'stretch',
-    gap: '12px',
+    alignItems: 'center',
+    gap: '10px',
   },
 
   productMain: {
@@ -1481,7 +1481,7 @@ const getStyles = (theme = {}) => ({
     minWidth: 0,
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '6px',
   },
 
   productPriceLine: {
@@ -1495,33 +1495,28 @@ const getStyles = (theme = {}) => ({
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    marginTop: '2px',
   },
 
   discoverButton: {
     flexShrink: 0,
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: '6px',
     cursor: 'pointer',
-    paddingLeft: '12px',
-    borderLeft: `1px solid ${theme.borderColor || '#e0e0e0'}`,
-    minWidth: '64px',
+    paddingLeft: '8px',
   },
 
   discoverText: {
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: '600',
     color: theme.textTertiaryColor || '#999',
     lineHeight: 1.1,
-    textAlign: 'center',
     whiteSpace: 'nowrap',
   },
 
   discoverArrow: {
-    fontSize: '20px',
+    fontSize: '18px',
     lineHeight: 1,
     color: theme.textSecondaryColor || '#000',
     transition: 'transform 0.2s ease',
@@ -1802,7 +1797,7 @@ const getStyles = (theme = {}) => ({
   favoriteButton: {
     background: 'none',
     border: 'none',
-    padding: '6px',
+    padding: '4px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -1814,7 +1809,7 @@ const getStyles = (theme = {}) => ({
     backgroundColor: theme.primaryColor || '#000',
     color: theme.textPrimaryColor || '#fff',
     border: 'none',
-    padding: '8px 16px',
+    padding: '7px 14px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
