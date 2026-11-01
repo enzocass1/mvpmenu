@@ -81,6 +81,37 @@ export default function MenuBuilderLayout({
     return () => el.removeEventListener('wheel', onWheel)
   }, [categories, viewAllCat])
 
+  // Desktop: scorri i badge trascinando col mouse (click & drag), senza rompere i tap sui badge
+  useEffect(() => {
+    const el = chipsRef.current
+    if (!el) return
+    let down = false, moved = false, startX = 0, startScroll = 0
+    const onDown = (e) => {
+      if (e.pointerType === 'touch') return // il touch scrolla gia' da solo
+      down = true; moved = false; startX = e.clientX; startScroll = el.scrollLeft
+      el.style.cursor = 'grabbing'
+    }
+    const onMove = (e) => {
+      if (!down) return
+      const dx = e.clientX - startX
+      if (Math.abs(dx) > 4) moved = true
+      el.scrollLeft = startScroll - dx
+    }
+    const onUp = () => { down = false; el.style.cursor = 'grab' }
+    const onClickCapture = (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false } }
+    el.style.cursor = 'grab'
+    el.addEventListener('pointerdown', onDown)
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    el.addEventListener('click', onClickCapture, true)
+    return () => {
+      el.removeEventListener('pointerdown', onDown)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      el.removeEventListener('click', onClickCapture, true)
+    }
+  }, [categories, viewAllCat])
+
   // Prezzo numerico minimo (solo per l'ordinamento dei caroselli)
   const priceOf = (p) => (p.hasVariants && p.variants?.length)
     ? Math.min(...p.variants.map(v => Number(v.price || p.price || 0)))
@@ -234,7 +265,7 @@ export default function MenuBuilderLayout({
 
 const S = {
   page: { minHeight: '100vh', paddingBottom: '88px' },
-  chipBar: { display: 'flex', gap: '8px', overflowX: 'auto', padding: '10px 16px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' },
+  chipBar: { display: 'flex', gap: '8px', overflowX: 'auto', padding: '10px 16px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', userSelect: 'none', WebkitUserSelect: 'none' },
   chipBarFixed: { position: 'fixed', top: '54px', left: 0, right: 0, zIndex: 90 },
   chip: { flexShrink: 0, padding: '8px 14px', background: 'transparent', fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
   section: { padding: '8px 0 6px' },
