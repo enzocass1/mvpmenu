@@ -767,9 +767,9 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                       <div style={styles.productMain}>
                         <div style={styles.productName}>{product.name}</div>
 
-                        <div style={styles.productPriceLine}>{formatPrice(product)}</div>
-
                         <div style={styles.productActions}>
+                          <div style={styles.productPriceLine}>{formatPrice(product)}</div>
+
                           {orderSettingsEnabled && (
                             <div
                               onClick={(e) => { e.stopPropagation(); setAddToCartModalProduct(product) }}
