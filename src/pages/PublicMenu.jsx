@@ -24,6 +24,7 @@ import AddToCartModal from '../components/AddToCartModal'
 import MenuStoreLayout from '../components/MenuStoreLayout'
 import MenuBuilderLayout from '../components/MenuBuilderLayout'
 import MenuTopBar from '../components/MenuTopBar'
+import { formatPrice } from '../lib/priceFormat'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -756,98 +757,87 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                 </p>
               </div>
             ) : (
-              categoryProducts.map((product) => (
-                <div key={product.id} style={styles.productCard}>
-                  {/* Header prodotto: Cuore - ORDINA - Nome - Prezzo - Toggle */}
-                  <div style={styles.productHeader}>
-                    <div
-                      onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
-                      style={styles.favoriteButton}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
-                    >
-                      {isFavorite(subdomain, product.id) ? (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill={themeStyles.favoriteActiveColor || '#e74c3c'} stroke={themeStyles.favoriteActiveColor || '#e74c3c'} strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                      ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={themeStyles.textSecondaryColor || '#000'} strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                      )}
-                    </div>
+              categoryProducts.map((product) => {
+                const expanded = !!expandedProducts[product.id]
+                const hasDetails = !!(product.image_url || product.description)
+                return (
+                  <div key={product.id} style={styles.productCard}>
+                    <div style={styles.productHeader}>
+                      {/* Colonna sinistra: nome, prezzo, azioni */}
+                      <div style={styles.productMain}>
+                        <div style={styles.productName}>{product.name}</div>
 
-                    {orderSettingsEnabled && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setAddToCartModalProduct(product)
-                        }}
-                        style={styles.addToCartButtonCompact}
-                        role="button"
-                        tabIndex={0}
-                        aria-label="Aggiungi al carrello"
-                      >
-                        ORDINA
-                      </div>
-                    )}
+                        <div style={styles.productPriceLine}>{formatPrice(product)}</div>
 
-                    <div
-                      style={{ flex: 1, cursor: 'pointer' }}
-                      onClick={() => toggleProduct(product.id, selectedCategory)}
-                    >
-                      <div style={styles.productName}>{product.name}</div>
-                    </div>
+                        <div style={styles.productActions}>
+                          {orderSettingsEnabled && (
+                            <div
+                              onClick={(e) => { e.stopPropagation(); setAddToCartModalProduct(product) }}
+                              style={styles.addToCartButtonCompact}
+                              role="button"
+                              tabIndex={0}
+                              aria-label="Aggiungi al carrello"
+                            >
+                              ORDINA
+                            </div>
+                          )}
 
-                    {!product.hasVariants && (
-                      <div style={styles.singleProductPrice}>
-                        €{product.price.toFixed(2)}
-                      </div>
-                    )}
-
-                    <div
-                      style={styles.expandIcon}
-                      onClick={() => toggleProduct(product.id, selectedCategory)}
-                    >
-                      {expandedProducts[product.id] ? '▲' : '▼'}
-                    </div>
-                  </div>
-
-                  {/* Lista varianti SEMPRE visibile (sotto il nome) */}
-                  {product.hasVariants && product.variants.length > 0 && (
-                    <div style={styles.variantsListContainer}>
-                      {product.variants.map((variant) => (
-                        <div key={variant.id} style={styles.variantItem}>
-                          <span style={styles.variantName}>{variant.title}</span>
-                          <span style={styles.variantPrice}>
-                            €{(variant.price || product.price).toFixed(2)}
-                          </span>
+                          <div
+                            onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
+                            style={styles.favoriteButton}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+                          >
+                            {isFavorite(subdomain, product.id) ? (
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill={themeStyles.favoriteActiveColor || '#e74c3c'} stroke={themeStyles.favoriteActiveColor || '#e74c3c'} strokeWidth="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                              </svg>
+                            ) : (
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={themeStyles.textSecondaryColor || '#000'} strokeWidth="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                              </svg>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
 
-                  {/* Dettagli espandibili (immagine + descrizione) */}
-                  {expandedProducts[product.id] && (
-                    <div style={styles.productDetails}>
-                      {product.image_url && (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          style={styles.productImage}
-                          loading="lazy"
-                        />
-                      )}
-                      {product.description && (
-                        <p style={styles.productDescription}>
-                          {product.description}
-                        </p>
+                      {/* Colonna destra: "Scopri di più" + freccia che apre i dettagli */}
+                      {hasDetails && (
+                        <div
+                          onClick={() => toggleProduct(product.id, selectedCategory)}
+                          style={styles.discoverButton}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={expanded ? 'Chiudi dettagli' : 'Scopri di più'}
+                        >
+                          <span style={styles.discoverText}>{expanded ? 'Chiudi' : 'Scopri di più'}</span>
+                          <span style={{ ...styles.discoverArrow, transform: expanded ? 'rotate(90deg)' : 'none' }}>→</span>
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              ))
+
+                    {/* Dettagli espandibili (immagine + descrizione) */}
+                    {expanded && hasDetails && (
+                      <div style={styles.productDetails}>
+                        {product.image_url && (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            style={styles.productImage}
+                            loading="lazy"
+                          />
+                        )}
+                        {product.description && (
+                          <p style={styles.productDescription}>
+                            {product.description}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
           </div>
 
@@ -1480,10 +1470,61 @@ const getStyles = (theme = {}) => ({
 
   productHeader: {
     width: '100%',
-    padding: '16px',
+    padding: '14px 16px',
+    display: 'flex',
+    alignItems: 'stretch',
+    gap: '12px',
+  },
+
+  productMain: {
+    flex: 1,
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+
+  productPriceLine: {
+    fontFamily: theme.headingFontFamily,
+    fontSize: 'clamp(15px, 4vw, 17px)',
+    fontWeight: 'bold',
+    color: theme.textSecondaryColor || '#000',
+  },
+
+  productActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '10px',
+    marginTop: '2px',
+  },
+
+  discoverButton: {
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    cursor: 'pointer',
+    paddingLeft: '12px',
+    borderLeft: `1px solid ${theme.borderColor || '#e0e0e0'}`,
+    minWidth: '64px',
+  },
+
+  discoverText: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: theme.textTertiaryColor || '#999',
+    lineHeight: 1.1,
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
+  },
+
+  discoverArrow: {
+    fontSize: '20px',
+    lineHeight: 1,
+    color: theme.textSecondaryColor || '#000',
+    transition: 'transform 0.2s ease',
   },
 
   productButton: {
@@ -1761,13 +1802,12 @@ const getStyles = (theme = {}) => ({
   favoriteButton: {
     background: 'none',
     border: 'none',
-    padding: '8px',
+    padding: '6px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'transform 0.2s ease',
-    marginRight: '8px',
   },
 
   addToCartButtonCompact: {
@@ -1780,7 +1820,6 @@ const getStyles = (theme = {}) => ({
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s ease',
-    marginRight: '12px',
     borderRadius: theme.borderRadius || '8px',
     fontSize: '13px',
     fontWeight: '600',
