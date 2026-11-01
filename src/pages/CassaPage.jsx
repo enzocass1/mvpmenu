@@ -493,7 +493,7 @@ function CassaPage({ session }) {
     addToCart({
       id: selectedProduct.id,
       name: selectedProduct.name,
-      price: selectedVariant.price,
+      price: Number(selectedVariant.price ?? selectedProduct.price ?? 0),
       quantity: 1,
       variant_id: selectedVariant.id,
       variant_title: selectedVariant.title,
@@ -1354,7 +1354,7 @@ function CassaPage({ session }) {
                       color: tokens.colors.black,
                     }}
                   >
-                    €{product.price.toFixed(2)}
+                    €{Number(product.price || 0).toFixed(2)}
                   </div>
                   {product.variants && product.variants.length > 0 && (
                     <Badge variant="info" size="sm" style={{ marginTop: tokens.spacing.xs }}>
@@ -1425,7 +1425,7 @@ function CassaPage({ session }) {
                             color: tokens.colors.gray[600],
                           }}
                         >
-                          €{item.price.toFixed(2)} x {item.quantity}
+                          €{Number(item.price || 0).toFixed(2)} x {item.quantity}
                         </div>
                       </div>
                       <div
@@ -1434,7 +1434,7 @@ function CassaPage({ session }) {
                           fontWeight: tokens.typography.fontWeight.semibold,
                         }}
                       >
-                        €{(item.price * item.quantity).toFixed(2)}
+                        €{Number((item.price || 0) * item.quantity).toFixed(2)}
                       </div>
                     </div>
 
@@ -1826,55 +1826,40 @@ function CassaPage({ session }) {
         </Modal.Header>
         <Modal.Body>
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.lg }}>
-            {variantOptions.map((option) => (
-              <div key={option.id}>
-                <div
-                  style={{
-                    fontSize: tokens.typography.fontSize.sm,
-                    fontWeight: tokens.typography.fontWeight.medium,
-                    marginBottom: tokens.spacing.sm,
-                  }}
-                >
-                  {option.name}
-                </div>
-                <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
-                  {(option.values || []).map((value) => {
-                    const variant = selectedProduct?.variants?.find(
-                      (v) => (v.title || '').includes(value.value || '')
-                    )
-                    return (
-                      <button
-                        key={value.id}
-                        onClick={() => setSelectedVariant(variant)}
-                        style={{
-                          padding: `${tokens.spacing.sm} ${tokens.spacing.lg}`,
-                          backgroundColor:
-                            selectedVariant?.id === variant?.id
-                              ? tokens.colors.black
-                              : tokens.colors.white,
-                          color:
-                            selectedVariant?.id === variant?.id
-                              ? tokens.colors.white
-                              : tokens.colors.black,
-                          border: `${tokens.borders.width.thin} solid ${tokens.colors.gray[300]}`,
-                          borderRadius: tokens.borderRadius.md,
-                          cursor: 'pointer',
-                          fontSize: tokens.typography.fontSize.sm,
-                          fontFamily: tokens.typography.fontFamily.base,
-                        }}
-                      >
-                        {value.value}
-                        {variant && (
-                          <div style={{ fontSize: tokens.typography.fontSize.xs, marginTop: '2px' }}>
-                            €{Number(variant.price || 0).toFixed(2)}
-                          </div>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
+            <div>
+              <div style={{ fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing.sm }}>
+                Scegli la variante
               </div>
-            ))}
+              <div style={{ display: 'flex', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
+                {(selectedProduct?.variants || []).map((variant) => {
+                  const active = selectedVariant?.id === variant.id
+                  return (
+                    <button
+                      key={variant.id}
+                      onClick={() => setSelectedVariant(variant)}
+                      style={{
+                        padding: `${tokens.spacing.sm} ${tokens.spacing.lg}`,
+                        minWidth: '96px',
+                        backgroundColor: active ? tokens.colors.black : tokens.colors.white,
+                        color: active ? tokens.colors.white : tokens.colors.black,
+                        border: `${tokens.borders.width.thin} solid ${active ? tokens.colors.black : tokens.colors.gray[300]}`,
+                        borderRadius: tokens.borderRadius.md,
+                        cursor: 'pointer',
+                        fontSize: tokens.typography.fontSize.sm,
+                        fontWeight: tokens.typography.fontWeight.medium,
+                        fontFamily: tokens.typography.fontFamily.base,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {variant.title}
+                      <div style={{ fontSize: tokens.typography.fontSize.xs, marginTop: '2px', opacity: 0.85 }}>
+                        €{Number(variant.price || 0).toFixed(2)}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
             <Input
               label="Note (opzionale)"
