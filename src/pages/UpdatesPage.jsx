@@ -6,7 +6,25 @@ import DashboardLayout from '../components/ui/DashboardLayout'
 import { Card, Badge, Button, PageHeader } from '../components/ui'
 import { APP_UPDATES, UPDATE_TYPE_LABEL, markUpdatesSeen } from '../lib/appUpdates'
 
-const TYPE_TO_BADGE = { novita: 'error', miglioramento: 'info', correzione: 'success' }
+const TYPE_COLORS = {
+  novita: { bg: '#fee2e2', color: '#b91c1c', border: '#fecaca' },
+  miglioramento: { bg: '#dbeafe', color: '#1d4ed8', border: '#bfdbfe' },
+  correzione: { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' },
+}
+
+// Pill compatto per il tipo di aggiornamento
+function TypePill({ type }) {
+  const label = (UPDATE_TYPE_LABEL[type] || UPDATE_TYPE_LABEL.novita).label
+  const c = TYPE_COLORS[type] || TYPE_COLORS.novita
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', flexShrink: 0,
+      padding: '1px 6px', borderRadius: '999px',
+      fontSize: '10px', fontWeight: 600, lineHeight: 1.5, letterSpacing: '0.2px',
+      background: c.bg, color: c.color, border: `1px solid ${c.border}`, whiteSpace: 'nowrap',
+    }}>{label}</span>
+  )
+}
 
 /**
  * Lista "Aggiornamenti": una scheda per ogni GIORNO di aggiornamenti.
@@ -97,21 +115,18 @@ function UpdatesPage({ session }) {
                 }}>{ups.length} aggiornament{ups.length === 1 ? 'o' : 'i'}{parts.length ? ` · ${parts.join(' · ')}` : ''}</p>
 
                 <ul style={{ margin: `0 0 ${tokens.spacing.md}`, paddingLeft: tokens.spacing.lg, display: 'flex', flexDirection: 'column', gap: tokens.spacing.xs }}>
-                  {ups.map((u) => {
-                    const label = (UPDATE_TYPE_LABEL[u.type] || UPDATE_TYPE_LABEL.novita).label
-                    return (
-                      <li key={u.id} style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[800], lineHeight: tokens.typography.lineHeight.normal }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{u.title}</span>
-                          <Badge variant={TYPE_TO_BADGE[u.type] || 'default'} size="sm">{label}</Badge>
-                        </span>
-                      </li>
-                    )
-                  })}
+                  {ups.map((u) => (
+                    <li key={u.id} style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[800], lineHeight: tokens.typography.lineHeight.normal }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{u.title}</span>
+                        <TypePill type={u.type} />
+                      </span>
+                    </li>
+                  ))}
                 </ul>
 
                 <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/aggiornamenti/${ups[0].id}`) }}>
-                  Apri la giornata
+                  Scopri gli aggiornamenti
                 </Button>
               </Card>
             )
