@@ -140,6 +140,7 @@ function PublicMenu() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [expandedProducts, setExpandedProducts] = useState({})
+  const [lightboxImage, setLightboxImage] = useState(null)
   const [openingHours, setOpeningHours] = useState([])
   const [favoritesCount, setFavoritesCount] = useState(0)
   const [isFavoritesSidebarOpen, setIsFavoritesSidebarOpen] = useState(false)
@@ -825,7 +826,9 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                             tabIndex={0}
                             aria-label="Aggiungi al carrello"
                           >
-                            Aggiungi
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                              <path d="M12 5v14M5 12h14"></path>
+                            </svg>
                           </div>
                         )}
                       </div>
@@ -840,6 +843,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                             alt={product.name}
                             style={styles.productThumb}
                             loading="lazy"
+                            onClick={() => setLightboxImage(product.image_url)}
                           />
                         )}
                         {product.description && (
@@ -988,6 +992,25 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
             onAddToCart={handleAddToCart}
             restaurant={restaurant}
           />
+
+          {/* Modal immagine prodotto (lightbox) */}
+          {lightboxImage && (
+            <div style={styles.lightboxOverlay} onClick={() => setLightboxImage(null)}>
+              <button
+                style={styles.lightboxClose}
+                onClick={() => setLightboxImage(null)}
+                aria-label="Chiudi immagine"
+              >
+                ✕
+              </button>
+              <img
+                src={lightboxImage}
+                alt=""
+                style={styles.lightboxImage}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
         </div>
       </>
     )
@@ -1604,6 +1627,48 @@ const getStyles = (theme = {}) => ({
     objectFit: 'cover',
     borderRadius: theme.borderRadius || '10px',
     display: 'block',
+    cursor: 'zoom-in',
+  },
+
+  lightboxOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 4000,
+    background: 'rgba(0, 0, 0, 0.8)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+  },
+
+  lightboxImage: {
+    maxWidth: '92vw',
+    maxHeight: '86vh',
+    width: 'auto',
+    height: 'auto',
+    objectFit: 'contain',
+    borderRadius: '8px',
+    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
+  },
+
+  lightboxClose: {
+    position: 'absolute',
+    top: '16px',
+    right: '16px',
+    width: '42px',
+    height: '42px',
+    borderRadius: '50%',
+    background: 'rgba(20, 20, 20, 0.65)',
+    color: '#fff',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
+    fontSize: '20px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   
   productDescription: {
@@ -1826,18 +1891,16 @@ const getStyles = (theme = {}) => ({
     backgroundColor: theme.primaryColor || '#000',
     color: theme.textPrimaryColor || '#fff',
     border: 'none',
-    padding: '9px 18px',
+    width: '44px',
+    height: '44px',
+    flexShrink: 0,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s ease',
-    borderRadius: '999px',
-    fontSize: '14px',
-    fontWeight: '600',
-    letterSpacing: '0.2px',
+    borderRadius: '50%',
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-    whiteSpace: 'nowrap',
   },
 
   favoritesHeaderButton: {
