@@ -4,6 +4,86 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-01-ordini-tabella',
+    date: '2026-11-01',
+    type: 'novita',
+    title: 'Ordini in tabella (stile e-commerce)',
+    description:
+      "La pagina Ordini è ora una tabella chiara e ordinata con tutte le colonne utili a colpo d'occhio: numero ordine, data, origine (tavolo o banco), totale, stato del pagamento, stato di evasione, numero di articoli e numero di portate. Mostra tutti gli ordini, inclusi quelli al banco.",
+    steps: [
+      'Apri "Ordini" dal menu laterale.',
+      'Usa le schede in alto (Tutti, Attivi, In Attesa, In Preparazione, Completati, Eliminati) per filtrare.',
+      'Guarda la colonna "Portate" per sapere in quante comande è diviso un ordine, e "Articoli" per i pezzi totali.',
+      'Clicca una riga per aprire il dettaglio dell\'ordine; su desktop usa le caselle per le azioni multiple.'
+    ]
+  },
+  {
+    id: '2026-11-01-preferiti-cassa',
+    date: '2026-11-01',
+    type: 'novita',
+    title: 'Preferiti alla Cassa (al banco)',
+    description:
+      "Al banco hai una scheda 'Preferiti' sempre come prima a sinistra: ci metti i prodotti che usi più spesso, nell'ordine che vuoi, per servirli in un tocco.",
+    steps: [
+      'Vai su "Cassa" → "Al Banco".',
+      'La prima scheda è "Preferiti".',
+      'Premi "Scegli preferiti" e seleziona i prodotti (da qualsiasi categoria, con ricerca).',
+      'Premi "Ordina" per trascinarli nell\'ordine che preferisci.',
+      'I preferiti restano salvati e pronti all\'uso.'
+    ]
+  },
+  {
+    id: '2026-11-01-cassa-compatta',
+    date: '2026-11-01',
+    type: 'miglioramento',
+    title: 'Cassa al banco più compatta e veloce',
+    description:
+      "I prodotti al banco sono ora in una griglia a due righe che scorre in orizzontale, con riquadri più compatti: ne vedi di più in meno spazio. Puoi scorrere categorie e prodotti con la rotellina del mouse (oltre al tocco), comodo anche su schermi touch.",
+    steps: [
+      'Vai su "Cassa" → "Al Banco".',
+      'Scorri i prodotti in orizzontale con la rotellina del mouse o col dito.',
+      'Scorri allo stesso modo la barra delle categorie in alto.'
+    ]
+  },
+  {
+    id: '2026-11-01-ricerca-prodotti',
+    date: '2026-11-01',
+    type: 'novita',
+    title: 'Ricerca rapida in Prodotti e Categorie',
+    description:
+      "Nelle pagine Prodotti e Categorie c'è un campo di ricerca in alto: scrivendo, l'elenco si filtra all'istante mostrando solo ciò che cerchi.",
+    steps: [
+      'Vai su "Prodotti" (o la scheda "Categorie").',
+      'Scrivi nel campo di ricerca in alto.',
+      'L\'elenco si aggiorna mentre scrivi.'
+    ]
+  },
+  {
+    id: '2026-11-01-coerenza-ux',
+    date: '2026-11-01',
+    type: 'miglioramento',
+    title: 'Grafica più coerente in tutta l\'app',
+    description:
+      "Abbiamo uniformato intestazioni, schede, spazi e colori in tutta l'app, così ogni pagina ha lo stesso stile pulito e ordinato. Corretti anche alcuni dettagli (spaziature delle schede, pulsanti, colori).",
+    steps: [
+      'Naviga tra le pagine (Home, Ordini, Prodotti, Analytics, Impostazioni…): troverai intestazioni e schede uniformi.',
+      'Le schede di navigazione hanno ora lo stesso stile ovunque.'
+    ]
+  },
+  {
+    id: '2026-11-01-correzioni',
+    date: '2026-11-01',
+    type: 'correzione',
+    title: 'Correzioni importanti',
+    description:
+      "Risolti alcuni problemi: alla cassa i prodotti con varianti ora si selezionano correttamente (prima restava una schermata bianca); le schede non hanno più contenuti attaccati ai bordi; e scegliere un tema pronto non cancella più la home personalizzata.",
+    steps: [
+      'Cassa → Al Banco: clicca un prodotto con varianti e selezionala senza problemi.',
+      'Le schede (ordini, ecc.) hanno ora il giusto spazio interno.',
+      'Nei temi, applicare un tema pronto mantiene la tua Home componibile.'
+    ]
+  },
+  {
     id: '2026-11-01-live-editor',
     date: '2026-11-01',
     type: 'novita',
@@ -110,6 +190,12 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-01-ordini-tabella': '/updates/ordini-tabella.gif',
+  '2026-11-01-preferiti-cassa': '/updates/preferiti-cassa.gif',
+  '2026-11-01-cassa-compatta': '/updates/cassa-compatta.png',
+  '2026-11-01-ricerca-prodotti': '/updates/ricerca-prodotti.gif',
+  '2026-11-01-coerenza-ux': '/updates/coerenza-ux.png',
+  '2026-11-01-correzioni': '/updates/correzioni.png',
   '2026-11-01-live-editor': '/updates/live-editor.gif',
   '2026-11-01-portate': '/updates/cassa.png',
   '2026-11-01-stato-ordini': '/updates/ordini.png',

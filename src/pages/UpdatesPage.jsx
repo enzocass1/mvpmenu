@@ -9,9 +9,10 @@ import { APP_UPDATES, UPDATE_TYPE_LABEL, markUpdatesSeen } from '../lib/appUpdat
 const TYPE_TO_BADGE = { novita: 'error', miglioramento: 'info', correzione: 'success' }
 
 /**
- * Lista "Aggiornamenti": una scheda per ogni aggiornamento, con alcuni punti
- * chiave; cliccando si apre la pagina dedicata (/aggiornamenti/:id) col
- * contenuto completo e un link condivisibile (utile per le email ai clienti).
+ * Lista "Aggiornamenti": una scheda per ogni GIORNO di aggiornamenti.
+ * La scheda raggruppa tutti gli aggiornamenti di quella data ed elenca i
+ * titoli; cliccando si apre la pagina del giorno (/aggiornamenti/:id) con una
+ * tab per ogni aggiornamento e il link condivisibile (utile per le email).
  */
 function UpdatesPage({ session }) {
   const navigate = useNavigate()
@@ -47,6 +48,12 @@ function UpdatesPage({ session }) {
     } catch { return iso }
   }
 
+  // Raggruppa gli aggiornamenti per data (giorno), piu' recente prima
+  const byDate = {}
+  APP_UPDATES.forEach((u) => { (byDate[u.date] = byDate[u.date] || []).push(u) })
+  const days = Object.keys(byDate).sort().reverse()
+  const today = new Date().toISOString().slice(0, 10)
+
   return (
     <DashboardLayout
       restaurantName={restaurant?.name}
@@ -56,42 +63,55 @@ function UpdatesPage({ session }) {
       onLogout={handleLogout}
     >
       <div style={{ maxWidth: '820px', margin: '0 auto' }}>
-        <PageHeader title="Aggiornamenti" subtitle="Tutte le novità e i miglioramenti. Apri una scheda per i dettagli e il link da condividere." />
+        <PageHeader title="Aggiornamenti" subtitle="Le novità e i miglioramenti dell'app. Apri una giornata per i dettagli e il link da condividere." />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.md }}>
-          {APP_UPDATES.map((u) => {
-            const label = (UPDATE_TYPE_LABEL[u.type] || UPDATE_TYPE_LABEL.novita).label
-            const highlights = (u.steps || []).slice(0, 3)
+          {days.map((date) => {
+            const ups = byDate[date]
+            const isToday = date === today
+            // Conteggio per tipo, per un sottotitolo utile
+            const counts = ups.reduce((acc, u) => { acc[u.type] = (acc[u.type] || 0) + 1; return acc }, {})
+            const parts = []
+            if (counts.novita) parts.push(`${counts.novita} novità`)
+            if (counts.miglioramento) parts.push(`${counts.miglioramento} migliorie`)
+            if (counts.correzione) parts.push(`${counts.correzione} correzioni`)
+
             return (
-              <Card key={u.id} padding={isMobile ? 'md' : 'lg'} hoverable onClick={() => navigate(`/aggiornamenti/${u.id}`)}>
+              <Card key={date} padding={isMobile ? 'md' : 'lg'} hoverable onClick={() => navigate(`/aggiornamenti/${ups[0].id}`)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.sm, flexWrap: 'wrap', marginBottom: tokens.spacing.sm }}>
-                  <Badge variant={TYPE_TO_BADGE[u.type] || 'default'}>{label}</Badge>
-                  <span style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[500] }}>{formatDate(u.date)}</span>
+                  {isToday && <Badge variant="error">Oggi</Badge>}
+                  <span style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[500] }}>{formatDate(date)}</span>
                 </div>
+
                 <h2 style={{
-                  margin: `0 0 ${tokens.spacing.sm}`,
+                  margin: `0 0 ${tokens.spacing.xs}`,
                   fontSize: isMobile ? tokens.typography.fontSize.lg : tokens.typography.fontSize.xl,
                   fontWeight: tokens.typography.fontWeight.bold,
                   color: tokens.colors.black,
-                }}>{u.title}</h2>
+                }}>Aggiornamenti del {formatDate(date)}</h2>
+
                 <p style={{
                   margin: `0 0 ${tokens.spacing.md}`,
-                  fontSize: tokens.typography.fontSize.base,
-                  lineHeight: tokens.typography.lineHeight.normal,
-                  color: tokens.colors.gray[700],
-                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                }}>{u.description}</p>
+                  fontSize: tokens.typography.fontSize.sm,
+                  color: tokens.colors.gray[600],
+                }}>{ups.length} aggiornament{ups.length === 1 ? 'o' : 'i'}{parts.length ? ` · ${parts.join(' · ')}` : ''}</p>
 
-                {highlights.length > 0 && (
-                  <ul style={{ margin: `0 0 ${tokens.spacing.md}`, paddingLeft: tokens.spacing.lg, display: 'flex', flexDirection: 'column', gap: tokens.spacing.xs }}>
-                    {highlights.map((h, i) => (
-                      <li key={i} style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[700], lineHeight: tokens.typography.lineHeight.normal, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h}</li>
-                    ))}
-                  </ul>
-                )}
+                <ul style={{ margin: `0 0 ${tokens.spacing.md}`, paddingLeft: tokens.spacing.lg, display: 'flex', flexDirection: 'column', gap: tokens.spacing.xs }}>
+                  {ups.map((u) => {
+                    const label = (UPDATE_TYPE_LABEL[u.type] || UPDATE_TYPE_LABEL.novita).label
+                    return (
+                      <li key={u.id} style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[800], lineHeight: tokens.typography.lineHeight.normal }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: tokens.spacing.sm, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{u.title}</span>
+                          <Badge variant={TYPE_TO_BADGE[u.type] || 'default'} size="sm">{label}</Badge>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
 
-                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/aggiornamenti/${u.id}`) }}>
-                  Apri aggiornamento
+                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/aggiornamenti/${ups[0].id}`) }}>
+                  Apri la giornata
                 </Button>
               </Card>
             )
