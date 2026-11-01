@@ -24,7 +24,13 @@ import AddToCartModal from '../components/AddToCartModal'
 import MenuStoreLayout from '../components/MenuStoreLayout'
 import MenuBuilderLayout from '../components/MenuBuilderLayout'
 import MenuTopBar from '../components/MenuTopBar'
-import { formatPrice } from '../lib/priceFormat'
+import { getPriceInfo } from '../lib/priceFormat'
+
+// Prezzo in formato italiano: "1,20 €" oppure "Da 7,00 €" se varianti a prezzi diversi
+const formatPriceIt = (p) => {
+  const { value, from } = getPriceInfo(p)
+  return (from ? 'Da ' : '') + value.toFixed(2).replace('.', ',') + ' €'
+}
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -763,68 +769,76 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                 return (
                   <div key={product.id} style={styles.productCard}>
                     <div style={styles.productHeader}>
-                      {/* Colonna sinistra: nome, prezzo, azioni */}
+                      {/* Colonna sinistra: nome, poi prezzo + "Scopri di più" */}
                       <div style={styles.productMain}>
                         <div style={styles.productName}>{product.name}</div>
 
-                        <div style={styles.productActions}>
-                          <div style={styles.productPriceLine}>{formatPrice(product)}</div>
+                        <div style={styles.productMetaRow}>
+                          <span style={styles.productPriceLine}>{formatPriceIt(product)}</span>
 
-                          {orderSettingsEnabled && (
-                            <div
-                              onClick={(e) => { e.stopPropagation(); setAddToCartModalProduct(product) }}
-                              style={styles.addToCartButtonCompact}
+                          {hasDetails && (
+                            <span
+                              onClick={() => toggleProduct(product.id, selectedCategory)}
+                              style={styles.discoverToggle}
                               role="button"
                               tabIndex={0}
-                              aria-label="Aggiungi al carrello"
+                              aria-label={expanded ? 'Chiudi dettagli' : 'Scopri di più'}
                             >
-                              ORDINA
-                            </div>
+                              {expanded ? 'Chiudi' : 'Scopri di più'}
+                              <svg
+                                width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+                              >
+                                <path d="M6 9l6 6 6-6"></path>
+                              </svg>
+                            </span>
                           )}
-
-                          <div
-                            onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
-                            style={styles.favoriteButton}
-                            role="button"
-                            tabIndex={0}
-                            aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
-                          >
-                            {isFavorite(subdomain, product.id) ? (
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill={themeStyles.favoriteActiveColor || '#e74c3c'} stroke={themeStyles.favoriteActiveColor || '#e74c3c'} strokeWidth="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                              </svg>
-                            ) : (
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={themeStyles.textSecondaryColor || '#000'} strokeWidth="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                              </svg>
-                            )}
-                          </div>
                         </div>
                       </div>
 
-                      {/* Colonna destra: "Scopri di più" + freccia che apre i dettagli */}
-                      {hasDetails && (
+                      {/* Colonna destra: cuore + Aggiungi */}
+                      <div style={styles.productRightActions}>
                         <div
-                          onClick={() => toggleProduct(product.id, selectedCategory)}
-                          style={styles.discoverButton}
+                          onClick={(e) => handleToggleFavorite(e, product, categoryData?.name, selectedCategory)}
+                          style={styles.favoriteButton}
                           role="button"
                           tabIndex={0}
-                          aria-label={expanded ? 'Chiudi dettagli' : 'Scopri di più'}
+                          aria-label={isFavorite(subdomain, product.id) ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
                         >
-                          <span style={styles.discoverText}>{expanded ? 'Chiudi' : 'Scopri di più'}</span>
-                          <span style={{ ...styles.discoverArrow, transform: expanded ? 'rotate(90deg)' : 'none' }}>→</span>
+                          {isFavorite(subdomain, product.id) ? (
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill={themeStyles.favoriteActiveColor || '#e74c3c'} stroke={themeStyles.favoriteActiveColor || '#e74c3c'} strokeWidth="2">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                          ) : (
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={themeStyles.textSecondaryColor || '#000'} strokeWidth="2">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                          )}
                         </div>
-                      )}
+
+                        {orderSettingsEnabled && (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); setAddToCartModalProduct(product) }}
+                            style={styles.addToCartButtonCompact}
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Aggiungi al carrello"
+                          >
+                            Aggiungi
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Dettagli espandibili (immagine + descrizione) */}
+                    {/* Dettagli espandibili: miniatura + descrizione */}
                     {expanded && hasDetails && (
                       <div style={styles.productDetails}>
                         {product.image_url && (
                           <img
                             src={product.image_url}
                             alt={product.name}
-                            style={styles.productImage}
+                            style={styles.productThumb}
                             loading="lazy"
                           />
                         )}
@@ -1484,42 +1498,37 @@ const getStyles = (theme = {}) => ({
     gap: '6px',
   },
 
+  productMetaRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+
   productPriceLine: {
     fontFamily: theme.headingFontFamily,
     fontSize: 'clamp(15px, 4vw, 17px)',
     fontWeight: 'bold',
     color: theme.textSecondaryColor || '#000',
-  },
-
-  productActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-
-  discoverButton: {
-    flexShrink: 0,
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: '6px',
-    cursor: 'pointer',
-    paddingLeft: '8px',
-  },
-
-  discoverText: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: theme.textTertiaryColor || '#999',
-    lineHeight: 1.1,
     whiteSpace: 'nowrap',
   },
 
-  discoverArrow: {
-    fontSize: '18px',
-    lineHeight: 1,
+  discoverToggle: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    cursor: 'pointer',
+    fontSize: 'clamp(13px, 3.6vw, 15px)',
+    fontWeight: '500',
     color: theme.textSecondaryColor || '#000',
-    transition: 'transform 0.2s ease',
+    whiteSpace: 'nowrap',
+  },
+
+  productRightActions: {
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
   },
 
   productButton: {
@@ -1580,24 +1589,30 @@ const getStyles = (theme = {}) => ({
   },
   
   productDetails: {
-    padding: '0 16px 16px',
-    backgroundColor: theme.backgroundTertiary || '#f9f9f9',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '12px',
+    padding: '12px 14px 14px',
+    margin: '0 14px',
+    borderTop: `1px solid ${theme.borderColor || '#e0e0e0'}`,
   },
-  
-  productImage: {
-    width: '100%',
-    maxHeight: '250px',
+
+  productThumb: {
+    flexShrink: 0,
+    width: '72px',
+    height: '72px',
     objectFit: 'cover',
-    borderRadius: theme.borderRadius || '8px',
-    marginBottom: '12px',
+    borderRadius: theme.borderRadius || '10px',
     display: 'block',
   },
   
   productDescription: {
+    flex: 1,
+    minWidth: 0,
     color: theme.textTertiaryColor || '#666',
     fontSize: 'clamp(14px, 4vw, 16px)',
     margin: 0,
-    lineHeight: '1.6',
+    lineHeight: '1.5',
     overflowWrap: 'break-word',
     whiteSpace: 'pre-wrap',
   },
@@ -1811,16 +1826,16 @@ const getStyles = (theme = {}) => ({
     backgroundColor: theme.primaryColor || '#000',
     color: theme.textPrimaryColor || '#fff',
     border: 'none',
-    padding: '7px 14px',
+    padding: '9px 18px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.2s ease',
-    borderRadius: theme.borderRadius || '8px',
-    fontSize: '13px',
+    borderRadius: '999px',
+    fontSize: '14px',
     fontWeight: '600',
-    letterSpacing: '0.5px',
+    letterSpacing: '0.2px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
     whiteSpace: 'nowrap',
   },
