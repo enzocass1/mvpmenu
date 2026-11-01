@@ -294,6 +294,22 @@ function OrdersPage({ session }) {
     fontFamily: tokens.typography.fontFamily.mono,
   }
 
+  // Stili tabella ordini (stile Shopify)
+  const thStyle = {
+    padding: `${tokens.spacing.sm} ${tokens.spacing.md}`,
+    textAlign: 'left',
+    fontSize: tokens.typography.fontSize.xs,
+    fontWeight: tokens.typography.fontWeight.semibold,
+    color: tokens.colors.gray[600],
+    textTransform: 'uppercase',
+    letterSpacing: '0.3px',
+  }
+  const tdStyle = {
+    padding: `${tokens.spacing.md} ${tokens.spacing.md}`,
+    color: tokens.colors.black,
+    verticalAlign: 'middle',
+  }
+
   const orderDetailsStyles = {
     display: 'grid',
     gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(150px, 1fr))',
@@ -446,180 +462,76 @@ function OrdersPage({ session }) {
           />
         </Card>
       ) : (
-        <div>
-          {filteredOrders.map((order) => {
-            const isSelected = selectedOrders.includes(order.id)
-
-            let touchStartX = 0
-            let touchStartY = 0
-            let currentX = 0
-
-            const handleTouchStart = (e) => {
-              touchStartX = e.touches[0].clientX
-              touchStartY = e.touches[0].clientY
-            }
-
-            const handleTouchMove = (e) => {
-              if (!touchStartX) return
-              currentX = e.touches[0].clientX
-              const deltaX = currentX - touchStartX
-              const deltaY = Math.abs(e.touches[0].clientY - touchStartY)
-
-              // Solo se lo swipe è più orizzontale che verticale
-              if (Math.abs(deltaX) > deltaY && deltaX > 20) {
-                e.currentTarget.style.transform = `translateX(${Math.min(deltaX, 100)}px)`
-              }
-            }
-
-            const handleTouchEnd = (e) => {
-              const deltaX = currentX - touchStartX
-              const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY)
-
-              e.currentTarget.style.transform = 'translateX(0)'
-
-              // Swipe verso destra di almeno 80px e più orizzontale che verticale
-              // NON permettere swipe per ordini completed
-              if (deltaX > 80 && Math.abs(deltaX) > deltaY && order.status !== 'completed') {
-                if (!selectionMode) {
-                  setSelectionMode(true)
-                  setSelectedOrders([order.id])
-                } else {
-                  toggleOrderSelection(order.id)
-                }
-              }
-
-              touchStartX = 0
-              touchStartY = 0
-              currentX = 0
-            }
-
-            return (
-              <div
-                key={order.id}
-                style={{
-                  ...orderCardStyles,
-                  borderLeft: order.is_priority_order ? `4px solid ${tokens.colors.warning.base}` : `4px solid ${tokens.colors.black}`,
-                  backgroundColor: isSelected ? tokens.colors.info.light : tokens.colors.white,
-                  transform: isSelected ? 'scale(0.98)' : 'scale(1)',
-                  boxShadow: isSelected
-                    ? `0 0 0 3px ${tokens.colors.info.base}, ${tokens.shadows.lg}`
-                    : tokens.shadows.sm,
-                  border: `1px solid ${isSelected ? tokens.colors.info.light : tokens.colors.gray[200]}`,
-                  borderRadius: tokens.borderRadius.lg,
-                }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-              >
-                <Card
-                  variant="default"
-                  padding="md"
-                  hoverable={!selectionMode}
-                  onClick={() => handleOrderClick(order.id)}
-                  style={{ margin: 0, border: 'none', boxShadow: 'none' }}
-                >
-                  {/* Order Header */}
-                  <div style={orderHeaderStyles}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing.md }}>
-                      {/* Checkbox visibile su desktop - disabilitato per ordini completed */}
+        <Card padding="none" style={{ overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: tokens.typography.fontSize.sm, whiteSpace: 'nowrap' }}>
+              <thead>
+                <tr style={{ background: tokens.colors.gray[50], borderBottom: `1px solid ${tokens.colors.gray[200]}` }}>
+                  {isDesktop && <th style={{ ...thStyle, width: 40 }}></th>}
+                  <th style={thStyle}>Ordine</th>
+                  <th style={thStyle}>Data</th>
+                  <th style={thStyle}>Origine</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Totale</th>
+                  <th style={thStyle}>Pagamento</th>
+                  <th style={thStyle}>Evasione</th>
+                  <th style={{ ...thStyle, textAlign: 'center' }}>Articoli</th>
+                  <th style={{ ...thStyle, textAlign: 'center' }}>Portate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map((order) => {
+                  const isSelected = selectedOrders.includes(order.id)
+                  const items = order.order_items || []
+                  const itemsCount = items.reduce((s, i) => s + (i.quantity || 1), 0)
+                  const batchCount = new Set(items.map(i => i.batch_number || 1)).size
+                  const hasTable = order.table?.number || order.table_number
+                  const origin = hasTable ? `${order.room?.name || 'Sala'} · Tavolo ${order.table?.number || order.table_number}` : 'Banco'
+                  const paid = order.payment_status === 'paid'
+                  const unpaid = order.payment_status === 'unpaid'
+                  const payLabel = paid ? 'Pagato' : unpaid ? 'Non pagato' : 'In attesa'
+                  const payVariant = paid ? 'success' : unpaid ? 'error' : 'warning'
+                  return (
+                    <tr
+                      key={order.id}
+                      onClick={() => handleOrderClick(order.id)}
+                      style={{
+                        borderBottom: `1px solid ${tokens.colors.gray[100]}`,
+                        cursor: 'pointer',
+                        background: isSelected ? tokens.colors.info.light : tokens.colors.white,
+                        borderLeft: `3px solid ${order.is_priority_order ? tokens.colors.warning.base : 'transparent'}`,
+                      }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = tokens.colors.gray[50] }}
+                      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = tokens.colors.white }}
+                    >
                       {isDesktop && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: tokens.borderRadius.sm,
-                          backgroundColor: isSelected ? tokens.colors.info.base : 'transparent',
-                          border: isSelected ? 'none' : `2px solid ${tokens.colors.gray[300]}`,
-                          transition: tokens.transitions.base,
-                          opacity: order.status === 'completed' ? 0.3 : 1
-                        }}>
+                        <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={isSelected}
                             disabled={order.status === 'completed'}
-                            onChange={(e) => {
-                              e.stopPropagation()
-                              toggleOrderSelection(order.id)
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              width: '20px',
-                              height: '20px',
-                              cursor: order.status === 'completed' ? 'not-allowed' : 'pointer',
-                              accentColor: tokens.colors.info.base
-                            }}
+                            onChange={() => toggleOrderSelection(order.id)}
+                            style={{ width: 18, height: 18, cursor: order.status === 'completed' ? 'not-allowed' : 'pointer', accentColor: tokens.colors.info.base }}
                           />
-                        </div>
+                        </td>
                       )}
-                      {/* Indicatore selezione su mobile */}
-                      {!isDesktop && selectionMode && (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          backgroundColor: isSelected ? tokens.colors.info.base : tokens.colors.gray[200],
-                          transition: tokens.transitions.base
-                        }}>
-                          {isSelected && (
-                            <span style={{ color: tokens.colors.white, fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.bold }}>✓</span>
-                          )}
-                        </div>
-                      )}
-                      <div style={orderIdStyles}>
+                      <td style={{ ...tdStyle, fontWeight: tokens.typography.fontWeight.semibold, fontFamily: tokens.typography.fontFamily.mono }}>
                         #{order.order_number || order.id.substring(0, 8).toUpperCase()}
-                      </div>
-                    </div>
-                    <Badge variant={order.deleted_at ? 'error' : getStatusVariant(order.status)}>
-                      {order.deleted_at ? 'Eliminato' : getStatusLabel(order.status)}
-                    </Badge>
-                  </div>
-
-                  {/* Order Details */}
-                  <div style={orderDetailsStyles}>
-                    <div>
-                      <div style={detailLabelStyles}>Sala / Tavolo</div>
-                      <div style={detailValueStyles}>
-                        {order.room?.name || 'N/A'} - Tavolo {order.table?.number || order.table_number || 'N/A'}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={detailLabelStyles}>Data</div>
-                      <div style={detailValueStyles}>
-                        {formatDateTime(order.created_at)}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={detailLabelStyles}>Totale</div>
-                      <div style={detailValueStyles}>
-                        €{order.total_amount.toFixed(2)}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={detailLabelStyles}>Prodotti</div>
-                      <div style={detailValueStyles}>
-                        {order.order_items?.length || 0} articoli
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Priority Badge */}
-                  {order.is_priority_order && (
-                    <div style={{ marginTop: tokens.spacing.sm }}>
-                      <Badge variant="warning" size="sm">
-                        Ordine Prioritario
-                      </Badge>
-                    </div>
-                  )}
-                </Card>
-              </div>
-            )
-          })}
-        </div>
+                        {order.is_priority_order && <Badge variant="warning" size="sm" style={{ marginLeft: tokens.spacing.sm }}>Priorità</Badge>}
+                      </td>
+                      <td style={{ ...tdStyle, color: tokens.colors.gray[600] }}>{formatDateTime(order.created_at)}</td>
+                      <td style={tdStyle}>{origin}</td>
+                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: tokens.typography.fontWeight.semibold }}>€{(order.total_amount || 0).toFixed(2)}</td>
+                      <td style={tdStyle}><Badge variant={order.deleted_at ? 'default' : payVariant} size="sm">{payLabel}</Badge></td>
+                      <td style={tdStyle}><Badge variant={order.deleted_at ? 'error' : getStatusVariant(order.status)} size="sm">{order.deleted_at ? 'Eliminato' : getStatusLabel(order.status)}</Badge></td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>{itemsCount}</td>
+                      <td style={{ ...tdStyle, textAlign: 'center' }}>{batchCount}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Sticky Footer per eliminazione multipla */}
