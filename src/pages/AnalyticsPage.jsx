@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
-import { Tabs, Card, Button, Spinner, EmptyState, Badge } from '../components/ui'
+import { Tabs, Card, Button, Spinner, EmptyState, Badge, PageHeader } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import { checkPremiumAccess } from '../utils/subscription'
 
@@ -69,24 +69,6 @@ function AnalyticsPage({ session }) {
   }
 
   const isPremium = restaurant?.subscription_tier === 'premium'
-
-  const pageHeaderStyles = {
-    marginBottom: tokens.spacing.xl,
-  }
-
-  const titleStyles = {
-    margin: 0,
-    fontSize: isMobile ? tokens.typography.fontSize['2xl'] : tokens.typography.fontSize['3xl'],
-    fontWeight: tokens.typography.fontWeight.bold,
-    color: tokens.colors.black,
-    marginBottom: tokens.spacing.sm,
-  }
-
-  const subtitleStyles = {
-    margin: 0,
-    fontSize: tokens.typography.fontSize.base,
-    color: tokens.colors.gray[600],
-  }
 
   const tabsData = [
     { label: 'Panoramica', value: 'overview' },
@@ -200,12 +182,7 @@ function AnalyticsPage({ session }) {
       onLogout={handleLogout}
     >
       {/* Page Header */}
-      <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Analytics</h1>
-        <p style={subtitleStyles}>
-          Monitora le performance del tuo ristorante
-        </p>
-      </div>
+      <PageHeader title="Analytics" subtitle="Monitora le performance del tuo ristorante" />
 
       {/* Tabs / Dropdown */}
       <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>

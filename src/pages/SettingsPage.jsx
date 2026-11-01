@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
-import { Tabs, Spinner } from '../components/ui'
+import { Tabs, Spinner, PageHeader } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import RestaurantForm from '../components/RestaurantForm'
 import ThemeCustomizer from '../components/ThemeCustomizer'
@@ -67,24 +67,6 @@ function SettingsPage({ session }) {
 
   const isPremium = restaurant?.subscription_tier === 'premium'
 
-  const pageHeaderStyles = {
-    marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl,
-  }
-
-  const titleStyles = {
-    margin: 0,
-    fontSize: isMobile ? tokens.typography.fontSize['2xl'] : tokens.typography.fontSize['3xl'],
-    fontWeight: tokens.typography.fontWeight.bold,
-    color: tokens.colors.black,
-    marginBottom: tokens.spacing.sm,
-  }
-
-  const subtitleStyles = {
-    margin: 0,
-    fontSize: isMobile ? tokens.typography.fontSize.sm : tokens.typography.fontSize.base,
-    color: tokens.colors.gray[600],
-  }
-
   const dropdownStyles = {
     width: '100%',
     padding: tokens.spacing.md,
@@ -133,13 +115,7 @@ function SettingsPage({ session }) {
       permissions={['*']}
       onLogout={handleLogout}
     >
-      {/* Page Header */}
-      <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Impostazioni</h1>
-        <p style={subtitleStyles}>
-          Configura il tuo ristorante e personalizza l'esperienza
-        </p>
-      </div>
+      <PageHeader title="Impostazioni" subtitle="Configura il tuo ristorante e personalizza l'esperienza" />
 
       {/* Tabs / Dropdown */}
       <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
-import { Tabs, Spinner } from '../components/ui'
+import { Tabs, Spinner, PageHeader } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import ProductManager from '../components/ProductManager'
 import CategoryManager from '../components/CategoryManager'
@@ -60,24 +60,6 @@ function ProductsPage({ session }) {
 
   const isPremium = restaurant?.subscription_tier === 'premium'
 
-  const pageHeaderStyles = {
-    marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl,
-  }
-
-  const titleStyles = {
-    margin: 0,
-    fontSize: isMobile ? tokens.typography.fontSize['2xl'] : tokens.typography.fontSize['3xl'],
-    fontWeight: tokens.typography.fontWeight.bold,
-    color: tokens.colors.black,
-    marginBottom: tokens.spacing.sm,
-  }
-
-  const subtitleStyles = {
-    margin: 0,
-    fontSize: isMobile ? tokens.typography.fontSize.sm : tokens.typography.fontSize.base,
-    color: tokens.colors.gray[600],
-  }
-
   const dropdownStyles = {
     width: '100%',
     padding: tokens.spacing.md,
@@ -124,12 +106,7 @@ function ProductsPage({ session }) {
       onLogout={handleLogout}
     >
       {/* Page Header */}
-      <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Prodotti</h1>
-        <p style={subtitleStyles}>
-          Gestisci i prodotti del tuo menu e le categorie
-        </p>
-      </div>
+      <PageHeader title="Prodotti" subtitle="Gestisci i prodotti del tuo menu e le categorie" />
 
       {/* Tabs / Dropdown */}
       <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>

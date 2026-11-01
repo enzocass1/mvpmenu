@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { softDeleteOrders } from '../lib/orderOperations'
 import { tokens } from '../styles/tokens'
-import { Card, Button, Badge, EmptyState, Spinner, Tabs } from '../components/ui'
+import { Card, Button, Badge, EmptyState, Spinner, Tabs, PageHeader } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import CreateOrderModal from '../components/CreateOrderModal'
 
@@ -265,22 +265,6 @@ function OrdersPage({ session }) {
   const filteredOrders = getFilteredOrders()
   const isPremium = restaurant?.subscription_tier === 'premium'
 
-  const pageHeaderStyles = {
-    marginBottom: tokens.spacing.xl,
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: tokens.spacing.md,
-  }
-
-  const titleStyles = {
-    margin: 0,
-    fontSize: isMobile ? tokens.typography.fontSize['2xl'] : tokens.typography.fontSize['3xl'],
-    fontWeight: tokens.typography.fontWeight.bold,
-    color: tokens.colors.black,
-  }
-
   const tabsData = [
     { label: 'Tutti', value: 'all' },
     { label: 'Attivi', value: 'active' },
@@ -456,13 +440,11 @@ function OrdersPage({ session }) {
       permissions={['*']}
       onLogout={handleLogout}
     >
-      {/* Page Header */}
-      <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Ordini</h1>
-        <Button variant="primary" onClick={() => setShowCreateOrder(true)}>
-          Nuovo Ordine
-        </Button>
-      </div>
+      <PageHeader
+        title="Ordini"
+        subtitle="Gestisci gli ordini del tuo locale"
+        actions={<Button variant="primary" onClick={() => setShowCreateOrder(true)}>Nuovo Ordine</Button>}
+      />
 
       {/* Filters Tabs / Dropdown */}
       <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>

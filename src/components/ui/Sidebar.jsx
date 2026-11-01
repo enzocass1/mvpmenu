@@ -302,12 +302,12 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
               {unreadUpdates && !isActive('/aggiornamenti') && (
                 <span style={{
                   display: 'inline-block',
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                  backgroundColor: '#dc2626',
-                  color: '#fff',
+                  padding: `2px ${tokens.spacing.sm}`,
+                  borderRadius: tokens.borderRadius.full,
+                  backgroundColor: tokens.colors.error.base,
+                  color: tokens.colors.white,
                   fontSize: '10px',
-                  fontWeight: 800,
+                  fontWeight: tokens.typography.fontWeight.bold,
                   letterSpacing: '0.4px',
                 }}>
                   NOVITÀ

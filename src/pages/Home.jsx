@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
-import { Card, Button, KPICard, EmptyState, Spinner, Alert } from '../components/ui'
+import { Card, Button, KPICard, EmptyState, Spinner, Alert, PageHeader } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 
 /**
@@ -133,23 +133,6 @@ function Home({ session }) {
   const isTrialActive = restaurant?.subscription_status === 'trial'
   const hasTemporaryUpgrade = temporaryUpgrade !== null
 
-  const pageHeaderStyles = {
-    marginBottom: tokens.spacing.xl,
-  }
-
-  const titleStyles = {
-    margin: 0,
-    fontSize: tokens.typography.fontSize['3xl'],
-    fontWeight: tokens.typography.fontWeight.bold,
-    color: tokens.colors.black,
-    marginBottom: tokens.spacing.xs,
-  }
-
-  const subtitleStyles = {
-    margin: 0,
-    fontSize: tokens.typography.fontSize.base,
-    color: tokens.colors.gray[600],
-  }
 
   const gridStyles = {
     display: 'grid',
@@ -194,20 +177,11 @@ function Home({ session }) {
       permissions={['*']}
       onLogout={handleLogout}
     >
-      {/* Page Header */}
-      <div style={pageHeaderStyles}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing.md }}>
-          <div>
-            <h1 style={titleStyles}>Panoramica</h1>
-            <p style={subtitleStyles}>
-              Benvenuto in {restaurant?.name || 'MVP Menu'}
-            </p>
-          </div>
-          <Button variant="outline" onClick={handleLogout} style={{ flexShrink: 0 }}>
-            Esci
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Panoramica"
+        subtitle={`Benvenuto in ${restaurant?.name || 'MVP Menu'}`}
+        actions={<Button variant="outline" onClick={handleLogout}>Esci</Button>}
+      />
 
       {/* Trial Period Banner */}
       {isTrialActive && (

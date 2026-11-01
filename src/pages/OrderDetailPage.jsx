@@ -609,7 +609,7 @@ function OrderDetailPage({ session }) {
                         </div>
                         <div style={productPriceStyles}>€{item.subtotal.toFixed(2)}</div>
                         {canEdit && order.status !== 'completed' && (
-                          <button onClick={() => removeItem(item)} title="Rimuovi prodotto" style={{ marginLeft: '8px', border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}>×</button>
+                          <button onClick={() => removeItem(item)} title="Rimuovi prodotto" style={{ marginLeft: tokens.spacing.sm, border: 'none', background: 'transparent', color: tokens.colors.error.base, cursor: 'pointer', fontSize: tokens.typography.fontSize['2xl'], lineHeight: 1 }}>×</button>
                         )}
                       </div>
                     ))}

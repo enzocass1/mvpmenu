@@ -8,7 +8,7 @@
 import React, { useState } from 'react'
 import { tokens } from '../styles/tokens'
 import DashboardLayout from '../components/ui/DashboardLayout'
-import { Card } from '../components/ui'
+import { Card, Spinner, PageHeader } from '../components/ui'
 
 // Import tabs (da creare)
 import RolesTab from '../components/users/RolesTab'
@@ -69,9 +69,7 @@ function UsersPage({ session }) {
         permissions={['*']}
         onLogout={handleLogout}
       >
-        <div style={{ textAlign: 'center', padding: tokens.spacing.xl }}>
-          Caricamento...
-        </div>
+        <Spinner size="lg" text="Caricamento..." centered />
       </DashboardLayout>
     )
   }
@@ -84,13 +82,7 @@ function UsersPage({ session }) {
       permissions={['*']}
       onLogout={handleLogout}
     >
-      {/* Page Header */}
-      <div style={styles.pageHeader}>
-        <h1 style={styles.pageTitle}>Gestione Utenti</h1>
-        <p style={styles.pageSubtitle}>
-          Gestisci ruoli, permessi e membri del tuo staff
-        </p>
-      </div>
+      <PageHeader title="Gestione Utenti" subtitle="Gestisci ruoli, permessi e membri del tuo staff" />
 
       {/* Tabs */}
       <div style={styles.tabsContainer}>

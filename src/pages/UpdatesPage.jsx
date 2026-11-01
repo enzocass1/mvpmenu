@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
 import DashboardLayout from '../components/ui/DashboardLayout'
+import PageHeader from '../components/ui/PageHeader'
 import { APP_UPDATES, UPDATE_TYPE_LABEL, markUpdatesSeen } from '../lib/appUpdates'
 
 // Immagine/esempio associato a ogni aggiornamento (screenshot in public/updates/)
@@ -67,16 +68,9 @@ function UpdatesPage({ session }) {
       onLogout={handleLogout}
     >
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
-        <div style={{ marginBottom: isMobile ? tokens.spacing.lg : tokens.spacing.xl }}>
-          <h1 style={{ margin: 0, fontSize: isMobile ? tokens.typography.fontSize['2xl'] : tokens.typography.fontSize['3xl'], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.black, marginBottom: tokens.spacing.sm }}>
-            Aggiornamenti
-          </h1>
-          <p style={{ margin: 0, fontSize: tokens.typography.fontSize.base, color: tokens.colors.gray[600] }}>
-            Tutte le novità e i miglioramenti, con le istruzioni per usarli.
-          </p>
-        </div>
+        <PageHeader title="Aggiornamenti" subtitle="Tutte le novità e i miglioramenti, con le istruzioni per usarli." />
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.md }}>
           {APP_UPDATES.map((u) => {
             const t = UPDATE_TYPE_LABEL[u.type] || UPDATE_TYPE_LABEL.novita
             return (

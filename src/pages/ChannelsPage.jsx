@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
-import { Card, Button, Input, Spinner, EmptyState } from '../components/ui'
+import { Card, Button, Input, Spinner, EmptyState, PageHeader } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import QRCode from 'qrcode'
 
@@ -78,24 +78,6 @@ function ChannelsPage({ session }) {
     ? `${window.location.origin}/#/menu/${restaurant.subdomain}`
     : ''
 
-  const pageHeaderStyles = {
-    marginBottom: tokens.spacing.xl,
-  }
-
-  const titleStyles = {
-    margin: 0,
-    fontSize: tokens.typography.fontSize['3xl'],
-    fontWeight: tokens.typography.fontWeight.bold,
-    color: tokens.colors.black,
-    marginBottom: tokens.spacing.sm,
-  }
-
-  const subtitleStyles = {
-    margin: 0,
-    fontSize: tokens.typography.fontSize.base,
-    color: tokens.colors.gray[600],
-  }
-
   const sectionTitleStyles = {
     fontSize: tokens.typography.fontSize.xl,
     fontWeight: tokens.typography.fontWeight.semibold,
@@ -158,12 +140,7 @@ function ChannelsPage({ session }) {
       onLogout={handleLogout}
     >
       {/* Page Header */}
-      <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Canali di Vendita</h1>
-        <p style={subtitleStyles}>
-          Condividi il tuo menu online con i clienti
-        </p>
-      </div>
+      <PageHeader title="Canali di Vendita" subtitle="Condividi il tuo menu online con i clienti" />
 
       {/* QR Code Section */}
       <h2 style={sectionTitleStyles}>QR Code Menu</h2>

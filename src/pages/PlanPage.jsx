@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { tokens } from '../styles/tokens'
-import { Card, Button, Badge, Spinner } from '../components/ui'
+import { Card, Button, Badge, Spinner, PageHeader } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import { getPlanInfo, getSubscriptionHealth } from '../utils/subscription'
 
@@ -65,24 +65,6 @@ function PlanPage({ session }) {
   }
 
   const isPremium = restaurant?.subscription_tier === 'premium'
-
-  const pageHeaderStyles = {
-    marginBottom: tokens.spacing.xl,
-  }
-
-  const titleStyles = {
-    margin: 0,
-    fontSize: tokens.typography.fontSize['3xl'],
-    fontWeight: tokens.typography.fontWeight.bold,
-    color: tokens.colors.black,
-    marginBottom: tokens.spacing.sm,
-  }
-
-  const subtitleStyles = {
-    margin: 0,
-    fontSize: tokens.typography.fontSize.base,
-    color: tokens.colors.gray[600],
-  }
 
   const gridStyles = {
     display: 'grid',
@@ -178,12 +160,7 @@ function PlanPage({ session }) {
       onLogout={handleLogout}
     >
       {/* Page Header */}
-      <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Piano</h1>
-        <p style={subtitleStyles}>
-          Scegli il piano più adatto al tuo ristorante
-        </p>
-      </div>
+      <PageHeader title="Piano" subtitle="Scegli il piano più adatto al tuo ristorante" />
 
       {/* Plans Comparison */}
       <div style={gridStyles}>

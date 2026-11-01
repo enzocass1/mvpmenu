@@ -1059,7 +1059,8 @@ function CassaPage({ session }) {
 
   const titleStyles = {
     margin: 0,
-    fontSize: tokens.typography.fontSize['2xl'],
+    marginBottom: tokens.spacing.xs,
+    fontSize: isMobile ? tokens.typography.fontSize['2xl'] : tokens.typography.fontSize['3xl'],
     fontWeight: tokens.typography.fontWeight.bold,
     color: tokens.colors.black,
   }
@@ -1198,7 +1199,12 @@ function CassaPage({ session }) {
     >
       {/* Page Header */}
       <div style={pageHeaderStyles}>
-        <h1 style={titleStyles}>Cassa</h1>
+        <div>
+          <h1 style={titleStyles}>Cassa</h1>
+          <p style={{ margin: 0, fontSize: isMobile ? tokens.typography.fontSize.sm : tokens.typography.fontSize.base, color: tokens.colors.gray[600] }}>
+            Gestisci i tavoli e gli ordini al banco
+          </p>
+        </div>
 
         {/* Mode Toggle */}
         <div style={modeToggleStyles}>
@@ -1575,8 +1581,8 @@ function CassaPage({ session }) {
                                 marginBottom: tokens.spacing.xs,
                                 fontWeight: tokens.typography.fontWeight.semibold,
                                 color: timeDisplay.type === 'pending'
-                                  ? tokens.colors.warning.DEFAULT
-                                  : tokens.colors.success.DEFAULT,
+                                  ? tokens.colors.warning.base
+                                  : tokens.colors.success.base,
                                 fontFamily: timeDisplay.type === 'realtime' ? 'monospace' : 'inherit'
                               }}>
                                 {timeDisplay.text}
@@ -1675,8 +1681,8 @@ function CassaPage({ session }) {
                                     : tokens.typography.fontSize.lg,
                                   fontWeight: tokens.typography.fontWeight.bold,
                                   color: timeDisplay.type === 'pending'
-                                    ? tokens.colors.warning.DEFAULT
-                                    : tokens.colors.success.DEFAULT,
+                                    ? tokens.colors.warning.base
+                                    : tokens.colors.success.base,
                                   fontFamily: timeDisplay.type === 'realtime' ? 'monospace' : 'inherit',
                                   marginBottom: tokens.spacing.xs
                                 }}>
