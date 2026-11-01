@@ -4,6 +4,20 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-01-schede-menu',
+    date: '2026-11-01',
+    type: 'miglioramento',
+    title: 'Schede prodotto del menu più chiare',
+    description:
+      "Nel menu online le schede dei prodotti sono più compatte e ordinate: il nome resta su una riga, e sotto trovi prezzo, pulsante per ordinare e cuore sempre alla stessa altezza (anche con nomi lunghi). Il prezzo mostra \"Da X €\" quando ci sono varianti a prezzi diversi. Con \"Scopri di più\" apri foto e descrizione, e toccando la foto la vedi ingrandita a schermo intero.",
+    steps: [
+      'Apri il menu e scegli una categoria.',
+      'Ogni prodotto mostra nome, prezzo e un pulsante tondo "+" per aggiungerlo, con il cuore per i preferiti.',
+      'Tocca "Scopri di più" per vedere foto e descrizione del prodotto.',
+      'Tocca la foto per ingrandirla a schermo intero; chiudi con la X.'
+    ]
+  },
+  {
     id: '2026-11-01-ordini-tabella',
     date: '2026-11-01',
     type: 'novita',
@@ -190,6 +204,7 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-01-schede-menu': '/updates/schede-menu.gif',
   '2026-11-01-ordini-tabella': '/updates/ordini-tabella.gif',
   '2026-11-01-preferiti-cassa': '/updates/preferiti-cassa.gif',
   '2026-11-01-cassa-compatta': '/updates/cassa-compatta.png',
