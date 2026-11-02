@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import MenuTopBar from './MenuTopBar'
 import { formatPrice } from '../lib/priceFormat'
+import { isProductEsaurito } from '../lib/stock'
 
 /**
  * Layout "Builder": home componibile a SEZIONI (caroselli) definite nel tema
@@ -161,10 +162,12 @@ export default function MenuBuilderLayout({
     />
   )
 
-  const Card = ({ p, wide }) => (
+  const Card = ({ p, wide }) => {
+    const esaurito = isProductEsaurito(p)
+    return (
     <div style={{ ...S.card, width: wide ? 'auto' : `${cardW}px`, background: cardBg, border: `1px solid ${border}`, borderRadius: radius }}>
       <div style={{ ...S.imgWrap, borderRadius: `${radius} ${radius} 0 0`, background: t.backgroundTertiary || '#f3f3f3' }}
-        onClick={() => { trackProductViewed?.(restaurant.id, p.id, p._cat?.id); orderSettingsEnabled && onAddProduct(p) }}>
+        onClick={() => { trackProductViewed?.(restaurant.id, p.id, p._cat?.id); orderSettingsEnabled && !esaurito && onAddProduct(p) }}>
         {p.image_url ? <img src={p.image_url} alt={p.name} style={S.img} loading="lazy" /> : <div style={{ ...S.img, ...S.imgPh }}>🍽️</div>}
         <button style={S.heart} onClick={(e) => { e.stopPropagation(); onToggleFavorite(e, p, p._cat?.name, p._cat?.id) }} aria-label="Preferito">
           <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav(p.id) ? (t.favoriteActiveColor || '#e74c3c') : 'none'} stroke={isFav(p.id) ? (t.favoriteActiveColor || '#e74c3c') : '#374151'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -173,12 +176,16 @@ export default function MenuBuilderLayout({
       <div style={S.body}>
         <div style={{ ...S.name, color: textMain, fontSize: px(13) }}>{p.name}</div>
         <div style={S.foot}>
-          <div style={{ ...S.price, color: textMain, fontSize: px(14) }}>{formatPrice(p)}</div>
-          {orderSettingsEnabled && <button style={{ ...S.add, background: btnBg, color: btnText, borderRadius: radius }} onClick={() => onAddProduct(p)}>+</button>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', minWidth: 0 }}>
+            <div style={{ ...S.price, color: textMain, fontSize: px(14) }}>{formatPrice(p)}</div>
+            {esaurito && <span style={S.soldOut}>Esaurito</span>}
+          </div>
+          {orderSettingsEnabled && <button style={{ ...S.add, background: btnBg, color: btnText, borderRadius: radius, ...(esaurito ? { opacity: 0.4, cursor: 'not-allowed' } : {}) }} onClick={() => { if (!esaurito) onAddProduct(p) }} disabled={esaurito}>+</button>}
         </div>
       </div>
     </div>
-  )
+    )
+  }
 
   // Vista "Guarda tutti": griglia di una categoria (senza form di ricerca)
   if (viewAllCat) {
@@ -283,6 +290,7 @@ const S = {
   name: { fontSize: '13px', fontWeight: 600, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
   foot: { marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   price: { fontWeight: 700, fontSize: '14px' },
+  soldOut: { display: 'inline-flex', alignItems: 'center', padding: '1px 6px', borderRadius: '999px', fontSize: '9px', fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#b91c1c', background: '#fee2e2', border: '1px solid #fecaca', whiteSpace: 'nowrap' },
   add: { width: '30px', height: '30px', border: 'none', fontSize: '20px', lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 },
   viewAllCard: { flexShrink: 0, width: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontWeight: 700, fontSize: '14px', cursor: 'pointer' },
   gridHead: { padding: '12px 16px 8px', display: 'flex', flexDirection: 'column', gap: '8px' },

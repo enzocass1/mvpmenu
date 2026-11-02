@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { formatPrice } from '../lib/priceFormat'
+import { isProductEsaurito } from '../lib/stock'
 
 /**
  * Layout alternativo "Store" per il menu pubblico: impaginazione tipo e-commerce.
@@ -92,9 +93,10 @@ export default function MenuStoreLayout({
   const S = styles(t, { accent, cardBg, border, textMain, textSoft, radius, btnBg, btnText })
 
   const ProductCard = ({ p, categoryName, categoryId }) => {
+    const esaurito = isProductEsaurito(p)
     return (
       <div style={S.card}>
-        <div style={S.imageWrap} onClick={() => { trackProductViewed?.(restaurant.id, p.id, categoryId); orderSettingsEnabled && onAddProduct(p) }}>
+        <div style={S.imageWrap} onClick={() => { trackProductViewed?.(restaurant.id, p.id, categoryId); orderSettingsEnabled && !esaurito && onAddProduct(p) }}>
           {p.image_url
             ? <img src={p.image_url} alt={p.name} style={S.image} loading="lazy" />
             : <div style={{ ...S.image, ...S.imagePlaceholder }}>🍽️</div>}
@@ -115,9 +117,17 @@ export default function MenuStoreLayout({
           <div style={S.cardName}>{p.name}</div>
           {p.description && <div style={S.cardDesc}>{p.description}</div>}
           <div style={S.cardFoot}>
-            <div style={S.price}>{formatPrice(p)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <div style={S.price}>{formatPrice(p)}</div>
+              {esaurito && <span style={S.soldOut}>Esaurito</span>}
+            </div>
             {orderSettingsEnabled && (
-              <button style={S.addBtn} onClick={() => onAddProduct(p)} aria-label="Aggiungi">+</button>
+              <button
+                style={{ ...S.addBtn, ...(esaurito ? { opacity: 0.4, cursor: 'not-allowed' } : {}) }}
+                onClick={() => { if (!esaurito) onAddProduct(p) }}
+                disabled={esaurito}
+                aria-label={esaurito ? 'Esaurito' : 'Aggiungi'}
+              >+</button>
             )}
           </div>
         </div>
@@ -262,6 +272,7 @@ const styles = (t, c) => ({
   cardDesc: { fontSize: '12px', color: c.textSoft, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
   cardFoot: { marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px' },
   price: { fontWeight: 700, fontSize: '15px', color: c.textMain },
+  soldOut: { display: 'inline-flex', alignItems: 'center', padding: '1px 7px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#b91c1c', background: '#fee2e2', border: '1px solid #fecaca', whiteSpace: 'nowrap' },
   addBtn: { width: '34px', height: '34px', borderRadius: '10px', border: 'none', background: c.btnBg, color: c.btnText, fontSize: '22px', lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 },
   empty: { padding: '40px 10px', textAlign: 'center', color: c.textSoft },
   info: { display: 'flex', gap: '24px', flexWrap: 'wrap', padding: '18px 2px 4px', borderTop: `1px solid ${c.border}`, marginTop: '8px' },

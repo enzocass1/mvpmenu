@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
+import { getAvailability } from '../lib/stock'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -164,8 +165,20 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
   const finalPrice = selectedVariant?.price || product.price
   const hasVariants = options.length > 0
 
+  // Disponibilità (scorte): una variante/valore è esaurito se disponibile <= 0
+  const variantEsaurito = (v) => getAvailability(v).esaurito
+  const valueSoldOut = (optionName, val) => {
+    const vs = variants.filter(v => (v.option_values || {})[optionName] === val)
+    return vs.length > 0 && vs.every(variantEsaurito)
+  }
+  const blockOrder = hasVariants
+    ? (selectedVariant ? variantEsaurito(selectedVariant) : false)
+    : getAvailability(product).esaurito
+
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    if (blockOrder) return // prodotto/variante esaurito: non aggiungere
 
     // Se ci sono varianti ma nessuna è selezionata, non procedere
     if (hasVariants && !selectedVariant) {
@@ -282,17 +295,20 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
                     <div style={styles.optionValues}>
                       {shownValues.map((value) => {
                         const isSelected = selectedOptions[option.name] === value.value
+                        const soldOut = valueSoldOut(option.name, value.value)
                         return (
                           <button
                             key={value.id}
                             type="button"
-                            onClick={() => handleOptionChange(option.name, value.value)}
+                            disabled={soldOut}
+                            onClick={() => { if (!soldOut) handleOptionChange(option.name, value.value) }}
                             style={{
                               ...styles.optionButton,
-                              ...(isSelected ? styles.optionButtonSelected : {})
+                              ...(isSelected ? styles.optionButtonSelected : {}),
+                              ...(soldOut ? { opacity: 0.45, cursor: 'not-allowed', textDecoration: 'line-through' } : {})
                             }}
                           >
-                            {value.value}
+                            {value.value}{soldOut ? ' · esaurito' : ''}
                           </button>
                         )
                       })}
@@ -401,9 +417,10 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
             </button>
             <button
               type="submit"
-              style={styles.addButton}
+              disabled={blockOrder}
+              style={{ ...styles.addButton, ...(blockOrder ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
             >
-              Aggiungi al carrello
+              {blockOrder ? 'Esaurito' : 'Aggiungi al carrello'}
             </button>
           </div>
         </form>
