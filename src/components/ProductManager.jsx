@@ -287,12 +287,12 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
         <button
           onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setRowMenu({ product, top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) }) }}
           title="Azioni"
-          style={{ flexShrink: 0, width: '34px', height: '34px', borderRadius: '6px', border: 'none', background: '#000000', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{ flexShrink: 0, width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #000000', background: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
         >
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
-            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#FFFFFF' }} />
-            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#FFFFFF' }} />
-            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#FFFFFF' }} />
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5px' }}>
+            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#000000' }} />
+            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#000000' }} />
+            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#000000' }} />
           </span>
         </button>
       </div>
