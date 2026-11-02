@@ -54,6 +54,7 @@ import OrdersPage from './pages/OrdersPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import ProductsPage from './pages/ProductsPage'
 import InventoryPage from './pages/InventoryPage'
+import ProductsTestPage from './pages/ProductsTestPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ChannelsPage from './pages/ChannelsPage'
 import SettingsPage from './pages/SettingsPage'
@@ -295,6 +296,12 @@ function App() {
       <Route
         path="/inventario"
         element={session ? <InventoryPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Products TEST (vista a righe) - solo se loggato */}
+      <Route
+        path="/prodotti-test"
+        element={session ? <ProductsTestPage session={session} /> : <Navigate to="/login" replace />}
       />
 
       {/* Analytics Page - solo se loggato */}

@@ -53,6 +53,12 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
       requiredPermission: 'products.view',
     },
     {
+      label: 'Prodotti (test)',
+      path: '/prodotti-test',
+      section: 'main',
+      requiredPermission: 'products.view',
+    },
+    {
       label: 'Analytics',
       path: '/analytics',
       section: 'main',
