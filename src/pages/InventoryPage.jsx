@@ -14,9 +14,12 @@ import { Card, Button, Input, Badge, Modal, Spinner, EmptyState, PageHeader } fr
 function InventoryPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [rows, setRows] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [onlyTracked, setOnlyTracked] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [showCatFilter, setShowCatFilter] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [adjust, setAdjust] = useState(null) // riga in rettifica
   const [saving, setSaving] = useState(false)
@@ -44,7 +47,8 @@ function InventoryPage({ session }) {
       setRestaurant(rest || null)
       if (!rest) { setRows([]); return }
 
-      const { data: cats } = await supabase.from('categories').select('id, name').eq('restaurant_id', rest.id)
+      const { data: cats } = await supabase.from('categories').select('id, name').eq('restaurant_id', rest.id).order('order', { ascending: true })
+      setCategories(cats || [])
       const catIds = (cats || []).map(c => c.id)
       const catName = Object.fromEntries((cats || []).map(c => [c.id, c.name]))
       if (catIds.length === 0) { setRows([]); return }
@@ -71,14 +75,14 @@ function InventoryPage({ session }) {
         if (vs.length > 0) {
           vs.forEach(v => out.push({
             key: `v_${v.id}`, kind: 'variant', product_id: p.id, variant_id: v.id,
-            name: p.name, sub: v.title, category: catName[p.category_id] || '',
+            name: p.name, sub: v.title, category: catName[p.category_id] || '', category_id: p.category_id,
             track: !!v.track_quantity, quantity: v.quantity || 0, committed: v.committed || 0,
             threshold: v.low_stock_threshold || 0,
           }))
         } else {
           out.push({
             key: `p_${p.id}`, kind: 'product', product_id: p.id, variant_id: null,
-            name: p.name, sub: '', category: catName[p.category_id] || '',
+            name: p.name, sub: '', category: catName[p.category_id] || '', category_id: p.category_id,
             track: !!p.track_quantity, quantity: p.quantity || 0, committed: p.committed || 0,
             threshold: p.low_stock_threshold || 0,
           })
@@ -96,10 +100,13 @@ function InventoryPage({ session }) {
     const q = query.trim().toLowerCase()
     return rows.filter(r => {
       if (onlyTracked && !r.track) return false
+      if (selectedCategory !== 'all' && r.category_id !== selectedCategory) return false
       if (!q) return true
       return (r.name + ' ' + r.sub + ' ' + r.category).toLowerCase().includes(q)
     })
-  }, [rows, query, onlyTracked])
+  }, [rows, query, onlyTracked, selectedCategory])
+
+  const selectedCatName = selectedCategory === 'all' ? null : (categories.find(c => c.id === selectedCategory)?.name || null)
 
   const lowCount = useMemo(() => rows.filter(r => r.track && (r.quantity - r.committed) <= r.threshold).length, [rows])
   const trackedCount = useMemo(() => rows.filter(r => r.track).length, [rows])
@@ -173,6 +180,9 @@ function InventoryPage({ session }) {
         <div style={{ flex: '1 1 240px', minWidth: 0 }}>
           <Input placeholder="Cerca un prodotto…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
+        <Button variant={selectedCatName ? 'primary' : 'outline'} size="md" onClick={() => setShowCatFilter(true)}>
+          {selectedCatName ? `Categoria: ${selectedCatName}` : 'Filtra per categoria'}
+        </Button>
         <Button variant={onlyTracked ? 'primary' : 'outline'} size="md" onClick={() => setOnlyTracked(v => !v)}>
           {onlyTracked ? 'Mostra tutti' : 'Solo tracciati'}
         </Button>
@@ -240,6 +250,39 @@ function InventoryPage({ session }) {
             </table>
           </div>
         </Card>
+      )}
+
+      {/* Modal filtra per categoria */}
+      {showCatFilter && (
+        <Modal isOpen={true} onClose={() => setShowCatFilter(false)}>
+          <Modal.Header><Modal.Title>Filtra per categoria</Modal.Title></Modal.Header>
+          <Modal.Body>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.sm }}>
+              {[{ id: 'all', name: 'Tutte le categorie' }, ...categories].map(cat => {
+                const active = selectedCategory === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => { setSelectedCategory(cat.id); setShowCatFilter(false) }}
+                    style={{
+                      padding: `${tokens.spacing.sm} ${tokens.spacing.md}`,
+                      fontSize: tokens.typography.fontSize.sm,
+                      fontWeight: active ? tokens.typography.fontWeight.semibold : tokens.typography.fontWeight.medium,
+                      color: active ? tokens.colors.white : tokens.colors.black,
+                      background: active ? tokens.colors.black : tokens.colors.gray[100],
+                      border: 'none', borderRadius: tokens.borderRadius.md, cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                )
+              })}
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="outline" onClick={() => setShowCatFilter(false)}>Chiudi</Button>
+          </Modal.Footer>
+        </Modal>
       )}
 
       {/* Modal rettifica */}
