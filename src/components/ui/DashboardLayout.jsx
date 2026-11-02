@@ -37,6 +37,7 @@ function DashboardLayout({
 
   const mainStyles = {
     flex: 1,
+    minWidth: 0, // consente a main di restringersi (evita overflow orizzontale su mobile)
     marginLeft: isDesktop ? '240px' : '0',
     transition: tokens.transitions.base,
     display: 'flex',
