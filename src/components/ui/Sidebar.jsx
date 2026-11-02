@@ -4,6 +4,7 @@ import { tokens } from '../../styles/tokens'
 import Badge from './Badge'
 import { hasUnreadUpdates } from '../../lib/appUpdates'
 import { supabase } from '../../supabaseClient'
+import InstallAppModal from '../InstallAppModal'
 
 /**
  * Sidebar Navigation Component - Shopify-like Design System
@@ -214,6 +215,7 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
   })
 
   const [hoveredItem, setHoveredItem] = React.useState(null)
+  const [showInstallModal, setShowInstallModal] = React.useState(false)
 
   // Badge "NOVITÀ": mostrato finché l'utente non apre la pagina Aggiornamenti
   const [unreadUpdates, setUnreadUpdates] = React.useState(hasUnreadUpdates())
@@ -345,6 +347,21 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
             </button>
             )}
 
+            {/* Scarica app (installa sulla schermata home del telefono) */}
+            <button
+              onClick={() => setShowInstallModal(true)}
+              onMouseEnter={() => setHoveredItem('install-app')}
+              onMouseLeave={() => setHoveredItem(null)}
+              style={{
+                ...navItemStyles(false),
+                ...(hoveredItem === 'install-app' && {
+                  backgroundColor: tokens.colors.gray[50],
+                }),
+              }}
+            >
+              <span>Scarica app</span>
+            </button>
+
             {/* Separator before logout */}
             <div style={separatorStyles} />
 
@@ -372,6 +389,9 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
           </div>
         </nav>
       </aside>
+
+      {/* Modal istruzioni installazione app */}
+      <InstallAppModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
     </>
   )
 }

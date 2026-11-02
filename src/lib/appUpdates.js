@@ -4,6 +4,20 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-02-scarica-app',
+    date: '2026-11-02',
+    type: 'novita',
+    title: 'Scarica app: MVP Menu sulla schermata del telefono',
+    description:
+      "Nuova voce \"Scarica app\" nel menu laterale (sopra \"Esci\"): ti guida ad aggiungere MVP Menu alla schermata home del telefono, con la sua icona. Da quel momento l'app si apre a tutto schermo, come una vera app, senza barra del browser. Istruzioni dedicate per Android (Chrome) e iPhone (Safari); su Android, quando il telefono lo permette, basta un tocco su \"Installa ora\". Ricorda: la prima volta devi aprire il sito dal link e fare l'accesso con la tua email e password — poi aprirai sempre tutto dall'icona.",
+    steps: [
+      "Apri il sito dal telefono (Chrome su Android, Safari su iPhone) e fai l'accesso con email e password.",
+      'Apri il menu laterale ☰ e tocca "Scarica app" (sopra "Esci").',
+      'Segui i passaggi mostrati: su Android spesso basta "Installa ora".',
+      "Finito: apri MVP Menu dall'icona sul telefono, a tutto schermo."
+    ]
+  },
+  {
     id: '2026-11-02-allergeni',
     date: '2026-11-02',
     type: 'novita',
@@ -233,6 +247,7 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-02-scarica-app': '/updates/scarica-app.gif',
   '2026-11-02-allergeni': '/updates/allergeni.gif',
   '2026-11-02-inventario': '/updates/inventario.gif',
   '2026-11-01-schede-menu': '/updates/schede-menu.gif',
