@@ -667,7 +667,13 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
 
       {/* Main Content */}
       <div>
-        {restaurant && (
+        {/* Vista righe: titolo con numero davanti */}
+        {layout === 'rows' && (
+          <div style={{ fontSize: '18px', fontWeight: 700, color: '#000', marginBottom: '16px' }}>
+            {products.length} Prodotti
+          </div>
+        )}
+        {restaurant && layout !== 'rows' && (
           <div style={{
             padding: '16px',
             background: hasValidAccess ? '#E8F5E9' : '#FFF3E0',
@@ -749,16 +755,17 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
           </div>
         )}
 
-        {/* Ricerca prodotti live */}
+        {/* Ricerca prodotti live (+ pulsante Aggiungi a destra nella vista righe) */}
         {products.length > 0 && (
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', alignItems: 'stretch' }}>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cerca un prodotto…"
               style={{
-                width: '100%',
+                flex: 1,
+                minWidth: 0,
                 padding: '12px 14px',
                 fontSize: '14px',
                 border: '1px solid #E0E0E0',
@@ -769,6 +776,15 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
                 outline: 'none'
               }}
             />
+            {layout === 'rows' && (
+              <button
+                onClick={handleCreateClick}
+                title="Aggiungi prodotto"
+                style={{ flexShrink: 0, width: '46px', borderRadius: '8px', border: '1px solid #000000', background: '#000000', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
+              </button>
+            )}
           </div>
         )}
 
