@@ -15,16 +15,13 @@ function SuperAdminLogin() {
   const navigate = useNavigate()
 
   // State
-  const [step, setStep] = useState(1) // 1 = password, 2 = 2FA
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [code2FA, setCode2FA] = useState('')
-  const [tempToken, setTempToken] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   /**
-   * Handle Step 1: Email + Password
+   * Login: email + password (verifica lato server via Supabase Auth)
    */
   const handlePasswordLogin = async (e) => {
     e.preventDefault()
@@ -32,55 +29,14 @@ function SuperAdminLogin() {
     setLoading(true)
 
     try {
-      const result = await superAdminService.login(email, password)
-
-      if (result.requires2FA) {
-        // Step 2: Chiedi codice 2FA
-        setTempToken(result.tempToken)
-        setStep(2)
-        console.log('✅ Password corretta. Richiesta 2FA.')
-      } else {
-        // Login completato senza 2FA
-        console.log('✅ Login completato senza 2FA')
-        navigate('/super-admin/dashboard')
-      }
+      await superAdminService.login(email, password)
+      navigate('/super-admin/dashboard')
     } catch (err) {
       console.error('❌ Login error:', err)
       setError(err.message || 'Errore durante il login')
     } finally {
       setLoading(false)
     }
-  }
-
-  /**
-   * Handle Step 2: Verifica 2FA
-   */
-  const handle2FAVerification = async (e) => {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
-
-    try {
-      await superAdminService.verify2FA(tempToken, code2FA)
-
-      console.log('✅ 2FA verificato con successo')
-      navigate('/super-admin/dashboard')
-    } catch (err) {
-      console.error('❌ 2FA verification error:', err)
-      setError(err.message || 'Codice 2FA non valido')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  /**
-   * Back to password step
-   */
-  const handleBackToPassword = () => {
-    setStep(1)
-    setCode2FA('')
-    setTempToken(null)
-    setError(null)
   }
 
   return (
@@ -94,9 +50,7 @@ function SuperAdminLogin() {
 
         {/* Login Card */}
         <Card padding="xl" style={styles.card}>
-          {step === 1 ? (
-            // STEP 1: Password Login
-            <form onSubmit={handlePasswordLogin}>
+          <form onSubmit={handlePasswordLogin}>
               <h2 style={styles.cardTitle}>Accedi</h2>
               <p style={styles.cardSubtitle}>
                 Inserisci le tue credenziali per accedere al pannello Super Admin
@@ -148,57 +102,6 @@ function SuperAdminLogin() {
                 🔒 Questa pagina è protetta. Solo Super Admin autorizzati possono accedere.
               </p>
             </form>
-          ) : (
-            // STEP 2: 2FA Verification
-            <form onSubmit={handle2FAVerification}>
-              <div style={styles.backButton} onClick={handleBackToPassword}>
-                ← Indietro
-              </div>
-
-              <h2 style={styles.cardTitle}>Verifica 2FA</h2>
-              <p style={styles.cardSubtitle}>
-                Inserisci il codice a 6 cifre generato dalla tua app di autenticazione
-              </p>
-
-              {error && (
-                <Alert variant="error" style={{ marginBottom: '24px' }}>
-                  {error}
-                </Alert>
-              )}
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Codice 2FA</label>
-                <Input
-                  type="text"
-                  value={code2FA}
-                  onChange={(e) => setCode2FA(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="123456"
-                  required
-                  autoFocus
-                  disabled={loading}
-                  style={{ fontSize: '24px', textAlign: 'center', letterSpacing: '8px' }}
-                  maxLength={6}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                fullWidth
-                loading={loading}
-                disabled={code2FA.length !== 6}
-                style={{ marginTop: '8px' }}
-              >
-                {loading ? 'Verifica in corso...' : 'Verifica'}
-              </Button>
-
-              <p style={styles.helpText}>
-                💡 Apri la tua app di autenticazione (Google Authenticator, Authy, etc.) per
-                ottenere il codice
-              </p>
-            </form>
-          )}
         </Card>
 
         {/* Footer Info */}

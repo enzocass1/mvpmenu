@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { tokens } from '../../styles/tokens'
 import Badge from './Badge'
 import Button from './Button'
+import superAdminService from '../../services/superAdminService'
 
 /**
  * SuperAdminLayout - Layout per pagine Super Admin
@@ -24,6 +25,16 @@ function SuperAdminLayout({ children }) {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // Guardia: senza login super admin valido si torna alla pagina di accesso
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const ok = await superAdminService.checkAccess()
+      if (active && !ok) navigate('/super-admin/login', { replace: true })
+    })()
+    return () => { active = false }
+  }, [navigate])
 
   const navigationItems = [
     {
@@ -60,11 +71,9 @@ function SuperAdminLayout({ children }) {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Sei sicuro di voler uscire?')) {
-      // Clear super admin session
-      localStorage.removeItem('superAdminSession')
-      sessionStorage.clear()
+      await superAdminService.logout()
       navigate('/super-admin/login')
     }
   }
