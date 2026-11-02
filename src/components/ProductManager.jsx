@@ -289,7 +289,11 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
           title="Azioni"
           style={{ flexShrink: 0, width: '34px', height: '34px', borderRadius: '6px', border: 'none', background: '#000000', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/></svg>
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#FFFFFF' }} />
+            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#FFFFFF' }} />
+            <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#FFFFFF' }} />
+          </span>
         </button>
       </div>
     )
