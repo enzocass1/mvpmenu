@@ -28,6 +28,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showCategoryFilter, setShowCategoryFilter] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showSearch, setShowSearch] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -718,68 +719,70 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
           </div>
         )}
 
-        {/* Category Filter Button */}
-        {products.length > 0 && (
+        {/* Vista RIGHE: toolbar con 3 pulsanti (Aggiungi, Cerca, Filtra) + ricerca a scomparsa */}
+        {products.length > 0 && layout === 'rows' && (
           <div style={{ marginBottom: '20px' }}>
-            <button
-              onClick={() => setShowCategoryFilter(true)}
-              style={{
-                width: '100%',
-                padding: '10px 16px',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#000000',
-                background: '#FFFFFF',
-                border: '1px solid #000000',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = '#000000'
-                e.target.style.color = '#FFFFFF'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = '#FFFFFF'
-                e.target.style.color = '#000000'
-              }}
-            >
-              Filtra per categorie
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleCreateClick}
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF', background: '#000000', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
+                Aggiungi
+              </button>
+              <button
+                onClick={() => setShowSearch(v => !v)}
+                title="Cerca"
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: showSearch ? '#FFFFFF' : '#000000', background: showSearch ? '#000000' : '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
+                Cerca
+              </button>
+              <button
+                onClick={() => setShowCategoryFilter(true)}
+                title="Filtra per categorie"
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#000000', background: '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5z"/></svg>
+                Filtra
+              </button>
+            </div>
+            {showSearch && (
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cerca un prodotto…"
+                autoFocus
+                style={{ width: '100%', marginTop: '8px', padding: '12px 14px', fontSize: '14px', border: '1px solid #E0E0E0', borderRadius: '8px', background: '#FFFFFF', color: '#000000', boxSizing: 'border-box', outline: 'none' }}
+              />
+            )}
           </div>
         )}
 
-        {/* Ricerca prodotti live (+ pulsante Aggiungi a destra nella vista righe) */}
-        {products.length > 0 && (
-          <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cerca un prodotto…"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: '12px 14px',
-                fontSize: '14px',
-                border: '1px solid #E0E0E0',
-                borderRadius: '8px',
-                background: '#FFFFFF',
-                color: '#000000',
-                boxSizing: 'border-box',
-                outline: 'none'
-              }}
-            />
-            {layout === 'rows' && (
+        {/* Vista GRIGLIA: filtro categorie + ricerca */}
+        {products.length > 0 && layout !== 'rows' && (
+          <>
+            <div style={{ marginBottom: '20px' }}>
               <button
-                onClick={handleCreateClick}
-                title="Aggiungi prodotto"
-                style={{ flexShrink: 0, width: '46px', borderRadius: '8px', border: '1px solid #000000', background: '#000000', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => setShowCategoryFilter(true)}
+                style={{ width: '100%', padding: '10px 16px', fontSize: '14px', fontWeight: '500', color: '#000000', background: '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                onMouseEnter={(e) => { e.target.style.background = '#000000'; e.target.style.color = '#FFFFFF' }}
+                onMouseLeave={(e) => { e.target.style.background = '#FFFFFF'; e.target.style.color = '#000000' }}
               >
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
+                Filtra per categorie
               </button>
-            )}
-          </div>
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cerca un prodotto…"
+                style={{ width: '100%', padding: '12px 14px', fontSize: '14px', border: '1px solid #E0E0E0', borderRadius: '8px', background: '#FFFFFF', color: '#000000', boxSizing: 'border-box', outline: 'none' }}
+              />
+            </div>
+          </>
         )}
 
         {products.length === 0 ? (

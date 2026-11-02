@@ -17,6 +17,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
   const [productCounts, setProductCounts] = useState({})
   const [reorder, setReorder] = useState(null) // { title, subtitle, items, sortOptions, onSave }
   const [searchQuery, setSearchQuery] = useState('')
+  const [showSearch, setShowSearch] = useState(false)
   const [rowMenu, setRowMenu] = useState(null) // { category, top, right } menu azioni riga
 
   // Apre il riordino dei PRODOTTI di una categoria (con prezzo, data, bestseller)
@@ -625,45 +626,59 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
           </div>
         )}
 
-        {/* Ricerca categorie live (+ Ordina/Aggiungi a destra nella vista righe) */}
-        {categories.length > 0 && (
-          <div style={{ marginBottom: '20px', display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+        {/* Vista RIGHE: toolbar (Aggiungi, Cerca, Ordina) + ricerca a scomparsa */}
+        {categories.length > 0 && layout === 'rows' && (
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleCreateClick}
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF', background: '#000000', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
+                Aggiungi
+              </button>
+              <button
+                onClick={() => setShowSearch(v => !v)}
+                title="Cerca"
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: showSearch ? '#FFFFFF' : '#000000', background: showSearch ? '#000000' : '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
+                Cerca
+              </button>
+              {categories.length > 1 && (
+                <button
+                  onClick={openCategoryReorder}
+                  title="Ordina categorie"
+                  style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#000000', background: '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 2a.5.5 0 0 1 .5.5v9.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L3 12.293V2.5a.5.5 0 0 1 .5-.5z"/><path d="M7 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5z"/></svg>
+                  Ordina
+                </button>
+              )}
+            </div>
+            {showSearch && (
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cerca una categoria…"
+                autoFocus
+                style={{ width: '100%', marginTop: '8px', padding: '12px 14px', fontSize: '14px', border: '1px solid #E0E0E0', borderRadius: '8px', background: '#FFFFFF', color: '#000000', boxSizing: 'border-box', outline: 'none' }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Vista GRIGLIA: ricerca categorie */}
+        {categories.length > 0 && layout !== 'rows' && (
+          <div style={{ marginBottom: '20px' }}>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cerca una categoria…"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: '12px 14px',
-                fontSize: '14px',
-                border: '1px solid #E0E0E0',
-                borderRadius: '8px',
-                background: '#FFFFFF',
-                color: '#000000',
-                boxSizing: 'border-box',
-                outline: 'none'
-              }}
+              style={{ width: '100%', padding: '12px 14px', fontSize: '14px', border: '1px solid #E0E0E0', borderRadius: '8px', background: '#FFFFFF', color: '#000000', boxSizing: 'border-box', outline: 'none' }}
             />
-            {layout === 'rows' && categories.length > 1 && (
-              <button
-                onClick={openCategoryReorder}
-                title="Ordina categorie"
-                style={{ flexShrink: 0, width: '46px', borderRadius: '8px', border: '1px solid #E0E0E0', background: '#FFFFFF', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 2a.5.5 0 0 1 .5.5v9.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L3 12.293V2.5a.5.5 0 0 1 .5-.5z"/><path d="M7 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5z"/></svg>
-              </button>
-            )}
-            {layout === 'rows' && (
-              <button
-                onClick={handleCreateClick}
-                title="Aggiungi categoria"
-                style={{ flexShrink: 0, width: '46px', borderRadius: '8px', border: '1px solid #000000', background: '#000000', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
-              </button>
-            )}
           </div>
         )}
 
