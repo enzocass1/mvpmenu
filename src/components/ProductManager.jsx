@@ -725,7 +725,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={handleCreateClick}
-                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF', background: '#000000', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#FFFFFF', background: '#000000', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', lineHeight: 1 }}
               >
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
                 Aggiungi
@@ -733,7 +733,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
               <button
                 onClick={() => setShowSearch(v => !v)}
                 title="Cerca"
-                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: showSearch ? '#FFFFFF' : '#000000', background: showSearch ? '#000000' : '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: showSearch ? '#FFFFFF' : '#000000', background: showSearch ? '#000000' : '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', lineHeight: 1 }}
               >
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg>
                 Cerca
@@ -741,7 +741,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
               <button
                 onClick={() => setShowCategoryFilter(true)}
                 title="Filtra per categorie"
-                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#000000', background: '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                style={{ flex: 1, padding: '11px', fontSize: '14px', fontWeight: 600, color: '#000000', background: '#FFFFFF', border: '1px solid #000000', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', lineHeight: 1 }}
               >
                 <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5z"/></svg>
                 Filtra

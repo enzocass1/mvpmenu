@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Spinner, PageHeader, ResponsiveTabs } from '../components/ui'
+import { Spinner, ResponsiveTabs } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import ProductManager from '../components/ProductManager'
 import CategoryManager from '../components/CategoryManager'
@@ -50,8 +50,8 @@ function ProductsTestPage({ session }) {
 
   const isPremium = restaurant?.subscription_tier === 'premium'
   const tabsData = [
-    { label: 'Tutti i Prodotti', value: 'products' },
-    { label: 'Categorie', value: 'categories' },
+    { label: `${counts.products} Prodotti`, value: 'products' },
+    { label: `${counts.categories} Categorie`, value: 'categories' },
   ]
 
   const layoutProps = {
@@ -68,10 +68,6 @@ function ProductsTestPage({ session }) {
 
   return (
     <DashboardLayout {...layoutProps}>
-      <PageHeader
-        title={activeTab === 'products' ? `${counts.products} Prodotti (test)` : `${counts.categories} Categorie (test)`}
-        subtitle="Stesse funzioni della pagina Prodotti, ma con prodotti e categorie a righe."
-      />
       <ResponsiveTabs tabs={tabsData} activeTab={activeTab} onChange={setActiveTab} />
       {activeTab === 'products' && (
         <ProductManager restaurantId={restaurant?.id} restaurant={restaurant} layout="rows" />
