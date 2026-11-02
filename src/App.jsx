@@ -53,6 +53,7 @@ import Home from './pages/Home'
 import OrdersPage from './pages/OrdersPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import ProductsPage from './pages/ProductsPage'
+import InventoryPage from './pages/InventoryPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ChannelsPage from './pages/ChannelsPage'
 import SettingsPage from './pages/SettingsPage'
@@ -288,6 +289,12 @@ function App() {
       <Route
         path="/prodotti"
         element={session ? <ProductsPage session={session} /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Inventory Page - solo se loggato */}
+      <Route
+        path="/inventario"
+        element={session ? <InventoryPage session={session} /> : <Navigate to="/login" replace />}
       />
 
       {/* Analytics Page - solo se loggato */}

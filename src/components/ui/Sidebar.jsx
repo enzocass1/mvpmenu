@@ -47,6 +47,12 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
       requiredPermission: 'products.view',
     },
     {
+      label: 'Inventario',
+      path: '/inventario',
+      section: 'main',
+      requiredPermission: 'products.view',
+    },
+    {
       label: 'Analytics',
       path: '/analytics',
       section: 'main',
