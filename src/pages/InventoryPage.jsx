@@ -23,6 +23,7 @@ function InventoryPage({ session }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [adjust, setAdjust] = useState(null) // riga in rettifica
   const [saving, setSaving] = useState(false)
+  const [history, setHistory] = useState(null) // { row, loading, items }
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768)
@@ -153,6 +154,23 @@ function InventoryPage({ session }) {
     finally { setSaving(false) }
   }
 
+  const openHistory = async (row) => {
+    setHistory({ row, loading: true, items: [] })
+    try {
+      let q = supabase.from('stock_movements')
+        .select('created_at, type, delta_on_hand, delta_committed, source, note')
+        .order('created_at', { ascending: false }).limit(100)
+      if (row.variant_id) q = q.eq('variant_id', row.variant_id)
+      else q = q.eq('product_id', row.product_id).is('variant_id', null)
+      const { data } = await q
+      setHistory({ row, loading: false, items: data || [] })
+    } catch (e) { console.error(e); setHistory({ row, loading: false, items: [] }) }
+  }
+
+  const MOV_LABEL = { reserve: 'Impegnato', release: 'Liberato', sale: 'Venduto', restock: 'Carico', waste: 'Scarto', adjustment: 'Rettifica', return: 'Reso' }
+  const fmtDate = (iso) => { try { return new Date(iso).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) } catch { return iso } }
+  const signed = (n) => (n > 0 ? `+${n}` : `${n}`)
+
   const th = { textAlign: 'left', padding: `${tokens.spacing.sm} ${tokens.spacing.md}`, fontSize: tokens.typography.fontSize.xs, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.gray[500], textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: `1px solid ${tokens.colors.gray[200]}`, whiteSpace: 'nowrap' }
   const td = { padding: `${tokens.spacing.sm} ${tokens.spacing.md}`, fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[800], borderBottom: `1px solid ${tokens.colors.gray[100]}`, verticalAlign: 'middle' }
   const numStyle = { textAlign: 'center', fontVariantNumeric: 'tabular-nums' }
@@ -237,7 +255,8 @@ function InventoryPage({ session }) {
                           <input type="checkbox" checked={row.track} onChange={() => toggleTrack(row)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: tokens.colors.black }} />
                         </label>
                       </td>
-                      <td style={{ ...td, textAlign: 'right' }}>
+                      <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <Button variant="ghost" size="sm" onClick={() => openHistory(row)}>Storico</Button>
                         <Button variant="outline" size="sm" disabled={!row.track}
                           onClick={() => setAdjust({ row, mode: 'load', amount: '', note: '' })}>
                           Rettifica
@@ -281,6 +300,49 @@ function InventoryPage({ session }) {
           </Modal.Body>
           <Modal.Footer>
             <Button variant="outline" onClick={() => setShowCatFilter(false)}>Chiudi</Button>
+          </Modal.Footer>
+        </Modal>
+      )}
+
+      {/* Modal storico movimenti */}
+      {history && (
+        <Modal isOpen={true} onClose={() => setHistory(null)}>
+          <Modal.Header><Modal.Title>Storico movimenti</Modal.Title></Modal.Header>
+          <Modal.Body>
+            <p style={{ margin: `0 0 ${tokens.spacing.md}`, fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[600] }}>
+              {history.row.name}{history.row.sub ? ` · ${history.row.sub}` : ''}
+            </p>
+            {history.loading ? (
+              <Spinner size="md" text="Caricamento…" centered />
+            ) : history.items.length === 0 ? (
+              <EmptyState title="Nessun movimento" description="Le variazioni di scorta (vendite e rettifiche) appariranno qui." />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing.xs, maxHeight: '55vh', overflowY: 'auto' }}>
+                {history.items.map((m, i) => {
+                  const parts = []
+                  if (m.delta_on_hand) parts.push(`Giacenza ${signed(m.delta_on_hand)}`)
+                  if (m.delta_committed) parts.push(`Impegnato ${signed(m.delta_committed)}`)
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacing.sm, padding: `${tokens.spacing.sm} ${tokens.spacing.md}`, background: tokens.colors.gray[50], border: `1px solid ${tokens.colors.gray[200]}`, borderRadius: tokens.borderRadius.md }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.black }}>
+                          {MOV_LABEL[m.type] || m.type}
+                          {m.source ? <span style={{ fontWeight: 400, color: tokens.colors.gray[500] }}> · {m.source}</span> : null}
+                        </div>
+                        {m.note ? <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.gray[600] }}>{m.note}</div> : null}
+                        <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.gray[400] }}>{fmtDate(m.created_at)}</div>
+                      </div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm, fontWeight: 700, whiteSpace: 'nowrap', color: (m.delta_on_hand < 0 ? '#b91c1c' : (m.delta_on_hand > 0 ? '#15803d' : tokens.colors.gray[700])) }}>
+                        {parts.join(' · ')}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="outline" onClick={() => setHistory(null)}>Chiudi</Button>
           </Modal.Footer>
         </Modal>
       )}
