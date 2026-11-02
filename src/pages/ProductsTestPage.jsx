@@ -14,6 +14,7 @@ function ProductsTestPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('products')
+  const [counts, setCounts] = useState({ products: 0, categories: 0 })
 
   useEffect(() => { if (session) loadRestaurant() }, [session])
 
@@ -23,6 +24,15 @@ function ProductsTestPage({ session }) {
       const { data, error } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single()
       if (error) throw error
       setRestaurant(data)
+      // Conteggi per il titolo (numero davanti al nome)
+      const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id)
+      const catIds = (cats || []).map(c => c.id)
+      let prodCount = 0
+      if (catIds.length) {
+        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).in('category_id', catIds)
+        prodCount = count || 0
+      }
+      setCounts({ products: prodCount, categories: (cats || []).length })
     } catch (error) {
       console.error('Errore caricamento ristorante:', error)
     } finally {
@@ -58,7 +68,10 @@ function ProductsTestPage({ session }) {
 
   return (
     <DashboardLayout {...layoutProps}>
-      <PageHeader title="Prodotti (test)" subtitle="Stesse funzioni della pagina Prodotti, ma con prodotti e categorie a righe." />
+      <PageHeader
+        title={activeTab === 'products' ? `${counts.products} Prodotti (test)` : `${counts.categories} Categorie (test)`}
+        subtitle="Stesse funzioni della pagina Prodotti, ma con prodotti e categorie a righe."
+      />
       <ResponsiveTabs tabs={tabsData} activeTab={activeTab} onChange={setActiveTab} />
       {activeTab === 'products' && (
         <ProductManager restaurantId={restaurant?.id} restaurant={restaurant} layout="rows" />

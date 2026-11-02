@@ -536,12 +536,6 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
 
       {/* Main Content */}
       <div>
-        {/* Vista righe: titolo con numero davanti */}
-        {layout === 'rows' && (
-          <div style={{ fontSize: '18px', fontWeight: 700, color: '#000', marginBottom: '16px' }}>
-            {categories.length} Categorie
-          </div>
-        )}
         {restaurant && layout !== 'rows' && (
           <div style={{
             padding: '16px',

@@ -667,12 +667,6 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
 
       {/* Main Content */}
       <div>
-        {/* Vista righe: titolo con numero davanti */}
-        {layout === 'rows' && (
-          <div style={{ fontSize: '18px', fontWeight: 700, color: '#000', marginBottom: '16px' }}>
-            {products.length} Prodotti
-          </div>
-        )}
         {restaurant && layout !== 'rows' && (
           <div style={{
             padding: '16px',
