@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Spinner, PageHeader } from '../components/ui'
+import { Spinner, PageHeader, ResponsiveTabs } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import ProductManager from '../components/ProductManager'
+import CategoryManager from '../components/CategoryManager'
 
 /**
- * Prodotti (TEST): STESSA pagina Prodotti e STESSE funzioni, ma i prodotti
- * sono mostrati a RIGHE (stile e-commerce) invece che a griglia.
- * Riusa il componente ProductManager con layout="rows" -> funzionalità identica.
+ * Prodotti (TEST): STESSE funzioni della pagina Prodotti (Prodotti + Categorie),
+ * ma con gli elementi mostrati a RIGHE (stile e-commerce) e un menu azioni "⋮"
+ * per riga. Riusa ProductManager e CategoryManager con layout="rows".
  */
 function ProductsTestPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('products')
 
   useEffect(() => { if (session) loadRestaurant() }, [session])
 
@@ -37,19 +39,33 @@ function ProductsTestPage({ session }) {
   }
 
   const isPremium = restaurant?.subscription_tier === 'premium'
+  const tabsData = [
+    { label: 'Tutti i Prodotti', value: 'products' },
+    { label: 'Categorie', value: 'categories' },
+  ]
+
+  const layoutProps = {
+    restaurantName: restaurant?.name,
+    userName: session?.user?.email,
+    isPremium,
+    permissions: ['*'],
+    onLogout: handleLogout,
+  }
 
   if (loading) {
-    return (
-      <DashboardLayout restaurantName={restaurant?.name} userName={session?.user?.email} isPremium={isPremium} permissions={['*']} onLogout={handleLogout}>
-        <Spinner size="lg" text="Caricamento..." centered />
-      </DashboardLayout>
-    )
+    return <DashboardLayout {...layoutProps}><Spinner size="lg" text="Caricamento..." centered /></DashboardLayout>
   }
 
   return (
-    <DashboardLayout restaurantName={restaurant?.name} userName={session?.user?.email} isPremium={isPremium} permissions={['*']} onLogout={handleLogout}>
-      <PageHeader title="Prodotti (test)" subtitle="Stesse funzioni della pagina Prodotti, ma con i prodotti a righe." />
-      <ProductManager restaurantId={restaurant?.id} restaurant={restaurant} layout="rows" />
+    <DashboardLayout {...layoutProps}>
+      <PageHeader title="Prodotti (test)" subtitle="Stesse funzioni della pagina Prodotti, ma con prodotti e categorie a righe." />
+      <ResponsiveTabs tabs={tabsData} activeTab={activeTab} onChange={setActiveTab} />
+      {activeTab === 'products' && (
+        <ProductManager restaurantId={restaurant?.id} restaurant={restaurant} layout="rows" />
+      )}
+      {activeTab === 'categories' && (
+        <CategoryManager restaurantId={restaurant?.id} restaurant={restaurant} layout="rows" />
+      )}
     </DashboardLayout>
   )
 }

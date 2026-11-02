@@ -9,7 +9,7 @@ import {
   getHiddenCategoriesCount
 } from '../utils/subscription'
 
-function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
+function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'grid' }) {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -17,6 +17,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
   const [productCounts, setProductCounts] = useState({})
   const [reorder, setReorder] = useState(null) // { title, subtitle, items, sortOptions, onSave }
   const [searchQuery, setSearchQuery] = useState('')
+  const [rowMenu, setRowMenu] = useState(null) // { category, top, right } menu azioni riga
 
   // Apre il riordino dei PRODOTTI di una categoria (con prezzo, data, bestseller)
   const openProductReorder = async (category) => {
@@ -306,6 +307,75 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
 
   const displayedCategories = categories
     .filter(c => !searchQuery.trim() || c.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+
+  // Una RIGA categoria (stile e-commerce) — layout === 'rows'
+  const CategoryRow = ({ category }) => {
+    const productCount = productCounts[category.id] || 0
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderBottom: '1px solid #F0F0F0', opacity: category.is_visible === false ? 0.6 : 1 }}>
+        <div style={{ width: '44px', height: '44px', flexShrink: 0, borderRadius: '8px', border: '1px solid #E0E0E0', background: category.image_url ? `url(${category.image_url})` : '#F5F5F5', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {category.name}
+            {category.is_visible === false && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 700, color: '#FFFFFF', background: '#FF9800', borderRadius: '4px', padding: '1px 5px', textTransform: 'uppercase' }}>Nascosta</span>}
+          </div>
+          <div style={{ fontSize: '11px', color: '#888' }}>{productCount} {productCount === 1 ? 'prodotto' : 'prodotti'}</div>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setRowMenu({ category, top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) }) }}
+          title="Azioni"
+          style={{ flexShrink: 0, width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #000000', background: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+        >
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2.5px' }}>
+            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#000000' }} />
+            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#000000' }} />
+            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#000000' }} />
+          </span>
+        </button>
+      </div>
+    )
+  }
+
+  const RowMenuItem = ({ color, label, onClick, children }) => (
+    <button
+      onClick={() => { setRowMenu(null); onClick() }}
+      style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 12px', background: 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', color, fontSize: '14px', fontWeight: 500, textAlign: 'left' }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = '#F5F5F5' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+    >
+      {children}
+      {label}
+    </button>
+  )
+
+  const RowMenu = () => {
+    if (!rowMenu) return null
+    const category = rowMenu.category
+    return (
+      <>
+        <div onClick={() => setRowMenu(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1500 }} />
+        <div style={{ position: 'fixed', top: rowMenu.top, right: rowMenu.right, zIndex: 1501, background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: '12px', boxShadow: '0 8px 28px rgba(0,0,0,0.16)', minWidth: '200px', padding: '6px' }}>
+          <RowMenuItem color="#000000" label="Modifica" onClick={() => handleEdit(category)}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fillRule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg>
+          </RowMenuItem>
+          <RowMenuItem color="#000000" label="Ordina prodotti" onClick={() => openProductReorder(category)}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 2a.5.5 0 0 1 .5.5v9.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L3 12.293V2.5a.5.5 0 0 1 .5-.5z"/><path d="M7 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5z"/></svg>
+          </RowMenuItem>
+          <RowMenuItem color="#000000" label={category.is_visible === false ? 'Mostra' : 'Nascondi'} onClick={() => toggleVisibility(category)}>
+            {category.is_visible === false ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/></svg>
+            )}
+          </RowMenuItem>
+          <div style={{ height: '1px', background: '#F0F0F0', margin: '4px 8px' }} />
+          <RowMenuItem color="#f44336" label="Elimina" onClick={() => handleDelete(category.id)}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+          </RowMenuItem>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
@@ -608,6 +678,12 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
           }}>
             Nessuna categoria trovata{searchQuery.trim() ? ` per "${searchQuery.trim()}"` : ''}.
           </div>
+        ) : layout === 'rows' ? (
+          <div style={{ background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: '12px', overflow: 'hidden' }}>
+            {displayedCategories.map((category) => (
+              <CategoryRow key={category.id} category={category} />
+            ))}
+          </div>
         ) : (
           <div style={{
             display: 'grid',
@@ -811,6 +887,9 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick }) {
           </div>
         )}
       </div>
+
+      {/* Menu azioni riga (⋮) */}
+      <RowMenu />
 
       {reorder && (
         <ProductsOrderModal
