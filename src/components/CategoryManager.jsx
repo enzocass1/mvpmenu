@@ -586,23 +586,25 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
                 {categories.length > 1 && (
                   <button
                     onClick={openCategoryReorder}
+                    title="Ordina categorie"
                     style={{
-                      padding: '12px 18px', fontSize: '14px', fontWeight: '500',
+                      padding: layout === 'rows' ? '10px' : '12px 18px', fontSize: '14px', fontWeight: '500',
                       color: '#000', background: '#fff', border: '1px solid #E0E0E0',
-                      borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+                      borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                       <path d="M3.5 2a.5.5 0 0 1 .5.5v9.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L3 12.293V2.5a.5.5 0 0 1 .5-.5z"/>
                       <path d="M7 3.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 3a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5z"/>
                     </svg>
-                    Ordina categorie
+                    {layout !== 'rows' && 'Ordina categorie'}
                   </button>
                 )}
                 <button
                   onClick={handleCreateClick}
+                  title={canAddNewCategory ? 'Nuova Categoria' : 'Passa a Premium'}
                   style={{
-                    padding: '12px 24px',
+                    padding: layout === 'rows' ? '10px' : '12px 24px',
                     fontSize: '14px',
                     fontWeight: '500',
                     color: !canAddNewCategory ? '#000000' : '#FFFFFF',
@@ -610,10 +612,13 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
                     border: 'none',
                     borderRadius: '8px',
                     cursor: 'pointer',
-                    transition: 'background 0.2s ease'
+                    transition: 'background 0.2s ease',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                   }}
                 >
-                  {canAddNewCategory ? '+ Nuova Categoria' : 'Passa a Premium'}
+                  {(layout === 'rows' && canAddNewCategory) ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
+                  ) : (canAddNewCategory ? '+ Nuova Categoria' : 'Passa a Premium')}
                 </button>
               </div>
             </div>

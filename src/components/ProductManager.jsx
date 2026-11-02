@@ -696,8 +696,9 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
 
               <button
                 onClick={handleCreateClick}
+                title="Nuovo Prodotto"
                 style={{
-                  padding: '12px 24px',
+                  padding: layout === 'rows' ? '10px' : '12px 24px',
                   fontSize: '14px',
                   fontWeight: '500',
                   color: '#FFFFFF',
@@ -705,10 +706,13 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  transition: 'background 0.2s ease'
+                  transition: 'background 0.2s ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}
               >
-                + Nuovo Prodotto
+                {layout === 'rows'
+                  ? <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M8 3v10M3 8h10"/></svg>
+                  : '+ Nuovo Prodotto'}
               </button>
             </div>
           </div>
