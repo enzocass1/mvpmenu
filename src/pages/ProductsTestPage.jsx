@@ -50,8 +50,8 @@ function ProductsTestPage({ session }) {
 
   const isPremium = restaurant?.subscription_tier === 'premium'
   const tabsData = [
-    { label: `${counts.products} Prodotti`, value: 'products' },
-    { label: `${counts.categories} Categorie`, value: 'categories' },
+    { label: `Prodotti - ${counts.products}`, value: 'products' },
+    { label: `Categorie - ${counts.categories}`, value: 'categories' },
   ]
 
   const layoutProps = {
