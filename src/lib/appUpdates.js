@@ -4,6 +4,21 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-02-inventario',
+    date: '2026-11-02',
+    type: 'novita',
+    title: 'Inventario: gestisci le scorte dei prodotti',
+    description:
+      "Nuova sezione Inventario. Per ogni prodotto puoi attivare le scorte e vedere a colpo d'occhio Giacenza, Impegnato e Disponibile. Le vendite da Cassa, banco, tavolo o staff scalano la scorta in automatico. Puoi fare carichi merce, conteggi e scarti con lo storico di ogni movimento, e impostare una soglia di scorta bassa. Nel menu i prodotti esauriti vengono segnalati come \"Esaurito\" e non sono ordinabili dal cliente.",
+    steps: [
+      'Apri "Inventario" dal menu laterale.',
+      'Attiva "Traccia" sul prodotto e imposta la quantità con "Rettifica → Conteggio".',
+      'Imposta la soglia minima per gli avvisi di scorta bassa.',
+      'Le vendite scalano da sole; con "Storico" vedi tutti i movimenti (carico, vendita, scarto...).',
+      'Nel menu pubblico i prodotti esauriti risultano "Esaurito" e non ordinabili.'
+    ]
+  },
+  {
     id: '2026-11-01-schede-menu',
     date: '2026-11-01',
     type: 'miglioramento',
@@ -204,6 +219,7 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-02-inventario': '/updates/inventario.gif',
   '2026-11-01-schede-menu': '/updates/schede-menu.gif',
   '2026-11-01-ordini-tabella': '/updates/ordini-tabella.gif',
   '2026-11-01-preferiti-cassa': '/updates/preferiti-cassa.gif',
