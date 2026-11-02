@@ -10,6 +10,7 @@ import OrphanOrdersAlert from '../components/OrphanOrdersAlert'
 import ProductPickerModal from '../components/ProductPickerModal'
 import ProductsOrderModal from '../components/ProductsOrderModal'
 import { formatPrice } from '../lib/priceFormat'
+import { isProductEsaurito, isProductLow } from '../lib/stock'
 import * as ordersService from '../lib/ordersService'
 import { trackEvent } from '../utils/analytics'
 import '../styles/cassa-animations.css'
@@ -1319,7 +1320,10 @@ function CassaPage({ session }) {
               </div>
             ) : (
             <div style={productsGridStyles} ref={productsGridRef}>
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product) => {
+                const esaurito = isProductEsaurito(product)
+                const low = !esaurito && isProductLow(product)
+                return (
                 <div
                   key={product.id}
                   style={productCardStyles}
@@ -1356,13 +1360,27 @@ function CassaPage({ session }) {
                   >
                     €{Number(product.price || 0).toFixed(2)}
                   </div>
+                  {(esaurito || low) && (
+                    <span style={{
+                      marginTop: tokens.spacing.xs,
+                      display: 'inline-flex', alignItems: 'center', alignSelf: 'flex-start',
+                      padding: '1px 6px', borderRadius: '999px',
+                      fontSize: '10px', fontWeight: 700, letterSpacing: '0.2px', textTransform: 'uppercase',
+                      color: esaurito ? '#b91c1c' : '#b45309',
+                      background: esaurito ? '#fee2e2' : '#fff7ed',
+                      border: `1px solid ${esaurito ? '#fecaca' : '#fed7aa'}`,
+                    }}>
+                      {esaurito ? 'Esaurito' : 'Scorta bassa'}
+                    </span>
+                  )}
                   {product.variants && product.variants.length > 0 && (
                     <Badge variant="info" size="sm" style={{ marginTop: tokens.spacing.xs }}>
                       Varianti
                     </Badge>
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
             )}
           </div>

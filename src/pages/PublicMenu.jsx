@@ -25,6 +25,7 @@ import MenuStoreLayout from '../components/MenuStoreLayout'
 import MenuBuilderLayout from '../components/MenuBuilderLayout'
 import MenuTopBar from '../components/MenuTopBar'
 import { getPriceInfo } from '../lib/priceFormat'
+import { isProductEsaurito } from '../lib/stock'
 
 // Prezzo in formato italiano: "1,20 €" oppure "Da 7,00 €" se varianti a prezzi diversi
 const formatPriceIt = (p) => {
@@ -767,6 +768,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
               categoryProducts.map((product) => {
                 const expanded = !!expandedProducts[product.id]
                 const hasDetails = !!(product.image_url || product.description)
+                const esaurito = isProductEsaurito(product)
                 return (
                   <div key={product.id} style={styles.productCard}>
                     <div style={styles.productHeader}>
@@ -776,6 +778,8 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
                         <div style={styles.productMetaRow}>
                           <span style={styles.productPriceLine}>{formatPriceIt(product)}</span>
+
+                          {esaurito && <span style={styles.soldOutBadge}>Esaurito</span>}
 
                           {hasDetails && (
                             <span
@@ -820,11 +824,12 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
                         {orderSettingsEnabled && (
                           <div
-                            onClick={(e) => { e.stopPropagation(); setAddToCartModalProduct(product) }}
-                            style={styles.addToCartButtonCompact}
+                            onClick={esaurito ? undefined : (e) => { e.stopPropagation(); setAddToCartModalProduct(product) }}
+                            style={{ ...styles.addToCartButtonCompact, ...(esaurito ? styles.addToCartButtonDisabled : {}) }}
                             role="button"
-                            tabIndex={0}
-                            aria-label="Aggiungi al carrello"
+                            tabIndex={esaurito ? -1 : 0}
+                            aria-disabled={esaurito}
+                            aria-label={esaurito ? 'Esaurito' : 'Aggiungi al carrello'}
                           >
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                               <path d="M12 5v14M5 12h14"></path>
@@ -1534,6 +1539,27 @@ const getStyles = (theme = {}) => ({
     fontWeight: 'bold',
     color: theme.textSecondaryColor || '#000',
     whiteSpace: 'nowrap',
+  },
+
+  soldOutBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '2px 8px',
+    borderRadius: '999px',
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '0.3px',
+    textTransform: 'uppercase',
+    color: '#b91c1c',
+    background: '#fee2e2',
+    border: '1px solid #fecaca',
+    whiteSpace: 'nowrap',
+  },
+
+  addToCartButtonDisabled: {
+    opacity: 0.4,
+    cursor: 'not-allowed',
+    boxShadow: 'none',
   },
 
   discoverToggle: {
