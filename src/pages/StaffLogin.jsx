@@ -55,34 +55,15 @@ function StaffLogin() {
     setLoggingIn(true)
 
     try {
-      // Verifica credenziali staff + carica ruolo con permessi
-      const { data: staff, error: staffError } = await supabase
-        .from('restaurant_staff')
-        .select(`
-          *,
-          primary_role:staff_roles!primary_role_id (
-            id,
-            name,
-            color,
-            permissions
-          )
-        `)
-        .eq('restaurant_id', restaurant.id)
-        .eq('email', credentials.email)
-        .single()
+      // Verifica credenziali sul server (password bcrypt, mai restituita) + ruolo con permessi
+      const { data: staff, error: staffError } = await supabase.rpc('staff_login', {
+        p_restaurant_id: restaurant.id,
+        p_email: credentials.email,
+        p_password: credentials.password,
+      })
 
       if (staffError || !staff) {
-        throw new Error('Credenziali non valide')
-      }
-
-      // Verifica password (decodifica da base64)
-      const decodedPassword = atob(staff.password_hash)
-      if (decodedPassword !== credentials.password) {
-        throw new Error('Credenziali non valide')
-      }
-
-      if (!staff.is_active) {
-        throw new Error('Account disabilitato')
+        throw new Error(staffError?.message?.includes('Account disabilitato') ? 'Account disabilitato' : 'Credenziali non valide')
       }
 
       // Estrai permessi dal ruolo

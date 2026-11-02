@@ -724,9 +724,9 @@ const getStyles = (theme = {}) => ({
     outline: 'none'
   },
   optionButtonSelected: {
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
-    borderColor: theme.primaryColor || '#000'
+    backgroundColor: theme.buttonColor || '#000',
+    color: theme.buttonTextColor || '#fff',
+    borderColor: theme.buttonColor || '#000'
   },
   variantInfo: {
     marginTop: '12px',

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+import { isSubscriptionBlocked } from './lib/subscriptionStatus'
 
 // Guardia sezioni: se il ristorante ha allowed_nav (es. solo /prodotti),
 // reindirizza le pagine admin non consentite verso la prima sezione permessa.
@@ -11,8 +12,10 @@ function NavGuard({ allowedNav }) {
   useEffect(() => {
     if (!allowedNav || allowedNav.length === 0) return
     const path = location.pathname
-    const publicPrefixes = ['/login', '/landing', '/menu/', '/staff/', '/order-confirmation/', '/super-admin/', '/design-system-demo']
+    const publicPrefixes = ['/login', '/landing', '/menu/', '/staff/', '/order-confirmation/', '/super-admin/', '/design-system-demo', '/privacy', '/termini']
     if (publicPrefixes.some(pre => path === pre || path.startsWith(pre))) return
+    // L'assistenza resta sempre raggiungibile (anche con sezioni limitate o abbonamento sospeso)
+    if (path === '/assistenza') return
     const allowed = allowedNav.some(a => path === a || path.startsWith(a + '/'))
     if (!allowed) navigate(allowedNav[0], { replace: true })
   }, [location.pathname, allowedNav, navigate])
@@ -76,13 +79,16 @@ import ChannelsPage from './pages/ChannelsPage'
 import SettingsPage from './pages/SettingsPage'
 import UpdatesPage from './pages/UpdatesPage'
 import UpdateDetailPage from './pages/UpdateDetailPage'
-import PlanPage from './pages/PlanPage'
 import CassaPage from './pages/CassaPage'
 import UsersPage from './pages/UsersPage'
 import SuperAdminLogin from './pages/superadmin/SuperAdminLogin'
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard'
 import PlansManagement from './pages/superadmin/PlansManagement'
 import RestaurantsManagement from './pages/superadmin/RestaurantsManagement'
+import SupportTicketsAdmin from './pages/superadmin/SupportTicketsAdmin'
+import DemoRequestsAdmin from './pages/superadmin/DemoRequestsAdmin'
+import SupportPage from './pages/SupportPage'
+import LegalPage from './pages/LegalPage'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -90,11 +96,13 @@ function App() {
   const [error, setError] = useState(null)
   const [allowedNav, setAllowedNav] = useState(null)
 
-  // Carica l'eventuale restrizione sezioni del ristorante dell'utente loggato
+  // Carica restrizione sezioni (allowed_nav) e scadenza abbonamento.
+  // Abbonamento scaduto da oltre 15 giorni => accesso solo a /impostazioni.
   useEffect(() => {
     if (!session) { setAllowedNav(null); return }
-    supabase.from('restaurants').select('allowed_nav').eq('user_id', session.user.id).single()
+    supabase.from('restaurants').select('allowed_nav, subscription_expires_at').eq('user_id', session.user.id).single()
       .then(({ data }) => {
+        if (isSubscriptionBlocked(data)) { setAllowedNav(['/impostazioni']); return }
         const a = data?.allowed_nav
         setAllowedNav(Array.isArray(a) && a.length ? a : null)
       })
@@ -239,6 +247,10 @@ function App() {
       {/* Landing Page - accessibile a tutti */}
       <Route path="/landing" element={<Landing />} />
 
+      {/* Documenti legali - pubblici */}
+      <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+      <Route path="/termini" element={<LegalPage doc="termini" />} />
+
       {/* Design System Demo - solo in sviluppo locale */}
       {import.meta.env.DEV && (
         <Route path="/design-system-demo" element={<DesignSystemDemo />} />
@@ -361,10 +373,10 @@ function App() {
         element={session ? <UsersPage session={session} /> : <Navigate to="/login" replace />}
       />
 
-      {/* Plan Page - solo se loggato */}
+      {/* Assistenza (ticket) - solo se loggato */}
       <Route
-        path="/piano"
-        element={session ? <PlanPage session={session} /> : <Navigate to="/login" replace />}
+        path="/assistenza"
+        element={session ? <SupportPage session={session} /> : <Navigate to="/login" replace />}
       />
 
       {/* Cassa (POS) Page - solo se loggato */}
@@ -431,6 +443,14 @@ function App() {
       <Route
         path="/super-admin/restaurants"
         element={<RestaurantsManagement />}
+      />
+      <Route
+        path="/super-admin/tickets"
+        element={<SupportTicketsAdmin />}
+      />
+      <Route
+        path="/super-admin/demo"
+        element={<DemoRequestsAdmin />}
       />
 
       {/* Root redirect */}

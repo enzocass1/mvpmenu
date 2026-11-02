@@ -16,6 +16,9 @@ import { tokens } from '../../styles/tokens'
 import restaurantsService from '../../services/restaurantsService'
 import plansService from '../../services/plansService'
 import subscriptionManagementService from '../../services/subscriptionManagementService'
+import superAdminService from '../../services/superAdminService'
+import { supabase } from '../../supabaseClient'
+import { MONTHLY_PRICE, GRACE_DAYS, formatDateIt } from '../../lib/subscriptionStatus'
 
 function RestaurantsManagement() {
   const navigate = useNavigate()
@@ -69,6 +72,12 @@ function RestaurantsManagement() {
     success: 0,
     failed: 0
   })
+
+  // Registrazione pagamento (bonifico) con estensione scadenza
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentForm, setPaymentForm] = useState({ monthly: String(MONTHLY_PRICE), months: 1, note: '' })
+  const [paymentHistory, setPaymentHistory] = useState([])
+  const [savingPayment, setSavingPayment] = useState(false)
 
   /**
    * Load data
@@ -160,6 +169,87 @@ function RestaurantsManagement() {
         : ''
     })
     setShowEditModal(true)
+  }
+
+  /**
+   * Pagamenti via bonifico: la nuova scadenza parte dalla scadenza attuale
+   * (se futura) o da oggi, più i mesi coperti dal pagamento.
+   */
+  const computeNewExpiry = (restaurant, months) => {
+    const now = new Date()
+    const current = restaurant?.subscription_expires_at ? new Date(restaurant.subscription_expires_at) : null
+    const base = current && current > now ? current : now
+    const next = new Date(base)
+    next.setMonth(next.getMonth() + Number(months || 1))
+    return next
+  }
+
+  const handleRegisterPayment = async (restaurant) => {
+    setSelectedRestaurant(restaurant)
+    setPaymentForm({ monthly: String(MONTHLY_PRICE), months: 1, note: '' })
+    setPaymentHistory([])
+    setShowPaymentModal(true)
+    const { data } = await supabase
+      .from('subscription_payments')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .order('paid_at', { ascending: false })
+      .limit(10)
+    setPaymentHistory(data || [])
+  }
+
+  const handleSavePayment = async () => {
+    if (!selectedRestaurant) return
+    const monthly = parseFloat(String(paymentForm.monthly).replace(',', '.'))
+    const months = Number(paymentForm.months)
+    if (!monthly || monthly <= 0 || !months) {
+      setError('Inserisci un importo mensile valido')
+      return
+    }
+
+    setSavingPayment(true)
+    setError(null)
+    try {
+      const newExpiry = computeNewExpiry(selectedRestaurant, months)
+      const amount = Math.round(monthly * months * 100) / 100
+
+      const { error: payError } = await supabase.from('subscription_payments').insert([{
+        restaurant_id: selectedRestaurant.id,
+        amount,
+        months,
+        paid_at: new Date().toISOString().split('T')[0],
+        previous_expires_at: selectedRestaurant.subscription_expires_at || null,
+        new_expires_at: newExpiry.toISOString(),
+        method: 'bonifico',
+        note: paymentForm.note.trim() || null,
+      }])
+      if (payError) throw payError
+
+      const { error: updError } = await supabase
+        .from('restaurants')
+        .update({ subscription_expires_at: newExpiry.toISOString(), subscription_status: 'active' })
+        .eq('id', selectedRestaurant.id)
+      if (updError) throw updError
+
+      const session = superAdminService.getSession()
+      if (session?.admin_id) {
+        await superAdminService.logAction(session.admin_id, 'subscription.payment_registered', {
+          restaurant: selectedRestaurant.name,
+          amount,
+          months,
+          new_expires_at: newExpiry.toISOString(),
+        }, 'restaurant', selectedRestaurant.id)
+      }
+
+      setShowPaymentModal(false)
+      setSelectedRestaurant(null)
+      await loadData()
+    } catch (err) {
+      console.error('❌ Error saving payment:', err)
+      setError(err.message || 'Errore durante la registrazione del pagamento')
+    } finally {
+      setSavingPayment(false)
+    }
   }
 
   /**
@@ -678,6 +768,14 @@ function RestaurantsManagement() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleRegisterPayment(restaurant)}
+                          style={{ color: tokens.colors.success?.base || '#1b5e20' }}
+                        >
+                          💶 Pagamento
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleEditRestaurant(restaurant)}
                         >
                           Modifica
@@ -839,6 +937,125 @@ function RestaurantsManagement() {
             disabled={!editForm.planId}
           >
             Salva Modifiche
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Payment Modal (bonifico) */}
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false)
+          setSelectedRestaurant(null)
+          setError(null)
+        }}
+        size="md"
+      >
+        <Modal.Header>
+          <Modal.Title>
+            💶 Registra pagamento - {selectedRestaurant?.name}
+          </Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <p style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.gray[600], marginBottom: tokens.spacing.lg }}>
+            Scadenza attuale: <strong>{selectedRestaurant?.subscription_expires_at ? formatDateIt(selectedRestaurant.subscription_expires_at) : 'nessuna'}</strong>.
+            {' '}Dopo la scadenza l'app resta attiva {GRACE_DAYS} giorni, poi viene sospesa.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing.md, marginBottom: tokens.spacing.lg }}>
+            <div>
+              <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing.xs, color: tokens.colors.gray[700] }}>
+                Importo mensile (€)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={paymentForm.monthly}
+                onChange={(e) => setPaymentForm({ ...paymentForm, monthly: e.target.value })}
+                style={{ width: '100%', padding: tokens.spacing.sm, fontSize: tokens.typography.fontSize.sm, border: `1px solid ${tokens.colors.gray[300]}`, borderRadius: tokens.borderRadius.md, outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing.xs, color: tokens.colors.gray[700] }}>
+                Mesi coperti
+              </label>
+              <select
+                value={paymentForm.months}
+                onChange={(e) => setPaymentForm({ ...paymentForm, months: e.target.value })}
+                style={{ width: '100%', padding: tokens.spacing.sm, fontSize: tokens.typography.fontSize.sm, border: `1px solid ${tokens.colors.gray[300]}`, borderRadius: tokens.borderRadius.md, outline: 'none', boxSizing: 'border-box' }}
+              >
+                {[1, 2, 3, 4, 5, 6, 12].map(m => (
+                  <option key={m} value={m}>{m} {m === 1 ? 'mese' : 'mesi'}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Riepilogo */}
+          <div style={{ padding: tokens.spacing.md, background: tokens.colors.gray[50], border: `1px solid ${tokens.colors.gray[200]}`, borderRadius: tokens.borderRadius.md, marginBottom: tokens.spacing.lg, fontSize: tokens.typography.fontSize.sm }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: tokens.spacing.xs }}>
+              <span>Totale bonifico</span>
+              <strong>
+                {(() => { const m = parseFloat(String(paymentForm.monthly).replace(',', '.')) || 0; return (m * Number(paymentForm.months)).toFixed(2).replace('.', ',') })()} €
+              </strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Nuova scadenza</span>
+              <strong>{selectedRestaurant ? formatDateIt(computeNewExpiry(selectedRestaurant, paymentForm.months).toISOString()) : '—'}</strong>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: tokens.spacing.lg }}>
+            <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing.xs, color: tokens.colors.gray[700] }}>
+              Nota (opzionale)
+            </label>
+            <input
+              type="text"
+              value={paymentForm.note}
+              onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
+              placeholder="Es. bonifico del 02/11, CRO 1234..."
+              style={{ width: '100%', padding: tokens.spacing.sm, fontSize: tokens.typography.fontSize.sm, border: `1px solid ${tokens.colors.gray[300]}`, borderRadius: tokens.borderRadius.md, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Storico pagamenti */}
+          {paymentHistory.length > 0 && (
+            <div style={{ marginBottom: tokens.spacing.md }}>
+              <div style={{ fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.gray[700], marginBottom: tokens.spacing.xs }}>
+                Ultimi pagamenti
+              </div>
+              {paymentHistory.map(p => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: tokens.typography.fontSize.xs, color: tokens.colors.gray[600], padding: `${tokens.spacing.xs} 0`, borderBottom: `1px solid ${tokens.colors.gray[100]}` }}>
+                  <span>{formatDateIt(p.paid_at)} · {p.months} {p.months === 1 ? 'mese' : 'mesi'}</span>
+                  <span><strong>{Number(p.amount).toFixed(2).replace('.', ',')} €</strong> → {formatDateIt(p.new_expires_at)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {error && (
+            <Alert variant="error">
+              {error}
+            </Alert>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="outline" onClick={() => {
+            setShowPaymentModal(false)
+            setSelectedRestaurant(null)
+            setError(null)
+          }}>
+            Annulla
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSavePayment}
+            disabled={savingPayment}
+          >
+            {savingPayment ? 'Salvataggio...' : 'Registra pagamento'}
           </Button>
         </Modal.Footer>
       </Modal>

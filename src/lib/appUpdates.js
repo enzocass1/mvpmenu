@@ -4,6 +4,48 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-02-assistenza',
+    date: '2026-11-02',
+    type: 'novita',
+    title: 'Assistenza direttamente dall\'app',
+    description:
+      "Nuova voce \"Assistenza\" nel menu laterale: puoi segnalarci un problema o proporci un miglioramento senza uscire dall'app. La risposta arriva nella stessa pagina e, quando ti rispondiamo, la voce \"Assistenza\" mostra l'avviso \"RISPOSTA\". L'assistenza è sempre raggiungibile, anche se il tuo account ha sezioni limitate.",
+    steps: [
+      'Apri "Assistenza" dal menu laterale.',
+      'Scegli "Segnala un problema" o "Proponi un miglioramento", scrivi oggetto e descrizione e premi "Invia richiesta".',
+      'In "Le tue richieste" vedi lo stato (Ricevuta, In lavorazione, Risolta) e la nostra risposta.',
+      'Quando arriva una risposta, nel menu laterale compare l\'avviso "RISPOSTA".'
+    ]
+  },
+  {
+    id: '2026-11-02-abbonamento',
+    date: '2026-11-02',
+    type: 'novita',
+    title: 'Abbonamento: scadenza sempre visibile e avviso 10 giorni prima',
+    description:
+      "In Impostazioni → Abbonamento trovi lo stato del tuo abbonamento (o della prova gratuita), la data di scadenza e lo storico dei pagamenti. Il rinnovo si paga con bonifico o in contanti: appena registriamo il pagamento, la nuova scadenza compare lì. 10 giorni prima della scadenza ricevi un avviso in cima all'app. Se non rinnovi, l'app resta attiva per altri 15 giorni; poi l'accesso viene limitato alle Impostazioni e il menu online sospeso, finché non rinnovi.",
+    steps: [
+      'Apri Impostazioni → Abbonamento per vedere stato, scadenza e pagamenti.',
+      'Per rinnovare paga con bonifico o contanti: per coordinate e importi scrivici dalla sezione Assistenza.',
+      '10 giorni prima della scadenza compare un avviso giallo in cima all\'app, con il pulsante "Vedi abbonamento".',
+      'Dopo la scadenza hai 15 giorni di tolleranza con tutte le funzioni attive.'
+    ]
+  },
+  {
+    id: '2026-11-02-pulsanti-tema',
+    date: '2026-11-02',
+    type: 'miglioramento',
+    title: 'Pulsanti del menu sempre leggibili',
+    description:
+      "I pulsanti del carrello (\"Procedi all'Ordine\", \"Conferma Ordine\"), della conferma ordine (\"Torna al Menu\"), delle varianti e del menu ora usano i colori \"Sfondo pulsanti\" e \"Testo pulsanti\" scelti nell'editor: niente più pulsanti scuri su sfondo scuro. Nell'editor, sotto i colori, trovi l'anteprima dei pulsanti con un avviso se il testo si legge poco e il tasto \"Correggi\".",
+    steps: [
+      'Apri Impostazioni → Temi e Stile.',
+      'Scegli "Sfondo pulsanti" e "Testo pulsanti" tra i colori.',
+      'Controlla l\'"Anteprima pulsanti": se compare l\'avviso, premi "Correggi" per un testo leggibile.',
+      'Salva: menu, carrello e conferma ordine useranno questi colori.'
+    ]
+  },
+  {
     id: '2026-11-02-scarica-app',
     date: '2026-11-02',
     type: 'novita',
@@ -247,6 +289,9 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-02-assistenza': '/updates/assistenza.gif',
+  '2026-11-02-abbonamento': '/updates/abbonamento.gif',
+  '2026-11-02-pulsanti-tema': '/updates/pulsanti-tema.gif',
   '2026-11-02-scarica-app': '/updates/scarica-app.gif',
   '2026-11-02-allergeni': '/updates/allergeni.gif',
   '2026-11-02-inventario': '/updates/inventario.gif',

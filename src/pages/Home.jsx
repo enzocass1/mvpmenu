@@ -196,10 +196,10 @@ function Home({ session }) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/piano')}
+            onClick={() => navigate('/impostazioni?tab=subscription')}
             style={{ marginTop: tokens.spacing.sm }}
           >
-            Passa a un piano
+            Vedi abbonamento
           </Button>
         </Alert>
       )}

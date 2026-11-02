@@ -27,6 +27,7 @@ import MenuTopBar from '../components/MenuTopBar'
 import { getPriceInfo } from '../lib/priceFormat'
 import { isProductEsaurito } from '../lib/stock'
 import { getAllergenInfo } from '../lib/allergens'
+import { isSubscriptionBlocked } from '../lib/subscriptionStatus'
 
 // Prezzo in formato italiano: "1,20 €" oppure "Da 7,00 €" se varianti a prezzi diversi
 const formatPriceIt = (p) => {
@@ -593,6 +594,24 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
         <style>{globalStyles}</style>
         <div style={styles.loadingContainer}>
           <p style={styles.loadingText}>Ristorante non trovato</p>
+        </div>
+      </>
+    )
+  }
+
+  // Abbonamento scaduto da oltre 15 giorni: menu pubblico sospeso
+  if (isSubscriptionBlocked(restaurant)) {
+    return (
+      <>
+        <style>{globalStyles}</style>
+        <div style={{ ...styles.loadingContainer, padding: '32px', textAlign: 'center' }}>
+          <div style={{ fontSize: '40px', marginBottom: '12px' }}>🍽️</div>
+          <p style={{ ...styles.loadingText, fontSize: '18px', fontWeight: 600, marginBottom: '6px' }}>
+            {restaurant.name}
+          </p>
+          <p style={styles.loadingText}>
+            Il menu non è al momento disponibile.<br />Riprova più tardi.
+          </p>
         </div>
       </>
     )
@@ -1469,7 +1488,7 @@ const getStyles = (theme = {}) => ({
   },
 
   indicatorActive: {
-    background: theme.primaryColor || '#000',
+    background: theme.buttonColor || '#000',
     width: '28px',
     borderRadius: '5px',
   },
@@ -1806,8 +1825,8 @@ const getStyles = (theme = {}) => ({
   },
 
   variantOrderButton: {
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
+    backgroundColor: theme.buttonColor || '#000',
+    color: theme.buttonTextColor || '#fff',
     border: 'none',
     padding: '8px 16px',
     cursor: 'pointer',
@@ -1976,8 +1995,8 @@ const getStyles = (theme = {}) => ({
   },
 
   addToCartButtonCompact: {
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
+    backgroundColor: theme.buttonColor || '#000',
+    color: theme.buttonTextColor || '#fff',
     border: 'none',
     width: '44px',
     height: '44px',
@@ -2050,8 +2069,8 @@ const getStyles = (theme = {}) => ({
   orderButton: {
     width: '100%',
     padding: '12px 16px',
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
+    backgroundColor: theme.buttonColor || '#000',
+    color: theme.buttonTextColor || '#fff',
     border: 'none',
     borderRadius: theme.borderRadius || '8px',
     fontSize: '15px',
@@ -2171,8 +2190,8 @@ const getStyles = (theme = {}) => ({
   },
 
   favoriteOrderButton: {
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
+    backgroundColor: theme.buttonColor || '#000',
+    color: theme.buttonTextColor || '#fff',
     padding: '8px 16px',
     borderRadius: theme.borderRadius || '8px',
     fontSize: '13px',

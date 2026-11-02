@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Calcolatore guadagni — MVP Menu</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f9fafb; color: #000; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+  h1 { margin: 0 0 4px; font-size: 28px; font-weight: 800; letter-spacing: -.4px; }
+  .sub { margin: 0 0 22px; color: #6b7280; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: 380px 1fr; gap: 22px; align-items: start; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 13px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: #6b7280; }
+  .field { display: grid; grid-template-columns: 1fr 110px; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .field label { font-size: 14px; color: #374151; }
+  .field small { display: block; font-size: 12px; color: #9ca3af; }
+  input[type=number] { width: 100%; padding: 8px 10px; font-size: 15px; border: 1px solid #d1d5db; border-radius: 8px; text-align: right; font-family: inherit; }
+  input[type=number]:focus { outline: none; border-color: #000; box-shadow: 0 0 0 1px #000; }
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 10px; cursor: pointer; }
+  .toggle input { width: 18px; height: 18px; accent-color: #000; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 14px; }
+  .kpi.dark { background: #000; color: #fff; border-color: #000; }
+  .kpi .l { font-size: 12px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #6b7280; }
+  .kpi.dark .l { color: #9ca3af; }
+  .kpi .v { font-size: 26px; font-weight: 800; margin-top: 4px; letter-spacing: -.5px; }
+  .kpi .s { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .kpi.dark .s { color: #d1d5db; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: #6b7280; font-weight: 700; }
+  tr.neg td { color: #8a1c1c; }
+  tr.total td { font-weight: 800; border-top: 2px solid #000; border-bottom: none; font-size: 15px; }
+  tr.sub td { color: #6b7280; font-size: 13px; }
+  .note { font-size: 13px; color: #4b5563; line-height: 1.6; }
+  .warn { background: #fff8e1; border: 1px solid #ffe08a; color: #6b4e00; border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-top: 10px; }
+  .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid #000; background: #fff; font-weight: 700; cursor: pointer; font-family: inherit; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Calcolatore guadagni MVP Menu</h1>
+  <p class="sub">Modifica i valori a sinistra: tabelle e totali si aggiornano subito. È una stima: per le tasse fai sempre verificare dal commercialista.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Clienti</h2>
+        <div class="field"><label>Clienti attivi<small>locali che pagano</small></label><input type="number" id="clients" value="10" min="0"></div>
+        <div class="field"><label>Nuovi clienti al mese<small>per il premio del commerciale</small></label><input type="number" id="newClients" value="2" min="0"></div>
+      </div>
+      <div class="card">
+        <h2>Prezzi</h2>
+        <div class="field"><label>Prezzo mensile (€)</label><input type="number" id="monthly" value="29" min="0" step="0.5"></div>
+        <div class="field"><label>Prezzo annuale (€)</label><input type="number" id="yearly" value="290" min="0" step="1"></div>
+        <div class="field"><label>Clienti con piano annuale (%)</label><input type="number" id="yearlyPct" value="50" min="0" max="100"></div>
+      </div>
+      <div class="card">
+        <h2>Costi infrastruttura</h2>
+        <div class="field"><label>Gratis fino a (clienti)<small>piani free di Supabase e Vercel</small></label><input type="number" id="infraFreeUpTo" value="10" min="0"></div>
+        <div class="field"><label>Poi costo al mese (€)<small>Supabase Pro + Vercel Pro</small></label><input type="number" id="infraCost" value="40" min="0"></div>
+      </div>
+      <div class="card">
+        <h2>Modulo scontrino elettronico</h2>
+        <div class="field"><label>Clienti che lo attivano (%)</label><input type="number" id="fiscalPct" value="0" min="0" max="100"></div>
+        <div class="field"><label>Prezzo al cliente (€/mese)</label><input type="number" id="fiscalPrice" value="12" min="0" step="0.5"></div>
+        <div class="field"><label>Costo per cliente (€/mese)<small>pacchetto Effatta ~99 €/anno</small></label><input type="number" id="fiscalCost" value="8.25" min="0" step="0.05"></div>
+      </div>
+      <div class="card">
+        <h2>Commerciale</h2>
+        <label class="toggle"><input type="checkbox" id="commOn" checked> Ho un commerciale</label>
+        <div class="field"><label>Clienti portati da lui (%)</label><input type="number" id="commShare" value="100" min="0" max="100"></div>
+        <div class="field"><label>Premio per nuovo cliente (€)</label><input type="number" id="commBonus" value="50" min="0"></div>
+        <div class="field"><label>Percentuale ricorrente (%)</label><input type="number" id="commPct" value="30" min="0" max="100"></div>
+      </div>
+      <div class="card">
+        <h2>Tasse (regime forfettario)</h2>
+        <label class="toggle"><input type="checkbox" id="taxOn" checked> Calcola tasse e contributi</label>
+        <div class="field"><label>Coefficiente di redditività (%)<small>es. 67% per sviluppo software</small></label><input type="number" id="coeff" value="67" min="0" max="100"></div>
+        <div class="field"><label>Imposta sostitutiva (%)<small>5% primi 5 anni, poi 15%</small></label><input type="number" id="taxRate" value="5" min="0" max="100"></div>
+        <div class="field"><label>Contributi INPS (%)<small>gestione separata</small></label><input type="number" id="inps" value="26.07" min="0" max="100" step="0.01"></div>
+      </div>
+      <button class="btn" id="reset">Ripristina valori predefiniti</button>
+    </div>
+
+    <div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">Incasso al mese</div><div class="v" id="kRev"></div><div class="s" id="kRevY"></div></div>
+        <div class="kpi"><div class="l">Costi al mese</div><div class="v" id="kCost"></div><div class="s">infrastruttura, scontrino, commerciale</div></div>
+        <div class="kpi"><div class="l">Tasse e contributi</div><div class="v" id="kTax"></div><div class="s">stima al mese</div></div>
+        <div class="kpi dark"><div class="l">Ti resta al mese</div><div class="v" id="kNet"></div><div class="s" id="kNetPer"></div></div>
+      </div>
+
+      <div class="card">
+        <h2>Dettaglio</h2>
+        <table>
+          <thead><tr><th>Voce</th><th>Al mese</th><th>All'anno</th></tr></thead>
+          <tbody id="detail"></tbody>
+        </table>
+        <div id="warns"></div>
+      </div>
+
+      <div class="card">
+        <h2>Scenari con le stesse impostazioni</h2>
+        <table>
+          <thead><tr><th>Clienti</th><th>Incasso / mese</th><th>Costi / mese</th><th>Tasse / mese</th><th>Ti resta / mese</th><th>Per cliente</th><th>Al commerciale</th></tr></thead>
+          <tbody id="scenarios"></tbody>
+        </table>
+      </div>
+
+      <div class="card note">
+        <h2>Come leggere i numeri</h2>
+        <p><strong>Incasso medio per cliente:</strong> mescola chi paga l'annuale (290 € = 24,17 € al mese) e chi paga il mensile (29 €), secondo la percentuale impostata.</p>
+        <p><strong>Commerciale:</strong> prende la percentuale ricorrente sugli abbonamenti incassati dai clienti che ha portato, più il premio una tantum su ogni nuovo cliente (qui distribuito nel mese in cui arriva).</p>
+        <p><strong>Tasse nel forfettario:</strong> si pagano su una parte fissa dell'<em>incasso</em> (il coefficiente), non sull'utile. I costi reali, compreso quanto paghi al commerciale e ai server, <strong>non si scalano</strong>; si scalano solo i contributi INPS. Per questo, con un commerciale al 30%, il peso delle tasse si sente più di quanto sembri.</p>
+        <p>Il forfettario ha un limite di 85.000 € di incasso annuo. I valori sono una stima indicativa: la scelta del regime, del codice ATECO e della gestione INPS va fatta con un commercialista.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DEFAULTS = {}
+  const ids = ['clients','newClients','monthly','yearly','yearlyPct','infraFreeUpTo','infraCost','fiscalPct','fiscalPrice','fiscalCost','commShare','commBonus','commPct','coeff','taxRate','inps']
+  const checks = ['commOn','taxOn']
+  ids.forEach(id => DEFAULTS[id] = document.getElementById(id).value)
+  checks.forEach(id => DEFAULTS[id] = document.getElementById(id).checked)
+
+  const eur = (n) => (n < 0 ? '-' : '') + Math.abs(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+  const eur0 = (n) => (n < 0 ? '-' : '') + Math.abs(Math.round(n)).toLocaleString('it-IT') + ' €'
+  const val = (id) => Number(document.getElementById(id).value) || 0
+  const on = (id) => document.getElementById(id).checked
+
+  // Calcolo per un numero di clienti dato, con le impostazioni correnti
+  function compute(clients) {
+    const yShare = Math.min(100, val('yearlyPct')) / 100
+    const avgPerClient = yShare * (val('yearly') / 12) + (1 - yShare) * val('monthly')
+    const subs = clients * avgPerClient
+    const fiscalClients = clients * Math.min(100, val('fiscalPct')) / 100
+    const fiscalRev = fiscalClients * val('fiscalPrice')
+    const fiscalCost = fiscalClients * val('fiscalCost')
+    const revenue = subs + fiscalRev
+    const infra = clients > val('infraFreeUpTo') ? val('infraCost') : 0
+    const share = on('commOn') ? Math.min(100, val('commShare')) / 100 : 0
+    const commRecurring = subs * share * val('commPct') / 100
+    const newClients = Math.min(val('newClients'), clients) // non più nuovi clienti di quelli totali
+    const commBonus = on('commOn') ? newClients * val('commBonus') * share : 0
+    const comm = commRecurring + commBonus
+    let inps = 0, tax = 0
+    if (on('taxOn')) {
+      const taxable = revenue * val('coeff') / 100
+      inps = taxable * val('inps') / 100
+      tax = Math.max(0, taxable - inps) * val('taxRate') / 100
+    }
+    const costs = infra + fiscalCost + comm
+    const net = revenue - costs - inps - tax
+    return { avgPerClient, subs, fiscalRev, fiscalCost, revenue, infra, commRecurring, commBonus, comm, inps, tax, costs, net }
+  }
+
+  function render() {
+    const c = val('clients')
+    const r = compute(c)
+    document.getElementById('kRev').textContent = eur0(r.revenue)
+    document.getElementById('kRevY').textContent = eur0(r.revenue * 12) + ' all\'anno'
+    document.getElementById('kCost').textContent = eur0(r.costs)
+    document.getElementById('kTax').textContent = eur0(r.inps + r.tax)
+    document.getElementById('kNet').textContent = eur0(r.net)
+    document.getElementById('kNetPer').textContent = (c > 0 ? eur(r.net / c) + ' per cliente · ' : '') + eur0(r.net * 12) + ' all\'anno'
+
+    const rows = [
+      ['Abbonamenti (' + c + ' clienti × ' + eur(r.avgPerClient) + ' medi)', r.subs, ''],
+      ['Modulo scontrino (incasso)', r.fiscalRev, ''],
+      ['Totale incassato', r.revenue, 'total'],
+      ['Infrastruttura (Supabase + Vercel)', -r.infra, 'neg'],
+      ['Modulo scontrino (costo pacchetti)', -r.fiscalCost, 'neg'],
+      ['Commerciale — percentuale ricorrente', -r.commRecurring, 'neg'],
+      ['Commerciale — premi nuovi clienti', -r.commBonus, 'neg'],
+      ['Contributi INPS', -r.inps, 'neg'],
+      ['Imposta sostitutiva', -r.tax, 'neg'],
+      ['Ti resta in tasca', r.net, 'total'],
+    ]
+    document.getElementById('detail').innerHTML = rows.map(([l, v, cls]) =>
+      `<tr class="${cls}"><td>${l}</td><td>${eur(v)}</td><td>${eur0(v * 12)}</td></tr>`).join('')
+
+    const w = []
+    if (r.revenue * 12 > 85000) w.push('Attenzione: l\'incasso annuo supera 85.000 €, il limite del regime forfettario.')
+    if (r.net < 0) w.push('Con queste impostazioni sei in perdita: aumenta i clienti o rivedi i costi.')
+    document.getElementById('warns').innerHTML = w.map(t => `<div class="warn">${t}</div>`).join('')
+
+    const sizes = [...new Set([1, 5, 10, 20, 50, 100, c])].filter(n => n > 0).sort((a, b) => a - b)
+    document.getElementById('scenarios').innerHTML = sizes.map(n => {
+      const s = compute(n)
+      return `<tr${n === c ? ' style="background:#f3f4f6;font-weight:700"' : ''}><td>${n}</td><td>${eur0(s.revenue)}</td><td>${eur0(s.costs)}</td><td>${eur0(s.inps + s.tax)}</td><td>${eur0(s.net)}</td><td>${eur(s.net / n)}</td><td>${eur0(s.comm)}</td></tr>`
+    }).join('')
+  }
+
+  document.querySelectorAll('input').forEach(el => el.addEventListener('input', render))
+  document.getElementById('reset').addEventListener('click', () => {
+    ids.forEach(id => document.getElementById(id).value = DEFAULTS[id])
+    checks.forEach(id => document.getElementById(id).checked = DEFAULTS[id])
+    render()
+  })
+  render()
+</script>
+</body>
+</html>

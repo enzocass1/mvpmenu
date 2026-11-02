@@ -174,7 +174,7 @@ function AnalyticsPage({ session }) {
               hoverable={!option.premium || hasPremium}
               onClick={() => {
                 if (option.premium && !hasPremium) {
-                  navigate('/piano')
+                  navigate('/impostazioni?tab=subscription')
                 } else {
                   navigate(option.path)
                 }
@@ -188,8 +188,8 @@ function AnalyticsPage({ session }) {
               <p style={cardDescStyles}>{option.description}</p>
               {option.premium && !hasPremium && (
                 <div style={{ marginTop: tokens.spacing.md }}>
-                  <Button variant="primary" size="sm" onClick={() => navigate('/piano')}>
-                    Passa a Premium
+                  <Button variant="primary" size="sm" onClick={() => navigate('/impostazioni?tab=subscription')}>
+                    Vedi abbonamento
                   </Button>
                 </div>
               )}

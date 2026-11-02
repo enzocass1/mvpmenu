@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { Spinner, PageHeader, ResponsiveTabs } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
@@ -7,6 +8,7 @@ import ThemeCustomizer from '../components/ThemeCustomizer'
 import OrderSettings from '../components/OrderSettings'
 import OpeningHoursManager from '../components/OpeningHoursManager'
 import FiscalSettings from './FiscalSettings'
+import SubscriptionInfo from '../components/SubscriptionInfo'
 
 /**
  * Settings Page - Shopify-like Design System
@@ -15,7 +17,13 @@ import FiscalSettings from './FiscalSettings'
 function SettingsPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('general')
+  // La scheda iniziale può arrivare dall'indirizzo, es. /impostazioni?tab=subscription
+  const [searchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'general')
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab) setActiveTab(tab)
+  }, [searchParams])
   useEffect(() => {
     if (session) {
       loadRestaurant()
@@ -64,6 +72,7 @@ function SettingsPage({ session }) {
     { label: 'Ordini al Tavolo', value: 'orders' },
     { label: 'Orari', value: 'hours' },
     { label: 'Fiscale', value: 'fiscal' },
+    { label: 'Abbonamento', value: 'subscription' },
   ]
 
   if (loading) {
@@ -124,6 +133,12 @@ function SettingsPage({ session }) {
       {activeTab === 'fiscal' && (
         <div>
           <FiscalSettings session={session} />
+        </div>
+      )}
+
+      {activeTab === 'subscription' && (
+        <div>
+          <SubscriptionInfo restaurant={restaurant} />
         </div>
       )}
     </DashboardLayout>

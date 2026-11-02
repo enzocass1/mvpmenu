@@ -9,6 +9,9 @@ import { Modal, Button, Badge } from '../ui'
 import { supabase } from '../../supabaseClient'
 import { getRoles, assignRoleToStaff } from '../../lib/rolesService'
 
+// Base64 sicuro anche con lettere accentate (il database decodifica in UTF-8 e cifra con bcrypt)
+const toBase64 = (text) => btoa(unescape(encodeURIComponent(text)))
+
 function MemberModal({ isOpen, onClose, onSave, member, restaurantId }) {
   const isEdit = !!member
 
@@ -100,7 +103,7 @@ function MemberModal({ isOpen, onClose, onSave, member, restaurantId }) {
 
         // Aggiorna password solo se fornita
         if (formData.password) {
-          updateData.password_hash = btoa(formData.password) // Base64 encode
+          updateData.password_hash = toBase64(formData.password) // il database la cifra con bcrypt (trigger)
         }
 
         const { error: updateError } = await supabase
@@ -126,7 +129,7 @@ function MemberModal({ isOpen, onClose, onSave, member, restaurantId }) {
             restaurant_id: restaurantId,
             name: formData.name.trim(),
             email: formData.email.trim(),
-            password_hash: btoa(formData.password), // Base64 encode
+            password_hash: toBase64(formData.password), // il database la cifra con bcrypt (trigger)
             is_active: formData.is_active,
             primary_role_id: formData.role_id,
           })

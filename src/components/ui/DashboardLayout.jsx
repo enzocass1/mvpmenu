@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { tokens } from '../../styles/tokens'
 import Sidebar from './Sidebar'
 import Button from './Button'
+import SubscriptionBanner from '../SubscriptionBanner'
 
 /**
  * DashboardLayout Component - Shopify-like Design System
@@ -113,7 +114,10 @@ function DashboardLayout({
         </div>
 
         {/* Page Content */}
-        <div style={contentStyles}>{children}</div>
+        <div style={contentStyles}>
+          <SubscriptionBanner />
+          {children}
+        </div>
       </main>
     </div>
   )

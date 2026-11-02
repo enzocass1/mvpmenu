@@ -5,6 +5,7 @@ import Badge from './Badge'
 import { hasUnreadUpdates } from '../../lib/appUpdates'
 import { supabase } from '../../supabaseClient'
 import InstallAppModal from '../InstallAppModal'
+import { isSubscriptionBlocked } from '../../lib/subscriptionStatus'
 
 /**
  * Sidebar Navigation Component - Shopify-like Design System
@@ -23,7 +24,8 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
     return permissions.includes(requiredPermission)
   }
 
-  // Restrizione sezioni per ristorante (allowed_nav): null = tutte visibili
+  // Restrizione sezioni per ristorante (allowed_nav): null = tutte visibili.
+  // Abbonamento scaduto da oltre 15 giorni => visibile solo Impostazioni.
   const [allowedNav, setAllowedNav] = React.useState(null)
   React.useEffect(() => {
     let active = true
@@ -31,9 +33,11 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
-        const { data } = await supabase.from('restaurants').select('allowed_nav').eq('user_id', user.id).single()
+        const { data } = await supabase.from('restaurants').select('allowed_nav, subscription_expires_at').eq('user_id', user.id).single()
+        if (!active) return
+        if (isSubscriptionBlocked(data)) { setAllowedNav(['/impostazioni']); return }
         const a = data?.allowed_nav
-        if (active) setAllowedNav(Array.isArray(a) && a.length ? a : null)
+        setAllowedNav(Array.isArray(a) && a.length ? a : null)
       } catch { /* ignora: nessuna restrizione */ }
     })()
     return () => { active = false }
@@ -41,6 +45,26 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
 
   // Una voce è visibile se non c'è restrizione, oppure se il suo path è tra quelli consentiti
   const navAllowed = (path) => !allowedNav || allowedNav.some(a => path === a || path.startsWith(a + '/'))
+
+  // Risposte dell'assistenza non ancora lette (badge sulla voce "Assistenza")
+  const [unreadReplies, setUnreadReplies] = React.useState(0)
+  React.useEffect(() => {
+    let active = true
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('support_tickets')
+          .select('replied_at, owner_seen_at')
+          .not('admin_reply', 'is', null)
+        if (!active) return
+        setUnreadReplies((data || []).filter(t => !t.owner_seen_at || new Date(t.owner_seen_at) < new Date(t.replied_at)).length)
+      } catch { /* nessun badge */ }
+    }
+    load()
+    const onSeen = () => setUnreadReplies(0)
+    window.addEventListener('support-replies-seen', onSeen)
+    return () => { active = false; window.removeEventListener('support-replies-seen', onSeen) }
+  }, [])
 
   const navigationItems = [
     {
@@ -96,13 +120,6 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
       path: '/impostazioni',
       section: 'main',
       requiredPermission: 'restaurant.manage_settings',
-    },
-    {
-      label: 'Piano',
-      path: '/piano',
-      section: 'bottom',
-      badge: isPremium ? 'Premium' : 'Free',
-      requiredPermission: 'restaurant.manage_subscription',
     },
   ]
 
@@ -346,6 +363,35 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
               )}
             </button>
             )}
+
+            {/* Assistenza: sempre disponibile (anche con sezioni limitate o abbonamento sospeso) */}
+            <button
+              onClick={() => handleNavigation('/assistenza')}
+              onMouseEnter={() => setHoveredItem('/assistenza')}
+              onMouseLeave={() => setHoveredItem(null)}
+              style={{
+                ...navItemStyles(isActive('/assistenza')),
+                ...(hoveredItem === '/assistenza' && !isActive('/assistenza') && {
+                  backgroundColor: tokens.colors.gray[50],
+                }),
+              }}
+            >
+              <span>Assistenza</span>
+              {unreadReplies > 0 && !isActive('/assistenza') && (
+                <span style={{
+                  display: 'inline-block',
+                  padding: `2px ${tokens.spacing.sm}`,
+                  borderRadius: tokens.borderRadius.full,
+                  backgroundColor: tokens.colors.black,
+                  color: tokens.colors.white,
+                  fontSize: '10px',
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  letterSpacing: '0.4px',
+                }}>
+                  {unreadReplies === 1 ? 'RISPOSTA' : `${unreadReplies} RISPOSTE`}
+                </span>
+              )}
+            </button>
 
             {/* Scarica app (installa sulla schermata home del telefono) */}
             <button

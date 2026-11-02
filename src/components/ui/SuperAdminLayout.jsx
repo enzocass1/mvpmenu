@@ -53,6 +53,16 @@ function SuperAdminLayout({ children }) {
       section: 'main',
     },
     {
+      label: 'Ticket assistenza',
+      path: '/super-admin/tickets',
+      section: 'main',
+    },
+    {
+      label: 'Richieste demo',
+      path: '/super-admin/demo',
+      section: 'main',
+    },
+    {
       label: 'Analytics',
       path: '/super-admin/analytics',
       section: 'main',

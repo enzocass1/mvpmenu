@@ -13,6 +13,9 @@ const getThemeStyles = (themeConfig) => {
     textPrimaryColor: themeConfig.textPrimaryColor || '#ffffff',
     textSecondaryColor: themeConfig.textSecondaryColor || '#111827',
     textTertiaryColor: themeConfig.textTertiaryColor || '#999999',
+    // Pulsanti: "Sfondo pulsanti" / "Testo pulsanti" dell'editor (stesso ripiego del menu)
+    buttonColor: themeConfig.buttonColor || themeConfig.primaryColor || '#000000',
+    buttonTextColor: themeConfig.buttonTextColor || themeConfig.textPrimaryColor || '#ffffff',
 
     // Colori funzionali
     borderColor: themeConfig.borderColor || '#e0e0e0',
@@ -366,8 +369,8 @@ const getStyles = (theme = {}) => ({
     padding: '14px',
     fontSize: '16px',
     fontWeight: '600',
-    color: theme.textPrimaryColor || '#fff',
-    backgroundColor: theme.primaryColor || '#000',
+    color: theme.buttonTextColor || '#fff',
+    backgroundColor: theme.buttonColor || '#000',
     border: 'none',
     borderRadius: '8px',
     cursor: 'pointer',

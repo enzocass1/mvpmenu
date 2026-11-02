@@ -600,6 +600,28 @@ function ThemeCustomizer({ restaurantId }) {
     if (typeof v === 'string' && /^#[0-9a-fA-F]{3}$/.test(v)) return '#' + v.slice(1).split('').map(c => c + c).join('')
     return '#000000'
   }
+  // Contrasto WCAG tra due colori (1 = identici, 21 = nero su bianco)
+  const contrastRatio = (a, b) => {
+    const lum = (hex) => {
+      const h = safeHex(hex).slice(1)
+      const [r, g, bl] = [0, 2, 4].map(i => {
+        const c = parseInt(h.slice(i, i + 2), 16) / 255
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+      })
+      return 0.2126 * r + 0.7152 * g + 0.0722 * bl
+    }
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+
+  // Colori effettivi dei pulsanti nel menu (stesso ripiego usato dal menu pubblico)
+  const btnBg = theme.buttonColor || theme.primaryColor || '#000000'
+  const btnText = theme.buttonTextColor || theme.textPrimaryColor || '#ffffff'
+  const textOnButtonOk = contrastRatio(btnText, btnBg) >= 3
+  const buttonVsPageOk = contrastRatio(btnBg, theme.primaryColor || '#ffffff') >= 1.5
+  // Testo più leggibile (nero o bianco) sul colore del pulsante
+  const bestTextFor = (bg) => (contrastRatio('#000000', bg) >= contrastRatio('#ffffff', bg) ? '#000000' : '#ffffff')
+
   const renderColorField = (f) => (
     <div key={f.key}>
       <label style={labelStyles}>{f.label}</label>
@@ -821,6 +843,33 @@ function ThemeCustomizer({ restaurantId }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: tokens.spacing.lg }}>
             {mainColors.map(renderColorField)}
           </div>
+
+          {/* Anteprima pulsanti: gli stessi colori usati da menu, carrello e conferma ordine */}
+          <div style={{ ...subLabelStyles, marginTop: 24 }}>Anteprima pulsanti</div>
+          <div style={{ background: theme.primaryColor || '#ffffff', border: `1px solid ${tokens.colors.gray[200]}`, borderRadius: tokens.borderRadius.lg, padding: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ background: btnBg, color: btnText, padding: '11px 20px', borderRadius: `${theme.borderRadius || 10}px`, fontWeight: 600, fontSize: 14 }}>Procedi all'ordine</span>
+            <span style={{ background: btnBg, color: btnText, width: 40, height: 40, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 600, lineHeight: 1 }}>+</span>
+            <span style={{ color: theme.textSecondaryColor || '#111827', fontSize: 13 }}>Testo della pagina</span>
+          </div>
+          {(!textOnButtonOk || !buttonVsPageOk) && (
+            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: tokens.borderRadius.md, background: '#fff8e1', border: '1px solid #ffe08a', fontSize: 13, color: '#6b4e00', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {!textOnButtonOk && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                  <span>Il testo dei pulsanti si legge poco: scegli un "Testo pulsanti" più in contrasto.</span>
+                  <button
+                    type="button"
+                    onClick={() => setTheme({ ...theme, buttonColor: btnBg, buttonTextColor: bestTextFor(btnBg) })}
+                    style={{ padding: '6px 12px', borderRadius: tokens.borderRadius.md, border: '1px solid #6b4e00', background: '#ffffff', color: '#6b4e00', fontWeight: 600, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}
+                  >
+                    Correggi
+                  </button>
+                </div>
+              )}
+              {!buttonVsPageOk && (
+                <span>I pulsanti si confondono con lo sfondo della pagina: scegli uno "Sfondo pulsanti" diverso.</span>
+              )}
+            </div>
+          )}
 
           <div style={{ ...subLabelStyles, marginTop: 24 }}>Testo e forma</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: tokens.spacing.lg }}>

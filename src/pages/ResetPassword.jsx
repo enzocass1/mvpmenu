@@ -11,10 +11,7 @@ function ResetPassword() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    console.log('Full URL:', window.location.href)
-    console.log('Hash:', window.location.hash)
-    
-    // Estrai i parametri dall'URL
+    // Estrai i parametri dall'URL (non stampare l'URL: contiene il token di accesso)
     const extractTokenFromUrl = () => {
       const fullHash = window.location.hash
       
@@ -75,7 +72,6 @@ function ResetPassword() {
         }
       } else {
         console.error('❌ No parameters found in URL')
-        console.error('Full hash was:', fullHash)
         setMessage({ text: 'Token mancante. Usa il link dall\'email.', type: 'error' })
       }
     }
@@ -112,8 +108,8 @@ function ResetPassword() {
       return
     }
 
-    if (password.length < 6) {
-      setMessage({ text: 'La password deve essere di almeno 6 caratteri!', type: 'error' })
+    if (password.length < 8) {
+      setMessage({ text: 'La password deve essere di almeno 8 caratteri.', type: 'error' })
       return
     }
 
@@ -138,8 +134,16 @@ function ResetPassword() {
         navigate('/')
       }, 2000)
     } catch (error) {
-      console.error('Reset password error:', error)
-      setMessage({ text: error.message, type: 'error' })
+      console.error('Reset password error:', error?.message)
+      const m = (error?.message || '').toLowerCase()
+      const text = m.includes('different from the old')
+        ? 'La nuova password deve essere diversa da quella attuale.'
+        : m.includes('at least') || m.includes('too short')
+          ? 'La password deve essere di almeno 8 caratteri.'
+          : m.includes('expired') || m.includes('invalid')
+            ? 'Il link è scaduto o non è valido: richiedine uno nuovo dalla pagina di accesso.'
+            : 'Aggiornamento non riuscito. Riprova tra qualche istante.'
+      setMessage({ text, type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -207,7 +211,7 @@ function ResetPassword() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength="6"
+              minLength="8"
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -236,7 +240,7 @@ function ResetPassword() {
               margin: '6px 0 0 0',
               fontWeight: '400'
             }}>
-              Minimo 6 caratteri
+              Minimo 8 caratteri
             </p>
           </div>
 
@@ -260,7 +264,7 @@ function ResetPassword() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              minLength="6"
+              minLength="8"
               style={{
                 width: '100%',
                 padding: '10px 12px',
