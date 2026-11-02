@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { getAvailability } from '../lib/stock'
+import { getAllergenInfo } from '../lib/allergens'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -261,6 +262,15 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
               <h4 style={styles.productName}>{product.name}</h4>
               {product.description && (
                 <p style={styles.productDescription}>{product.description}</p>
+              )}
+              {getAllergenInfo(product).length > 0 && (
+                <div style={styles.allergenList}>
+                  {getAllergenInfo(product).map(a => (
+                    <span key={a.key} style={styles.allergenChip}>
+                      {a.emoji} {a.label}
+                    </span>
+                  ))}
+                </div>
               )}
               {/* Mostra prezzo solo se non ci sono varianti */}
               {!hasVariants && (
@@ -525,6 +535,25 @@ const getStyles = (theme = {}) => ({
     fontSize: '15px',
     fontWeight: '600',
     color: theme.textSecondaryColor || '#000'
+  },
+  allergenList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '5px',
+    margin: '2px 0 6px'
+  },
+  allergenChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '2px 8px',
+    borderRadius: '999px',
+    fontSize: '11px',
+    fontWeight: 500,
+    color: theme.textSecondaryColor || '#333',
+    background: theme.backgroundTertiary || '#f3f3f3',
+    border: `1px solid ${theme.cardBorder || theme.borderColor || '#e0e0e0'}`,
+    whiteSpace: 'nowrap'
   },
   formGroup: {
     marginBottom: '16px'

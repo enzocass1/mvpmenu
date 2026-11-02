@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import MenuTopBar from './MenuTopBar'
 import { formatPrice } from '../lib/priceFormat'
 import { isProductEsaurito } from '../lib/stock'
+import { getAllergenInfo } from '../lib/allergens'
 
 /**
  * Layout "Builder": home componibile a SEZIONI (caroselli) definite nel tema
@@ -17,6 +18,7 @@ export default function MenuBuilderLayout({
 }) {
   const [salesMap, setSalesMap] = useState({})
   const [viewAllCat, setViewAllCat] = useState(null) // categoria aperta a griglia
+  const [allergensOpen, setAllergensOpen] = useState({}) // {productId: true} note allergeni espansa
   const chipsRef = useRef(null)
   const [chipsH, setChipsH] = useState(0) // altezza barra categorie (per lo spaziatore)
 
@@ -164,6 +166,8 @@ export default function MenuBuilderLayout({
 
   const Card = ({ p, wide }) => {
     const esaurito = isProductEsaurito(p)
+    const prodAllergens = getAllergenInfo(p)
+    const allergensShown = !!allergensOpen[p.id]
     return (
     <div style={{ ...S.card, width: wide ? 'auto' : `${cardW}px`, background: cardBg, border: `1px solid ${border}`, borderRadius: radius }}>
       <div style={{ ...S.imgWrap, borderRadius: `${radius} ${radius} 0 0`, background: t.backgroundTertiary || '#f3f3f3' }}
@@ -175,6 +179,29 @@ export default function MenuBuilderLayout({
       </div>
       <div style={S.body}>
         <div style={{ ...S.name, color: textMain, fontSize: px(13) }}>{p.name}</div>
+        {prodAllergens.length > 0 && (
+          allergensShown ? (
+            <div
+              style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', margin: '2px 0 4px', cursor: 'pointer' }}
+              onClick={(e) => { e.stopPropagation(); setAllergensOpen(o => ({ ...o, [p.id]: false })) }}
+            >
+              {prodAllergens.map(a => (
+                <span key={a.key} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '999px', fontSize: px(9.5), fontWeight: 500, color: textMain, border: `1px solid ${border}`, whiteSpace: 'nowrap' }}>
+                  {a.emoji} {a.label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{ fontSize: px(10), fontStyle: 'italic', color: textSoft, margin: '1px 0 3px', cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); setAllergensOpen(o => ({ ...o, [p.id]: true })) }}
+            >
+              Contiene allergeni*
+            </div>
+          )
+        )}
         <div style={S.foot}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', minWidth: 0 }}>
             <div style={{ ...S.price, color: textMain, fontSize: px(14) }}>{formatPrice(p)}</div>

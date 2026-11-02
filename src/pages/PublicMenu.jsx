@@ -26,6 +26,7 @@ import MenuBuilderLayout from '../components/MenuBuilderLayout'
 import MenuTopBar from '../components/MenuTopBar'
 import { getPriceInfo } from '../lib/priceFormat'
 import { isProductEsaurito } from '../lib/stock'
+import { getAllergenInfo } from '../lib/allergens'
 
 // Prezzo in formato italiano: "1,20 €" oppure "Da 7,00 €" se varianti a prezzi diversi
 const formatPriceIt = (p) => {
@@ -767,7 +768,8 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
             ) : (
               categoryProducts.map((product) => {
                 const expanded = !!expandedProducts[product.id]
-                const hasDetails = !!(product.image_url || product.description)
+                const prodAllergens = getAllergenInfo(product)
+                const hasDetails = !!(product.image_url || product.description || prodAllergens.length > 0)
                 const esaurito = isProductEsaurito(product)
                 return (
                   <div key={product.id} style={styles.productCard}>
@@ -800,6 +802,10 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                             </span>
                           )}
                         </div>
+
+                        {prodAllergens.length > 0 && (
+                          <div style={styles.allergenNote}>Contiene allergeni*</div>
+                        )}
                       </div>
 
                       {/* Colonna destra: cuore + Aggiungi */}
@@ -839,7 +845,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                       </div>
                     </div>
 
-                    {/* Dettagli espandibili: miniatura + descrizione */}
+                    {/* Dettagli espandibili: miniatura + descrizione + allergeni */}
                     {expanded && hasDetails && (
                       <div style={styles.productDetails}>
                         {product.image_url && (
@@ -851,11 +857,22 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                             onClick={() => setLightboxImage(product.image_url)}
                           />
                         )}
-                        {product.description && (
-                          <p style={styles.productDescription}>
-                            {product.description}
-                          </p>
-                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {product.description && (
+                            <p style={styles.productDescription}>
+                              {product.description}
+                            </p>
+                          )}
+                          {prodAllergens.length > 0 && (
+                            <div style={styles.allergenList}>
+                              {prodAllergens.map(a => (
+                                <span key={a.key} style={styles.allergenChip}>
+                                  {a.emoji} {a.label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -863,6 +880,17 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
               })
             )}
           </div>
+
+          {categoryProducts.some(p => getAllergenInfo(p).length > 0) && (
+            <div style={{
+              margin: '10px 16px 0',
+              fontSize: '11px',
+              fontStyle: 'italic',
+              color: themeStyles.textTertiaryColor || '#888',
+            }}>
+              * Apri "Scopri di più" sul prodotto per l'elenco completo degli allergeni (Reg. UE 1169/2011).
+            </div>
+          )}
 
           <footer style={styles.footer}>
             <div style={styles.footerContent}>
@@ -1712,6 +1740,34 @@ const getStyles = (theme = {}) => ({
     lineHeight: '1.5',
     overflowWrap: 'break-word',
     whiteSpace: 'pre-wrap',
+  },
+
+  allergenNote: {
+    marginTop: '3px',
+    fontSize: '11.5px',
+    fontStyle: 'italic',
+    color: theme.textTertiaryColor || '#888',
+  },
+
+  allergenList: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px',
+    marginTop: '10px',
+  },
+
+  allergenChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '3px 9px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: 500,
+    color: theme.textSecondaryColor || '#333',
+    background: theme.backgroundTertiary || '#f3f3f3',
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`,
+    whiteSpace: 'nowrap',
   },
 
   variantsListContainer: {

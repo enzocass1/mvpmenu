@@ -4,6 +4,20 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-02-allergeni',
+    date: '2026-11-02',
+    type: 'novita',
+    title: 'Allergeni sui prodotti (obbligo di legge)',
+    description:
+      "Ora puoi indicare gli allergeni di ogni prodotto, scegliendo tra i 14 previsti dalla legge (Reg. UE 1169/2011): glutine, latte, uova, frutta a guscio, crostacei e così via. Nel menu online i prodotti con allergeni mostrano la scritta \"Contiene allergeni*\": aprendo il prodotto (o toccando la scritta) il cliente vede l'elenco completo con i badge. Gli allergeni compaiono anche nella finestra di aggiunta al carrello.",
+    steps: [
+      'Apri "Prodotti" e premi Modifica su un prodotto.',
+      'Nella sezione "Allergeni" tocca i badge degli allergeni contenuti (si colorano di nero) e salva.',
+      'Nel menu online il prodotto mostra la scritta "Contiene allergeni*".',
+      'Il cliente apre il prodotto ("Scopri di più" o tocco sulla scritta) e vede l\'elenco completo degli allergeni.'
+    ]
+  },
+  {
     id: '2026-11-02-inventario',
     date: '2026-11-02',
     type: 'novita',
@@ -219,6 +233,7 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-02-allergeni': '/updates/allergeni.gif',
   '2026-11-02-inventario': '/updates/inventario.gif',
   '2026-11-01-schede-menu': '/updates/schede-menu.gif',
   '2026-11-01-ordini-tabella': '/updates/ordini-tabella.gif',

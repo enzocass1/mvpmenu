@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import ImageUpload from './ImageUpload'
 import VariantManager from './VariantManager'
+import { ALLERGENS } from '../lib/allergens'
 import {
   checkPremiumAccess,
   canAddItem,
@@ -37,7 +38,18 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
     cost: '',
     image_url: '',
     category_id: '',
+    allergens: [],
   })
+
+  // Aggiunge/toglie un allergene dalla selezione del form
+  const toggleAllergen = (key) => {
+    setFormData(fd => ({
+      ...fd,
+      allergens: fd.allergens.includes(key)
+        ? fd.allergens.filter(k => k !== key)
+        : [...fd.allergens, key],
+    }))
+  }
 
   useEffect(() => {
     if (restaurantId) {
@@ -113,6 +125,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
             cost: parseFloat(formData.cost) || 0,
             image_url: formData.image_url,
             category_id: formData.category_id,
+            allergens: formData.allergens,
           })
           .eq('id', editingProduct.id)
 
@@ -131,6 +144,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
               price: parseFloat(formData.price),
               cost: parseFloat(formData.cost) || 0,
               image_url: formData.image_url,
+              allergens: formData.allergens,
               order: maxOrder + 1,
               is_visible: true,
             }
@@ -159,6 +173,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
       cost: (product.cost ?? 0).toString(),
       image_url: product.image_url || '',
       category_id: product.category_id || '',
+      allergens: Array.isArray(product.allergens) ? product.allergens : [],
     })
     setShowModal(true)
   }
@@ -386,6 +401,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
       cost: '',
       image_url: '',
       category_id: '',
+      allergens: [],
     })
   }
 
@@ -536,6 +552,51 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
                     outline: 'none'
                   }}
                 />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '4px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#333'
+                }}>
+                  Allergeni
+                </label>
+                <div style={{ fontSize: '12px', color: '#888', marginBottom: '10px' }}>
+                  Seleziona gli allergeni contenuti: i clienti li vedranno nel menu.
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {ALLERGENS.map(a => {
+                    const selected = formData.allergens.includes(a.key)
+                    return (
+                      <button
+                        key={a.key}
+                        type="button"
+                        onClick={() => toggleAllergen(a.key)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '6px 12px',
+                          fontSize: '13px',
+                          fontWeight: selected ? '600' : '400',
+                          border: selected ? '1.5px solid #000000' : '1px solid #E0E0E0',
+                          borderRadius: '999px',
+                          background: selected ? '#000000' : '#FFFFFF',
+                          color: selected ? '#FFFFFF' : '#333333',
+                          cursor: 'pointer',
+                          lineHeight: 1,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <span>{a.emoji}</span>
+                        <span>{a.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
               <div style={{ marginBottom: '20px' }}>

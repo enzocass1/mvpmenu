@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { formatPrice } from '../lib/priceFormat'
 import { isProductEsaurito } from '../lib/stock'
+import { getAllergenInfo } from '../lib/allergens'
 
 /**
  * Layout alternativo "Store" per il menu pubblico: impaginazione tipo e-commerce.
@@ -15,6 +16,7 @@ export default function MenuStoreLayout({
   const [query, setQuery] = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [activeCat, setActiveCat] = useState(categories[0]?.id || null)
+  const [allergensOpen, setAllergensOpen] = useState({}) // {productId: true} note allergeni espansa
   const searchInputRef = useRef(null)
 
   const toggleSearch = () => {
@@ -94,6 +96,8 @@ export default function MenuStoreLayout({
 
   const ProductCard = ({ p, categoryName, categoryId }) => {
     const esaurito = isProductEsaurito(p)
+    const prodAllergens = getAllergenInfo(p)
+    const allergensShown = !!allergensOpen[p.id]
     return (
       <div style={S.card}>
         <div style={S.imageWrap} onClick={() => { trackProductViewed?.(restaurant.id, p.id, categoryId); orderSettingsEnabled && !esaurito && onAddProduct(p) }}>
@@ -116,6 +120,24 @@ export default function MenuStoreLayout({
         <div style={S.cardBody}>
           <div style={S.cardName}>{p.name}</div>
           {p.description && <div style={S.cardDesc}>{p.description}</div>}
+          {prodAllergens.length > 0 && (
+            allergensShown ? (
+              <div style={S.allergenList} onClick={() => setAllergensOpen(o => ({ ...o, [p.id]: false }))}>
+                {prodAllergens.map(a => (
+                  <span key={a.key} style={S.allergenChip}>{a.emoji} {a.label}</span>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={S.allergenNote}
+                role="button"
+                tabIndex={0}
+                onClick={() => setAllergensOpen(o => ({ ...o, [p.id]: true }))}
+              >
+                Contiene allergeni*
+              </div>
+            )
+          )}
           <div style={S.cardFoot}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
               <div style={S.price}>{formatPrice(p)}</div>
@@ -270,6 +292,9 @@ const styles = (t, c) => ({
   cardBody: { padding: '10px', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 },
   cardName: { fontWeight: 600, fontSize: '14px', color: c.textMain, lineHeight: 1.25 },
   cardDesc: { fontSize: '12px', color: c.textSoft, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
+  allergenNote: { fontSize: '11px', fontStyle: 'italic', color: c.textSoft, cursor: 'pointer', marginTop: '2px' },
+  allergenList: { display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px', cursor: 'pointer' },
+  allergenChip: { display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '2px 7px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 500, color: c.textMain, background: 'transparent', border: `1px solid ${c.border}`, whiteSpace: 'nowrap' },
   cardFoot: { marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '6px' },
   price: { fontWeight: 700, fontSize: '15px', color: c.textMain },
   soldOut: { display: 'inline-flex', alignItems: 'center', padding: '1px 7px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase', color: '#b91c1c', background: '#fee2e2', border: '1px solid #fecaca', whiteSpace: 'nowrap' },
