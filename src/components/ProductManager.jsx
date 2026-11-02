@@ -17,6 +17,13 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
   const [showVariantManager, setShowVariantManager] = useState(null)
   const [variantCounts, setVariantCounts] = useState({})
   const [variantTitles, setVariantTitles] = useState({})
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [showCategoryFilter, setShowCategoryFilter] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -216,33 +223,40 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
     }
   }
 
-  // I 4 pulsanti azione (identici in griglia e a righe): Modifica, Visibilità, Varianti, Elimina
-  const ActionButtons = ({ product, compact }) => {
-    const pad = compact ? '6px 8px' : '10px'
-    const fs = compact ? '12px' : '13px'
-    const isz = compact ? 12 : 14
+  // I 4 pulsanti azione: Modifica, Visibilità, Varianti, Elimina.
+  // iconsOnly = solo icone (per le righe); horizontal = 4 in fila (desktop) o 2x2 (mobile).
+  const ActionButtons = ({ product, iconsOnly, horizontal }) => {
+    const container = iconsOnly
+      ? (horizontal
+          ? { display: 'flex', gap: '6px' }
+          : { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' })
+      : { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }
+    const btn = iconsOnly
+      ? { width: '34px', height: '34px', padding: 0 }
+      : { padding: '10px', fontSize: '13px', fontWeight: '500', gap: '6px' }
+    const base = { borderRadius: '6px', cursor: 'pointer', transition: 'background 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', ...btn }
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: compact ? '6px' : '8px' }}>
-        <button onClick={() => handleEdit(product)} title="Modifica" style={{ padding: pad, fontSize: fs, fontWeight: '500', color: '#FFFFFF', background: '#000000', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: 'background 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-          <svg width={isz} height={isz} viewBox="0 0 16 16" fill="currentColor">
+      <div style={container}>
+        <button onClick={() => handleEdit(product)} title="Modifica" style={{ ...base, color: '#FFFFFF', background: '#000000', border: 'none' }}>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
             <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
             <path fillRule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
           </svg>
-          Modifica
+          {!iconsOnly && 'Modifica'}
         </button>
-        <button onClick={() => toggleVisibility(product)} title={product.is_visible === false ? 'Mostra' : 'Nascondi'} style={{ padding: pad, color: '#000000', background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: '6px', cursor: 'pointer', transition: 'background 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button onClick={() => toggleVisibility(product)} title={product.is_visible === false ? 'Mostra' : 'Nascondi'} style={{ ...base, color: '#000000', background: '#FFFFFF', border: '1px solid #E0E0E0' }}>
           {product.is_visible === false ? (
-            <svg width={isz+2} height={isz+2} viewBox="0 0 16 16" fill="currentColor"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
           ) : (
-            <svg width={isz+2} height={isz+2} viewBox="0 0 16 16" fill="currentColor"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/><path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/><path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/></svg>
           )}
         </button>
-        <button onClick={() => setShowVariantManager(product)} title="Gestisci Varianti" style={{ padding: pad, fontSize: fs, color: '#FFFFFF', background: '#2196F3', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: 'background 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-          <svg width={isz} height={isz} viewBox="0 0 16 16" fill="currentColor"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/><path d="M8 4a.5.5 0 0 1 .5.5V6H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4z"/></svg>
-          Varianti
+        <button onClick={() => setShowVariantManager(product)} title="Gestisci Varianti" style={{ ...base, color: '#FFFFFF', background: '#2196F3', border: 'none' }}>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/><path d="M8 4a.5.5 0 0 1 .5.5V6H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4z"/></svg>
+          {!iconsOnly && 'Varianti'}
         </button>
-        <button onClick={() => handleDelete(product.id)} title="Elimina" style={{ padding: pad, color: '#FFFFFF', background: '#f44336', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: 'background 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width={isz+2} height={isz+2} viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+        <button onClick={() => handleDelete(product.id)} title="Elimina" style={{ ...base, color: '#FFFFFF', background: '#f44336', border: 'none' }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
         </button>
       </div>
     )
@@ -251,10 +265,10 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
   // Una RIGA prodotto compatta (stile e-commerce) — layout === 'rows'
   const ProductRow = ({ product }) => {
     const categoryName = getCategoryName(product.category_id)
-    const titles = variantTitles[product.id] || []
+    const vCount = variantCounts[product.id] || 0
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderBottom: '1px solid #F0F0F0', opacity: product.is_visible === false ? 0.6 : 1 }}>
-        <div style={{ width: '46px', height: '46px', flexShrink: 0, borderRadius: '8px', border: '1px solid #E0E0E0', background: product.image_url ? `url(${product.image_url})` : '#F5F5F5', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', borderBottom: '1px solid #F0F0F0', opacity: product.is_visible === false ? 0.6 : 1 }}>
+        <div style={{ width: '44px', height: '44px', flexShrink: 0, borderRadius: '8px', border: '1px solid #E0E0E0', background: product.image_url ? `url(${product.image_url})` : '#F5F5F5', backgroundSize: 'cover', backgroundPosition: 'center' }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {product.name}
@@ -263,13 +277,13 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
           <div style={{ fontSize: '11px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {categoryName} · €{Number(product.price || 0).toFixed(2)}
           </div>
-          {titles.length > 0 && (
-            <div style={{ fontSize: '11px', color: '#2196F3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {titles.join(' · ')}
+          {vCount > 0 && (
+            <div style={{ fontSize: '11px', color: '#2196F3', fontWeight: 600 }}>
+              {vCount} {vCount === 1 ? 'variante' : 'varianti'}
             </div>
           )}
         </div>
-        <div style={{ width: '170px', flexShrink: 0 }}><ActionButtons product={product} compact /></div>
+        <div style={{ flexShrink: 0 }}><ActionButtons product={product} iconsOnly horizontal={!isMobile} /></div>
       </div>
     )
   }
