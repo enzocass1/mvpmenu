@@ -1,35 +1,36 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
-import { Spinner, PageHeader, ResponsiveTabs } from '../components/ui'
+import { Spinner, ResponsiveTabs } from '../components/ui'
 import DashboardLayout from '../components/ui/DashboardLayout'
 import ProductManager from '../components/ProductManager'
 import CategoryManager from '../components/CategoryManager'
 
 /**
- * Products Page - Shopify-like Design System
- * Tabs: Tutti i Prodotti | Categorie
+ * Products Page — vista a righe (stile e-commerce).
+ * Switcher "Prodotti - N" / "Categorie - N"; ogni elemento in riga con menu "⋮".
  */
 function ProductsPage({ session }) {
   const [restaurant, setRestaurant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('products')
-  useEffect(() => {
-    if (session) {
-      loadRestaurant()
-    }
-  }, [session])
+  const [counts, setCounts] = useState({ products: 0, categories: 0 })
+
+  useEffect(() => { if (session) loadRestaurant() }, [session])
 
   const loadRestaurant = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single()
-
+      const { data, error } = await supabase.from('restaurants').select('*').eq('user_id', session.user.id).single()
       if (error) throw error
       setRestaurant(data)
+      const { data: cats } = await supabase.from('categories').select('id').eq('restaurant_id', data.id)
+      const catIds = (cats || []).map(c => c.id)
+      let prodCount = 0
+      if (catIds.length) {
+        const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).in('category_id', catIds)
+        prodCount = count || 0
+      }
+      setCounts({ products: prodCount, categories: (cats || []).length })
     } catch (error) {
       console.error('Errore caricamento ristorante:', error)
     } finally {
@@ -40,66 +41,37 @@ function ProductsPage({ session }) {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut()
-      localStorage.clear()
-      sessionStorage.clear()
-      window.location.href = '/#/'
-      window.location.reload()
-    } catch (error) {
-      console.error('Errore logout:', error)
-    }
+      localStorage.clear(); sessionStorage.clear()
+      window.location.href = '/#/'; window.location.reload()
+    } catch (error) { console.error('Errore logout:', error) }
   }
 
   const isPremium = restaurant?.subscription_tier === 'premium'
-
   const tabsData = [
-    { label: 'Tutti i Prodotti', value: 'products' },
-    { label: 'Categorie', value: 'categories' },
+    { label: `Prodotti - ${counts.products}`, value: 'products' },
+    { label: `Categorie - ${counts.categories}`, value: 'categories' },
   ]
 
+  const layoutProps = {
+    restaurantName: restaurant?.name,
+    userName: session?.user?.email,
+    isPremium,
+    permissions: ['*'],
+    onLogout: handleLogout,
+  }
+
   if (loading) {
-    return (
-      <DashboardLayout
-        restaurantName={restaurant?.name}
-        userName={session?.user?.email}
-        isPremium={isPremium}
-        permissions={['*']}
-        onLogout={handleLogout}
-      >
-        <Spinner size="lg" text="Caricamento..." centered />
-      </DashboardLayout>
-    )
+    return <DashboardLayout {...layoutProps}><Spinner size="lg" text="Caricamento..." centered /></DashboardLayout>
   }
 
   return (
-    <DashboardLayout
-      restaurantName={restaurant?.name}
-      userName={session?.user?.email}
-      isPremium={isPremium}
-      permissions={['*']}
-      onLogout={handleLogout}
-    >
-      {/* Page Header */}
-      <PageHeader title="Prodotti" subtitle="Gestisci i prodotti del tuo menu e le categorie" />
-
+    <DashboardLayout {...layoutProps}>
       <ResponsiveTabs tabs={tabsData} activeTab={activeTab} onChange={setActiveTab} />
-
-      {/* Tab Content */}
       {activeTab === 'products' && (
-        <div>
-          <ProductManager
-            restaurantId={restaurant?.id}
-            restaurant={restaurant}
-          />
-        </div>
+        <ProductManager restaurantId={restaurant?.id} restaurant={restaurant} layout="rows" />
       )}
-
       {activeTab === 'categories' && (
-        <div>
-          <CategoryManager
-            restaurantId={restaurant?.id}
-            restaurant={restaurant}
-          />
-        </div>
+        <CategoryManager restaurantId={restaurant?.id} restaurant={restaurant} layout="rows" />
       )}
     </DashboardLayout>
   )
