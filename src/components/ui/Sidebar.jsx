@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { tokens } from '../../styles/tokens'
 import Badge from './Badge'
 import { hasUnreadUpdates } from '../../lib/appUpdates'
+import { supabase } from '../../supabaseClient'
 
 /**
  * Sidebar Navigation Component - Shopify-like Design System
@@ -20,6 +21,25 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
     if (permissions.includes('*')) return true // Wildcard (Proprietario)
     return permissions.includes(requiredPermission)
   }
+
+  // Restrizione sezioni per ristorante (allowed_nav): null = tutte visibili
+  const [allowedNav, setAllowedNav] = React.useState(null)
+  React.useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase.from('restaurants').select('allowed_nav').eq('user_id', user.id).single()
+        const a = data?.allowed_nav
+        if (active) setAllowedNav(Array.isArray(a) && a.length ? a : null)
+      } catch { /* ignora: nessuna restrizione */ }
+    })()
+    return () => { active = false }
+  }, [])
+
+  // Una voce è visibile se non c'è restrizione, oppure se il suo path è tra quelli consentiti
+  const navAllowed = (path) => !allowedNav || allowedNav.some(a => path === a || path.startsWith(a + '/'))
 
   const navigationItems = [
     {
@@ -226,6 +246,7 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
             {navigationItems
               .filter((item) => item.section === 'main')
               .filter((item) => hasPermission(item.requiredPermission))
+              .filter((item) => navAllowed(item.path))
               .map((item) => {
                 const active = isActive(item.path)
                 const hovered = hoveredItem === item.path
@@ -262,6 +283,7 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
             {navigationItems
               .filter((item) => item.section === 'bottom')
               .filter((item) => hasPermission(item.requiredPermission))
+              .filter((item) => navAllowed(item.path))
               .map((item) => {
                 const active = isActive(item.path)
                 const hovered = hoveredItem === item.path
@@ -293,6 +315,7 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
               })}
 
             {/* Aggiornamenti app (changelog) con badge NOVITÀ */}
+            {navAllowed('/aggiornamenti') && (
             <button
               onClick={() => handleNavigation('/aggiornamenti')}
               onMouseEnter={() => setHoveredItem('/aggiornamenti')}
@@ -320,6 +343,7 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
                 </span>
               )}
             </button>
+            )}
 
             {/* Separator before logout */}
             <div style={separatorStyles} />

@@ -1,6 +1,23 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+
+// Guardia sezioni: se il ristorante ha allowed_nav (es. solo /prodotti),
+// reindirizza le pagine admin non consentite verso la prima sezione permessa.
+// Le pagine pubbliche (menu, login, staff...) non vengono toccate.
+function NavGuard({ allowedNav }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (!allowedNav || allowedNav.length === 0) return
+    const path = location.pathname
+    const publicPrefixes = ['/login', '/landing', '/menu/', '/staff/', '/order-confirmation/', '/super-admin/', '/design-system-demo']
+    if (publicPrefixes.some(pre => path === pre || path.startsWith(pre))) return
+    const allowed = allowedNav.some(a => path === a || path.startsWith(a + '/'))
+    if (!allowed) navigate(allowedNav[0], { replace: true })
+  }, [location.pathname, allowedNav, navigate])
+  return null
+}
 
 // Deep-link con login: se si apre una pagina protetta senza essere loggati,
 // salviamo la destinazione e, dopo l'accesso, ci torniamo (utile per i link
@@ -71,6 +88,18 @@ function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [allowedNav, setAllowedNav] = useState(null)
+
+  // Carica l'eventuale restrizione sezioni del ristorante dell'utente loggato
+  useEffect(() => {
+    if (!session) { setAllowedNav(null); return }
+    supabase.from('restaurants').select('allowed_nav').eq('user_id', session.user.id).single()
+      .then(({ data }) => {
+        const a = data?.allowed_nav
+        setAllowedNav(Array.isArray(a) && a.length ? a : null)
+      })
+      .catch(() => setAllowedNav(null))
+  }, [session])
 
   useEffect(() => {
     // Gestisci il token di conferma email dall'URL
@@ -204,6 +233,8 @@ function App() {
   }
 
   return (
+    <>
+    <NavGuard allowedNav={allowedNav} />
     <Routes>
       {/* Landing Page - accessibile a tutti */}
       <Route path="/landing" element={<Landing />} />
@@ -410,6 +441,7 @@ function App() {
         }
       />
     </Routes>
+    </>
   )
 }
 
