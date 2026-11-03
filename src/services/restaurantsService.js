@@ -12,12 +12,9 @@ const restaurantsService = {
    */
   async getAllRestaurants() {
     try {
-      // Use database view to get restaurants with user emails
-      // This view has elevated privileges to access auth.users
-      const { data, error } = await supabase
-        .from('restaurants_with_user_emails')
-        .select('*')
-        .order('created_at', { ascending: false })
+      // Ristoranti con l'email del titolare: funzione riservata al super admin
+      // (la vecchia vista pubblica esponeva le email a chiunque)
+      const { data, error } = await supabase.rpc('super_admin_list_restaurants')
 
       if (error) throw error
 
