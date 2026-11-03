@@ -125,7 +125,7 @@ export default function MenuStoreLayout({
             allergensShown ? (
               <div style={S.allergenList} onClick={() => setAllergensOpen(o => ({ ...o, [p.id]: false }))}>
                 {prodAllergens.map(a => (
-                  <span key={a.key} style={S.allergenChip}>{a.emoji} {a.label}</span>
+                  <span key={a.key} style={S.allergenChip}>{a.label}</span>
                 ))}
               </div>
             ) : (

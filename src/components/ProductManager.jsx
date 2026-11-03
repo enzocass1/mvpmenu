@@ -605,8 +605,7 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
                           lineHeight: 1,
                           transition: 'all 0.15s ease'
                         }}
-                      >
-                        <span>{a.emoji}</span>
+                      >
                         <span>{a.label}</span>
                       </button>
                     )

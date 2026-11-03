@@ -20,7 +20,16 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
   const [showSearch, setShowSearch] = useState(false)
   const [rowMenu, setRowMenu] = useState(null) // { category, top, right } menu azioni riga
 
-  // Apre il riordino dei PRODOTTI di una categoria (con prezzo, data, bestseller)
+  // Quante volte i clienti hanno aperto prodotti e categorie nel menu (ultimi 6 mesi)
+  const loadMenuViews = async () => {
+    const { data } = await supabase.rpc('menu_view_counts', { p_restaurant_id: restaurantId, p_days: 180 })
+    const m = {}
+    for (const row of data || []) m[row.item_id] = Number(row.views)
+    return m
+  }
+  const viewsLabel = (n) => (n > 0 ? ` · ${n} ${n === 1 ? 'visita' : 'visite'}` : '')
+
+  // Apre il riordino dei PRODOTTI di una categoria (con prezzo, data, bestseller, più visti)
   const openProductReorder = async (category) => {
     const { data: products } = await supabase
       .from('products')
@@ -37,10 +46,11 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
         .in('product_id', ids)
       for (const it of soldItems || []) salesMap[it.product_id] = (salesMap[it.product_id] || 0) + Number(it.quantity || 0)
     }
+    const views = await loadMenuViews()
     const items = (products || []).map(p => ({
       id: p.id, name: p.name, imageUrl: p.image_url, hidden: p.is_visible === false,
-      price: Number(p.price || 0), createdAt: new Date(p.created_at).getTime(), sales: salesMap[p.id] || 0,
-      subLabel: `€${Number(p.price || 0).toFixed(2)}${(salesMap[p.id] || 0) > 0 ? ` · ${salesMap[p.id]} venduti` : ''}`
+      price: Number(p.price || 0), createdAt: new Date(p.created_at).getTime(), sales: salesMap[p.id] || 0, views: views[p.id] || 0,
+      subLabel: `€${Number(p.price || 0).toFixed(2)}${(salesMap[p.id] || 0) > 0 ? ` · ${salesMap[p.id]} venduti` : ''}${viewsLabel(views[p.id] || 0)}`
     }))
     setReorder({
       title: 'Ordina prodotti',
@@ -53,6 +63,7 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
         { value: 'price_hi', label: 'Prezzo: dal più alto', compare: (a, b) => b.price - a.price },
         { value: 'recent', label: 'Più recenti', compare: (a, b) => b.createdAt - a.createdAt },
         { value: 'oldest', label: 'Meno recenti', compare: (a, b) => a.createdAt - b.createdAt },
+        { value: 'views', label: 'Più visti nel menu', compare: (a, b) => b.views - a.views },
         { value: 'best', label: 'Più venduti', compare: (a, b) => b.sales - a.sales },
         { value: 'worst', label: 'Meno venduti', compare: (a, b) => a.sales - b.sales }
       ],
@@ -63,18 +74,20 @@ function CategoryManager({ restaurantId, restaurant, onUpgradeClick, layout = 'g
     })
   }
 
-  // Apre il riordino delle CATEGORIE
-  const openCategoryReorder = () => {
+  // Apre il riordino delle CATEGORIE (anche per popolarità: le più aperte dai clienti per prime)
+  const openCategoryReorder = async () => {
+    const views = await loadMenuViews()
     const items = categories.map(c => ({
       id: c.id, name: c.name, imageUrl: c.image_url, hidden: c.is_visible === false,
-      createdAt: new Date(c.created_at).getTime(), count: productCounts[c.id] || 0,
-      subLabel: `${productCounts[c.id] || 0} prodotti`
+      createdAt: new Date(c.created_at).getTime(), count: productCounts[c.id] || 0, views: views[c.id] || 0,
+      subLabel: `${productCounts[c.id] || 0} prodotti${viewsLabel(views[c.id] || 0)}`
     }))
     setReorder({
       title: 'Ordina categorie',
       subtitle: 'Trascina per cambiare l\'ordine nel menu',
       items,
       sortOptions: [
+        { value: 'views', label: 'Più visti nel menu', compare: (a, b) => b.views - a.views },
         { value: 'name_az', label: 'Nome A → Z', compare: (a, b) => a.name.localeCompare(b.name) },
         { value: 'name_za', label: 'Nome Z → A', compare: (a, b) => b.name.localeCompare(a.name) },
         { value: 'count_hi', label: 'Più prodotti', compare: (a, b) => b.count - a.count },

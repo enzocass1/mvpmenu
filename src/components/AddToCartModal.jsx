@@ -50,6 +50,13 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
   const [selectedVariant, setSelectedVariant] = useState(null)
   const [selectedOptions, setSelectedOptions] = useState({}) // {optionName: value}
   const [loadingVariants, setLoadingVariants] = useState(false)
+  // Il messaggio di caricamento compare solo se l'attesa è lunga: niente lampi né finestra che si allarga
+  const [slowLoading, setSlowLoading] = useState(false)
+  useEffect(() => {
+    if (!loadingVariants) { setSlowLoading(false); return }
+    const timer = setTimeout(() => setSlowLoading(true), 700)
+    return () => clearTimeout(timer)
+  }, [loadingVariants])
 
   // Calcola stili dinamici basati sul theme_config del ristorante
   const themeStyles = useMemo(() => {
@@ -61,11 +68,17 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
     return getStyles(themeStyles)
   }, [themeStyles])
 
-  // Carica varianti quando il modal si apre
+  // Carica le varianti quando il modal si apre, solo se il prodotto ne ha
+  // (il menu lo sa già: i prodotti semplici si aprono subito, senza attese)
   useEffect(() => {
-    if (isOpen && product) {
-      loadVariants()
+    if (!isOpen || !product) return
+    if (product.hasVariants === false) {
+      setOptions([])
+      setVariants([])
+      setLoadingVariants(false)
+      return
     }
+    loadVariants()
   }, [isOpen, product])
 
   // Blocca lo scroll del body quando il modal è aperto
@@ -89,6 +102,8 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
     if (!product?.id) return
 
     setLoadingVariants(true)
+    setOptions([])
+    setVariants([])
     try {
       // Carica opzioni
       const { data: optionsData, error: optionsError } = await supabase
@@ -269,7 +284,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
                 <div style={styles.allergenList}>
                   {getAllergenInfo(product).map(a => (
                     <span key={a.key} style={styles.allergenChip}>
-                      {a.emoji} {a.label}
+                      {a.label}
                     </span>
                   ))}
                 </div>
@@ -284,8 +299,8 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
           </div>
 
           {/* Variants Selection */}
-          {loadingVariants && (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+          {slowLoading && (
+            <div style={{ padding: '12px', textAlign: 'center', color: themeStyles.textTertiaryColor || '#666', fontSize: '14px' }}>
               Caricamento varianti...
             </div>
           )}
@@ -447,7 +462,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
             </button>
             <button
               type="submit"
-              disabled={blockOrder}
+              disabled={blockOrder || loadingVariants}
               style={{ ...styles.addButton, ...(blockOrder ? { opacity: 0.5, cursor: 'not-allowed' } : {}) }}
             >
               {blockOrder ? 'Esaurito' : 'Aggiungi al carrello'}

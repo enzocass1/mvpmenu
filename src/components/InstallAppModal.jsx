@@ -2,6 +2,32 @@ import React, { useState, useEffect } from 'react'
 import { tokens } from '../styles/tokens'
 import { canPromptInstall, promptInstall, isAppInstalled } from '../lib/installPrompt'
 
+// Icone (SVG, niente emoji): loghi Android e Apple, scarica, condividi, menu, conferma
+const AndroidIcon = ({ size = 22 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path fillRule="evenodd" d="M2.6 18.6a9.4 8.9 0 0 1 18.8 0zM8.1 13.2a1.15 1.15 0 1 0 0 2.3a1.15 1.15 0 1 0 0-2.3zM15.9 13.2a1.15 1.15 0 1 0 0 2.3a1.15 1.15 0 1 0 0-2.3z" />
+    <path d="M7.4 11.3 5.5 8.1M16.6 11.3l1.9-3.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+)
+const AppleIcon = ({ size = 19 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+  </svg>
+)
+const line = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }
+const DownloadIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" {...line} aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
+)
+const ShareIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" {...line} aria-hidden="true" style={{ verticalAlign: '-2px' }}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><path d="M16 6l-4-4-4 4" /><path d="M12 2v13" /></svg>
+)
+const DotsIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ verticalAlign: '-2px' }}><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
+)
+const CheckIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" {...line} strokeWidth="2.4" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M20 6 9 17l-5-5" /></svg>
+)
+
 /**
  * Modal "Scarica app": spiega come aggiungere MVP Menu alla schermata home.
  * Due schede: Android (Chrome) e iPhone (Safari). Su Android, se il browser
@@ -58,39 +84,39 @@ function InstallAppModal({ isOpen, onClose }) {
             style={{ ...styles.tabButton, ...(tab === 'android' ? styles.tabButtonActive : {}) }}
             onClick={() => setTab('android')}
           >
-            🤖 Android
+            <AndroidIcon /> Android
           </button>
           <button
             style={{ ...styles.tabButton, ...(tab === 'ios' ? styles.tabButtonActive : {}) }}
             onClick={() => setTab('ios')}
           >
-            🍎 iPhone (Safari)
+            <AppleIcon /> iPhone (Safari)
           </button>
         </div>
 
         {/* Contenuto */}
         <div style={styles.body}>
           {done && (
-            <div style={styles.successBox}>✅ Fatto! L'app è installata: cerca l'icona MVP Menu sul telefono.</div>
+            <div style={styles.successBox}><CheckIcon /> <span>Fatto! L'app è installata: cerca l'icona MVP Menu sul telefono.</span></div>
           )}
 
           {tab === 'android' ? (
             <>
               {nativeAvailable && !done && (
                 <button style={styles.installNowButton} onClick={handleNativeInstall}>
-                  ⬇️ Installa ora
+                  <DownloadIcon /> Installa ora
                 </button>
               )}
               {nativeAvailable && !done && <div style={styles.orDivider}>oppure manualmente:</div>}
               <Step n={1}>Apri questa pagina con <strong>Chrome</strong> sul telefono.</Step>
-              <Step n={2}>Tocca il menu <strong>⋮</strong> in alto a destra.</Step>
+              <Step n={2}>Tocca il menu <strong><DotsIcon /></strong> in alto a destra.</Step>
               <Step n={3}>Tocca <strong>"Aggiungi a schermata Home"</strong> (o "Installa app").</Step>
               <Step n={4}>Conferma: l'icona <strong>MVP Menu</strong> appare sul telefono.</Step>
             </>
           ) : (
             <>
               <Step n={1}>Apri questa pagina con <strong>Safari</strong> su iPhone/iPad.</Step>
-              <Step n={2}>Tocca il tasto <strong>Condividi</strong> <span style={styles.shareIcon}>⬆︎</span> (quadrato con freccia, in basso).</Step>
+              <Step n={2}>Tocca il tasto <strong>Condividi</strong> <ShareIcon /> (quadrato con freccia, in basso).</Step>
               <Step n={3}>Scorri e tocca <strong>"Aggiungi alla schermata Home"</strong>.</Step>
               <Step n={4}>Tocca <strong>"Aggiungi"</strong>: l'icona <strong>MVP Menu</strong> appare sul telefono.</Step>
               <div style={styles.note}>Nota: da iPhone funziona solo con Safari (non da Chrome o altre app).</div>
@@ -169,6 +195,10 @@ const styles = {
     color: tokens.colors.gray[700],
     cursor: 'pointer',
     lineHeight: 1,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
   },
   tabButtonActive: {
     background: tokens.colors.black,
@@ -204,14 +234,6 @@ const styles = {
     lineHeight: 1.5,
     paddingTop: '2px',
   },
-  shareIcon: {
-    display: 'inline-block',
-    border: `1.5px solid ${tokens.colors.gray[700]}`,
-    borderRadius: '5px',
-    padding: '0 5px',
-    fontSize: '12px',
-    lineHeight: '18px',
-  },
   installNowButton: {
     width: '100%',
     padding: '13px',
@@ -222,6 +244,10 @@ const styles = {
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
   },
   orDivider: {
     textAlign: 'center',
@@ -235,6 +261,9 @@ const styles = {
     border: '1px solid #c8e6c9',
     color: '#1b5e20',
     fontSize: '13px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
   },
   note: {
     fontSize: '12px',

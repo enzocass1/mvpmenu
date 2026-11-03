@@ -18,6 +18,7 @@ export default function MenuBuilderLayout({
   sections = []
 }) {
   const [salesMap, setSalesMap] = useState({})
+  const [popular, setPopular] = useState({}) // { [giorni]: [id prodotto...] } dal più aperto dai clienti
   const [viewAllCat, setViewAllCat] = useState(null) // categoria aperta a griglia
   const [allergensOpen, setAllergensOpen] = useState({}) // {productId: true} note allergeni espansa
   const chipsRef = useRef(null)
@@ -140,8 +141,35 @@ export default function MenuBuilderLayout({
     return [...list].sort((a, b) => (idx.has(a.id) ? idx.get(a.id) : 1e9) - (idx.has(b.id) ? idx.get(b.id) : 1e9))
   }
 
+  // Sezioni automatiche "I più visti": classifica dei prodotti più aperti (una lettura per periodo)
+  const popularDaysKey = [...new Set(sections.filter(s => s.type === 'carousel_popular').map(s => Number(s.days) || 180))].sort((a, b) => a - b).join(',')
+  useEffect(() => {
+    if (!popularDaysKey || !restaurant?.id) return
+    let active = true
+    Promise.all(popularDaysKey.split(',').map(async (d) => {
+      const { data } = await supabase.rpc('menu_popular_products', { p_restaurant_id: restaurant.id, p_days: Number(d), p_limit: 100 })
+      return [d, (data || []).map(r => r.product_id)]
+    })).then(entries => { if (active) setPopular(Object.fromEntries(entries)) })
+    return () => { active = false }
+  }, [popularDaysKey, restaurant?.id])
+
   // Risolve i prodotti di una sezione
   const resolveSection = (sec) => {
+    if (sec.type === 'carousel_popular') {
+      const cap = sec.perCategory == null ? 3 : Number(sec.perCategory) // 0 = nessun limite per categoria
+      const limit = sec.limit || 10
+      const perCat = {}
+      const items = []
+      for (const id of popular[String(Number(sec.days) || 180)] || []) {
+        const p = productById[id]
+        if (!p) continue
+        if (cap > 0 && (perCat[p.category_id] || 0) >= cap) continue
+        perCat[p.category_id] = (perCat[p.category_id] || 0) + 1
+        items.push(p)
+        if (items.length >= limit) break
+      }
+      return { items, total: items.length, categoryId: null }
+    }
     if (sec.type === 'carousel_category') {
       const all = products[sec.categoryId] || []
       const sort = sec.sort || 'manual'
@@ -211,7 +239,7 @@ export default function MenuBuilderLayout({
             >
               {prodAllergens.map(a => (
                 <span key={a.key} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '1px 6px', borderRadius: '999px', fontSize: px(9.5), fontWeight: 500, color: textMain, border: `1px solid ${border}`, whiteSpace: 'nowrap' }}>
-                  {a.emoji} {a.label}
+                  {a.label}
                 </span>
               ))}
             </div>

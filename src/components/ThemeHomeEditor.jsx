@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient'
 import MenuBuilderLayout from './MenuBuilderLayout'
 import ProductPickerModal from './ProductPickerModal'
 import ProductsOrderModal from './ProductsOrderModal'
+import ImageUpload from './ImageUpload'
 import { getThemeStyles, ensureThemeFonts, FONT_OPTIONS } from '../lib/themeStyles'
 import { formatPrice } from '../lib/priceFormat'
 
@@ -16,6 +17,13 @@ const SORTS = [
 ]
 
 const uuid = () => (crypto?.randomUUID ? crypto.randomUUID() : 'sec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8))
+
+// Campi di servizio della bozza: non fanno parte del tema
+const META_KEYS = ['draft', 'categoryOrder', 'createdAt', 'updatedAt']
+const withoutMeta = (cfg) => Object.fromEntries(Object.entries(cfg || {}).filter(([k]) => !META_KEYS.includes(k)))
+
+// Link dell'anteprima della bozza: chi lo apre vede il nuovo menu, quello dei clienti non cambia
+const draftPreviewUrl = (subdomain) => `${window.location.origin}${window.location.pathname}#/menu/${subdomain}?bozza=1`
 
 const newSection = (cats) => ({
   id: uuid(),
@@ -49,6 +57,13 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
   const [previewFull, setPreviewFull] = useState(false)
   const [dragIndex, setDragIndex] = useState(null)
   const rowRefs = useRef([])
+  const [published, setPublished] = useState({})        // tema pubblicato (quello che vedono i clienti)
+  const [hasDraft, setHasDraft] = useState(false)       // esiste una bozza salvata
+  const [categoryOrder, setCategoryOrder] = useState(null) // nuovo ordine delle categorie (id), se scelto
+  const [sortingCats, setSortingCats] = useState(false)
+  const [saveOpen, setSaveOpen] = useState(false)       // scelta: pubblica o salva come bozza
+  const [draftLink, setDraftLink] = useState(null)      // link dell'anteprima da mandare
+  const [copied, setCopied] = useState(false)
 
   const allProducts = useMemo(() => Object.values(products).flat(), [products])
 
@@ -56,10 +71,17 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
 
   // Tema in bozza: tutto ciò che vedi in anteprima si basa su questo
   const draftConfig = useMemo(
-    () => ({ ...(config || {}), layoutStyle: 'builder', homeSections: sections }),
+    () => ({ ...withoutMeta(config), layoutStyle: 'builder', homeSections: sections }),
     [config, sections]
   )
   const resolvedTheme = useMemo(() => getThemeStyles(draftConfig), [draftConfig])
+
+  // Categorie nell'ordine scelto (anche i badge in alto dell'anteprima lo seguono)
+  const orderedCats = useMemo(() => {
+    if (!categoryOrder?.length) return cats
+    const idx = new Map(categoryOrder.map((id, i) => [id, i]))
+    return [...cats].sort((a, b) => (idx.get(a.id) ?? 1e9) - (idx.get(b.id) ?? 1e9))
+  }, [cats, categoryOrder])
 
   // Carica i Google Font quando cambiano i font scelti
   useEffect(() => { ensureThemeFonts(draftConfig) }, [config?.fontFamily, config?.headingFontFamily])
@@ -76,9 +98,16 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
         .eq('id', restaurantId).single()
       if (!active) return
       setRestaurant(r || null)
+      // Se c'è una bozza salvata si riparte da quella, altrimenti dal menu pubblicato
       const cfg = r?.theme_config || {}
-      setConfig(cfg)
-      setSections(Array.isArray(cfg.homeSections) ? cfg.homeSections : [])
+      const draft = cfg.draft || null
+      const base = withoutMeta(cfg)
+      const start = draft ? { ...base, ...withoutMeta(draft) } : base
+      setPublished(base)
+      setHasDraft(!!draft)
+      setCategoryOrder(draft?.categoryOrder?.length ? draft.categoryOrder : null)
+      setConfig(start)
+      setSections(Array.isArray(start.homeSections) ? start.homeSections : [])
 
       const { data: c } = await supabase
         .from('categories').select('*')
@@ -146,14 +175,30 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
     setEditing(null)
   }
 
-  const saveAll = async () => {
+  // Applica alle categorie il nuovo ordine (quelle nascoste restano in fondo, nel loro ordine)
+  const applyCategoryOrder = async () => {
+    if (!categoryOrder?.length) return
+    const { data: all, error } = await supabase.from('categories').select('id, order')
+      .eq('restaurant_id', restaurantId).order('order', { ascending: true })
+    if (error) throw error
+    const idx = new Map(categoryOrder.map((id, i) => [id, i]))
+    const sorted = [...(all || [])].sort((a, b) => (idx.get(a.id) ?? 1e6 + (a.order || 0)) - (idx.get(b.id) ?? 1e6 + (b.order || 0)))
+    const changed = sorted.map((c, i) => ({ id: c.id, i, prev: c.order })).filter(x => x.prev !== x.i)
+    const results = await Promise.all(changed.map(x => supabase.from('categories').update({ order: x.i }).eq('id', x.id)))
+    const failed = results.find(res => res.error)
+    if (failed) throw failed.error
+  }
+
+  // Pubblica: i clienti vedono subito il nuovo menu (l'eventuale bozza si chiude)
+  const publish = async () => {
     setSaving(true)
     try {
+      await applyCategoryOrder()
       const { error } = await supabase.from('restaurants')
-        .update({ theme_config: draftConfig, updated_at: new Date().toISOString() })
+        .update({ theme_config: withoutMeta(draftConfig), updated_at: new Date().toISOString() })
         .eq('id', restaurantId)
       if (error) throw error
-      alert('✅ Home salvata! Il menu è stato aggiornato.')
+      alert('Menu pubblicato: i clienti vedono subito le modifiche.')
       onClose?.()
     } catch (e) {
       alert('Errore salvataggio: ' + e.message)
@@ -161,7 +206,65 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
     }
   }
 
-  const typeLabel = (s) => s.type === 'carousel_manual' ? 'Prodotti scelti' : 'Da categoria'
+  // Salva come bozza: il menu pubblicato non cambia, si ottiene il link dell'anteprima
+  const saveDraft = async () => {
+    setSaving(true)
+    try {
+      const draft = {
+        ...withoutMeta(draftConfig),
+        ...(categoryOrder?.length ? { categoryOrder } : {}),
+        updatedAt: new Date().toISOString()
+      }
+      const { error } = await supabase.from('restaurants')
+        .update({ theme_config: { ...published, draft }, updated_at: new Date().toISOString() })
+        .eq('id', restaurantId)
+      if (error) throw error
+      setHasDraft(true)
+      setSaveOpen(false)
+      setDraftLink(draftPreviewUrl(restaurant.subdomain))
+    } catch (e) {
+      alert('Errore salvataggio: ' + e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Elimina la bozza e torna al menu pubblicato
+  const discardDraft = async () => {
+    if (!window.confirm('Eliminare la bozza? Torni al menu pubblicato e il link di anteprima smette di funzionare.')) return
+    const { error } = await supabase.from('restaurants')
+      .update({ theme_config: published, updated_at: new Date().toISOString() })
+      .eq('id', restaurantId)
+    if (error) { alert('Errore: ' + error.message); return }
+    setConfig(published)
+    setSections(Array.isArray(published.homeSections) ? published.homeSections : [])
+    setCategoryOrder(null)
+    setHasDraft(false)
+  }
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(draftLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      window.prompt('Copia il link:', draftLink)
+    }
+  }
+
+  // Ordina le categorie dalla più aperta dai clienti (ultimi 6 mesi); a pari visite resta l'ordine attuale
+  const sortCategoriesByPopularity = async () => {
+    setSortingCats(true)
+    const { data, error } = await supabase.rpc('menu_view_counts', { p_restaurant_id: restaurantId, p_days: 180 })
+    setSortingCats(false)
+    if (error) { alert('Impossibile leggere le statistiche: ' + error.message); return }
+    const views = {}
+    for (const row of data || []) if (row.kind === 'category') views[row.item_id] = Number(row.views)
+    if (!Object.keys(views).length) { alert('Non ci sono ancora abbastanza visite per ordinare le categorie.'); return }
+    setCategoryOrder([...cats].sort((a, b) => (views[b.id] || 0) - (views[a.id] || 0)).map(c => c.id))
+  }
+
+  const typeLabel = (s) => s.type === 'carousel_manual' ? 'Prodotti scelti' : s.type === 'carousel_popular' ? 'I più visti (automatico)' : 'Da categoria'
 
   // Anteprima live: il vero menu, contenuto in un "telefono"
   const preview = (
@@ -170,7 +273,7 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
         {restaurant ? (
           <MenuBuilderLayout
             restaurant={restaurant}
-            categories={cats}
+            categories={orderedCats}
             products={products}
             openingHours={openingHours}
             theme={resolvedTheme}
@@ -191,7 +294,7 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
         )}
       </div>
       <button style={S.expand} onClick={() => setPreviewFull(v => !v)} title={previewFull ? 'Riduci' : 'Ingrandisci'}>
-        {previewFull ? '🗕 Modifica' : '🗖 Anteprima'}
+        {previewFull ? 'Riduci' : 'Ingrandisci'}
       </button>
     </div>
   )
@@ -205,8 +308,8 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
       <div style={S.panel}>
         <div style={S.head}>
           <button style={S.back} onClick={() => onClose?.()}>✕</button>
-          <div style={S.title}>Editor Home <span style={S.live}>● LIVE</span></div>
-          <button style={S.save} onClick={saveAll} disabled={saving}>{saving ? '…' : 'Salva'}</button>
+          <div style={S.title}>Editor Home {hasDraft ? <span style={S.draftTag}>BOZZA</span> : <span style={S.live}>● LIVE</span>}</div>
+          <button style={S.save} onClick={() => setSaveOpen(true)} disabled={saving}>{saving ? '…' : 'Salva'}</button>
         </div>
 
         {/* ANTEPRIMA LIVE (sempre visibile, in alto) */}
@@ -217,6 +320,16 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
         {/* CONTROLLI (nascosti quando l'anteprima è a tutto schermo) */}
         {!previewFull && (
           <div style={S.controls}>
+            {hasDraft && (
+              <div style={S.draftBar}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700 }}>Stai modificando una bozza</div>
+                  <div style={{ fontSize: 12, color: '#6b5a1e' }}>I clienti vedono ancora il menu pubblicato.</div>
+                </div>
+                <button style={S.draftBtn} onClick={() => setDraftLink(draftPreviewUrl(restaurant.subdomain))}>Link anteprima</button>
+                <button style={S.draftDel} onClick={discardDraft}>Elimina</button>
+              </div>
+            )}
             <div style={S.tabs}>
               {[{ k: 'content', l: 'Contenuto' }, { k: 'appearance', l: 'Aspetto' }].map(o => (
                 <button key={o.k} onClick={() => setTab(o.k)} style={{ ...S.tab, ...(tab === o.k ? S.tabOn : {}) }}>{o.l}</button>
@@ -235,13 +348,30 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={S.rowTitle}>{sec.title || '(senza titolo)'}</div>
-                        <div style={S.rowSub}>{typeLabel(sec)}{sec.type === 'carousel_category' ? ` · ${cats.find(c => c.id === sec.categoryId)?.name || '—'}` : ` · ${(sec.productIds || []).length} prodotti`}</div>
+                        <div style={S.rowSub}>{typeLabel(sec)}{sec.type === 'carousel_category' ? ` · ${cats.find(c => c.id === sec.categoryId)?.name || '—'}` : sec.type === 'carousel_popular' ? ` · ${sec.limit || 10} prodotti` : ` · ${(sec.productIds || []).length} prodotti`}</div>
                       </div>
                       <button style={S.rowBtn} onClick={() => setEditing({ ...sec })}>Modifica</button>
                       <button style={S.rowDel} onClick={() => setSections(prev => prev.filter(s => s.id !== sec.id))} aria-label="Elimina">×</button>
                     </div>
                   ))}
                   <button style={S.add} onClick={() => setEditing(newSection(cats))}>+ Aggiungi carosello</button>
+
+                  <div style={{ ...S.groupTitle, marginTop: 24 }}>Ordine delle categorie</div>
+                  <div style={S.hint}>
+                    {categoryOrder ? 'Nuovo ordine: ' : 'Ordine attuale: '}
+                    {orderedCats.slice(0, 5).map(c => c.name).join(' · ')}{orderedCats.length > 5 ? ' …' : ''}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={{ ...S.reorderBtn, marginTop: 0, flex: 1 }} onClick={sortCategoriesByPopularity} disabled={sortingCats}>
+                      {sortingCats ? 'Calcolo…' : 'Ordina per popolarità'}
+                    </button>
+                    {categoryOrder && (
+                      <button style={{ ...S.reorderBtn, marginTop: 0, width: 'auto', padding: '11px 14px' }} onClick={() => setCategoryOrder(null)}>Annulla</button>
+                    )}
+                  </div>
+                  <div style={{ ...S.hint, marginTop: 6 }}>
+                    Le categorie più aperte dai clienti negli ultimi 6 mesi vanno per prime, anche nei badge in alto. Si applica quando pubblichi.
+                  </div>
                 </>
               )}
 
@@ -293,6 +423,41 @@ export default function ThemeHomeEditor({ restaurantId, onClose }) {
           onSave={saveSection}
         />
       )}
+
+      {saveOpen && (
+        <div style={S.sheetOverlay} onClick={(e) => { if (e.target === e.currentTarget && !saving) setSaveOpen(false) }}>
+          <div style={S.sheet}>
+            <div style={S.sheetTitle}>Salva le modifiche</div>
+            <button style={S.choice} onClick={publish} disabled={saving}>
+              <span style={S.choiceTitle}>Pubblica sul menu</span>
+              <span style={S.choiceSub}>I clienti vedono subito le modifiche.{hasDraft ? ' La bozza viene chiusa.' : ''}</span>
+            </button>
+            <button style={S.choice} onClick={saveDraft} disabled={saving}>
+              <span style={S.choiceTitle}>Salva come bozza</span>
+              <span style={S.choiceSub}>Il menu dei clienti non cambia: ricevi un link di anteprima da far vedere e approvare.</span>
+            </button>
+            <button style={S.sheetCancel} onClick={() => setSaveOpen(false)} disabled={saving}>{saving ? 'Salvataggio…' : 'Annulla'}</button>
+          </div>
+        </div>
+      )}
+
+      {draftLink && (
+        <div style={S.sheetOverlay} onClick={(e) => { if (e.target === e.currentTarget) setDraftLink(null) }}>
+          <div style={S.sheet}>
+            <div style={S.sheetTitle}>Anteprima della bozza</div>
+            <div style={S.hint}>
+              Manda questo link: chi lo apre vede il nuovo menu, mentre quello dei clienti resta com'è.
+              Le visite all'anteprima non entrano nelle statistiche. Il link mostra sempre l'ultima bozza salvata.
+            </div>
+            <div style={S.linkBox}>{draftLink}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button style={{ ...S.save, flex: 1, padding: 12 }} onClick={copyLink}>{copied ? 'Copiato' : 'Copia link'}</button>
+              <button style={{ ...S.reorderBtn, marginTop: 0, flex: 1 }} onClick={() => window.open(draftLink, '_blank')}>Apri anteprima</button>
+            </div>
+            <button style={S.sheetCancel} onClick={() => setDraftLink(null)}>Chiudi</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -335,6 +500,12 @@ function SectionForm({ draft, cats, products, onCancel, onSave }) {
   }
   // Lista da riordinare quando l'ordinamento è "Manuale" (vale per entrambi i tipi)
   const reorderList = s.type === 'carousel_manual' ? chosen : orderByManual(catProducts, s.manualOrder)
+  // Foto in testa: quella scelta, altrimenti (per le sezioni da categoria) la foto della categoria
+  const catPhotos = cats.filter(c => c.image_url)
+  const coverUrl = s.coverImage || (s.type === 'carousel_category' ? cats.find(c => c.id === s.categoryId)?.image_url : null)
+  const chooseType = (type) => set(type === 'carousel_popular'
+    ? { type, limit: s.type === 'carousel_popular' ? s.limit : 10, perCategory: s.perCategory ?? 3, days: s.days || 180, showRank: s.showRank ?? true, title: s.title || 'I più amati' }
+    : { type })
 
   return (
     <div style={S.overlay2}>
@@ -347,8 +518,8 @@ function SectionForm({ draft, cats, products, onCancel, onSave }) {
         <div style={S.body}>
           <label style={S.label}>Tipo</label>
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            {[{ k: 'carousel_category', l: 'Da categoria' }, { k: 'carousel_manual', l: 'Prodotti scelti' }].map(o => (
-              <button key={o.k} onClick={() => set({ type: o.k })} style={{ ...S.pill, ...(s.type === o.k ? S.pillOn : {}) }}>{o.l}</button>
+            {[{ k: 'carousel_category', l: 'Da categoria' }, { k: 'carousel_manual', l: 'Prodotti scelti' }, { k: 'carousel_popular', l: 'I più visti' }].map(o => (
+              <button key={o.k} onClick={() => chooseType(o.k)} style={{ ...S.pill, ...(s.type === o.k ? S.pillOn : {}) }}>{o.l}</button>
             ))}
           </div>
 
@@ -369,6 +540,24 @@ function SectionForm({ draft, cats, products, onCancel, onSave }) {
                 <input type="checkbox" checked={s.showViewAll !== false} onChange={e => set({ showViewAll: e.target.checked })} />
                 <span>Mostra "Guarda tutti →"</span>
               </label>
+            </>
+          ) : s.type === 'carousel_popular' ? (
+            <>
+              <div style={S.note}>Si aggiorna da sola: mostra i prodotti che i clienti aprono di più nel menu. Se non ci sono ancora visite, la sezione resta nascosta.</div>
+              <label style={S.label}>Quantità da mostrare</label>
+              <input type="number" min="1" max="30" style={S.input} value={s.limit || 10} onChange={e => set({ limit: Math.min(30, Math.max(1, Number(e.target.value) || 1)) })} />
+              <label style={S.label}>Massimo per categoria</label>
+              <select style={S.input} value={s.perCategory ?? 3} onChange={e => set({ perCategory: Number(e.target.value) })}>
+                {[1, 2, 3, 5].map(n => <option key={n} value={n}>{n}</option>)}
+                <option value={0}>Nessun limite</option>
+              </select>
+              <label style={S.label}>Periodo considerato</label>
+              <select style={S.input} value={s.days || 180} onChange={e => set({ days: Number(e.target.value) })}>
+                <option value={30}>Ultimi 30 giorni</option>
+                <option value={90}>Ultimi 3 mesi</option>
+                <option value={180}>Ultimi 6 mesi</option>
+                <option value={365}>Ultimo anno</option>
+              </select>
             </>
           ) : (
             <>
@@ -394,12 +583,14 @@ function SectionForm({ draft, cats, products, onCancel, onSave }) {
             </>
           )}
 
+          {s.type !== 'carousel_popular' && (<>
           <label style={S.label}>Ordinamento</label>
           <select style={S.input} value={s.sort} onChange={e => set({ sort: e.target.value })}>
             {SORTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+          </>)}
           {/* Riordino manuale (trascina): disponibile per entrambi i tipi quando l'ordinamento è Manuale */}
-          {s.sort === 'manual' && (
+          {s.type !== 'carousel_popular' && s.sort === 'manual' && (
             reorderList.length >= 2 ? (
               <button style={S.reorderBtn} onClick={() => setOrderOpen(true)}>↕ Ordina manualmente (trascina)</button>
             ) : (
@@ -407,6 +598,31 @@ function SectionForm({ draft, cats, products, onCancel, onSave }) {
                 {s.type === 'carousel_manual' ? 'Scegli almeno 2 prodotti per poterli ordinare.' : 'Servono almeno 2 prodotti nella categoria per ordinarli.'}
               </div>
             )
+          )}
+
+          <div style={{ ...S.groupTitle, marginTop: 22 }}>Stile della sezione</div>
+          <label style={S.check}>
+            <input type="checkbox" checked={!!s.showRank} onChange={e => set({ showRank: e.target.checked })} />
+            <span>Numera i prodotti (1, 2, 3…)</span>
+          </label>
+          <label style={S.check}>
+            <input type="checkbox" checked={!!s.showCover} onChange={e => set({ showCover: e.target.checked })} />
+            <span>Foto in testa alla sezione, con il titolo sopra</span>
+          </label>
+          {s.showCover && (
+            <>
+              {coverUrl
+                ? <div style={{ ...S.coverThumb, backgroundImage: `url("${coverUrl}")` }} />
+                : <div style={{ ...S.hint, marginTop: 6 }}>Scegli una foto: senza, la sezione mostra solo il titolo.</div>}
+              <label style={S.label}>Foto</label>
+              <select style={S.input} value={s.coverImage || ''} onChange={e => set({ coverImage: e.target.value || null })}>
+                <option value="">{s.type === 'carousel_category' ? 'Foto della categoria' : 'Nessuna foto'}</option>
+                {s.coverImage && !catPhotos.some(c => c.image_url === s.coverImage) && <option value={s.coverImage}>Foto caricata</option>}
+                {catPhotos.map(c => <option key={c.id} value={c.image_url}>Foto di {c.name}</option>)}
+              </select>
+              <label style={S.label}>Oppure carica una foto</label>
+              <ImageUpload key={s.coverImage || 'none'} currentImageUrl={null} folder="sections" onImageUploaded={(url) => set({ coverImage: url })} />
+            </>
           )}
         </div>
       </div>
@@ -457,6 +673,21 @@ const S = {
   back: { border: 'none', background: 'transparent', fontSize: 22, cursor: 'pointer', color: '#333', width: 36 },
   title: { flex: 1, fontSize: 17, fontWeight: 700, color: '#111', display: 'flex', alignItems: 'center', gap: 8 },
   live: { fontSize: 11, fontWeight: 700, color: '#16a34a' },
+  draftTag: { fontSize: 11, fontWeight: 800, color: '#8a6d1a', background: '#FDF3D7', border: '1px solid #F1DFA6', borderRadius: 6, padding: '2px 6px', letterSpacing: '0.4px' },
+  draftBar: { display: 'flex', alignItems: 'center', gap: 8, margin: '10px 16px 0', padding: '10px 12px', background: '#FFF9E8', border: '1px solid #F1DFA6', borderRadius: 12, fontSize: 13, color: '#3d3212', flexShrink: 0 },
+  draftBtn: { border: '1px solid #E5D49A', background: '#fff', borderRadius: 8, padding: '7px 10px', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#3d3212', whiteSpace: 'nowrap' },
+  draftDel: { border: 'none', background: 'transparent', fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#B42318', whiteSpace: 'nowrap' },
+  sheetOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 3300, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' },
+  sheet: { background: '#fff', width: '100%', maxWidth: 520, borderRadius: '16px 16px 0 0', padding: '18px 16px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 10 },
+  sheetTitle: { fontSize: 17, fontWeight: 800, color: '#111', marginBottom: 2 },
+  choice: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, textAlign: 'left', width: '100%', padding: '13px 14px', border: '1px solid #E2E8F0', borderRadius: 12, background: '#fff', cursor: 'pointer' },
+  choiceTitle: { fontSize: 15, fontWeight: 700, color: '#111' },
+  choiceSub: { fontSize: 13, color: '#64748B', lineHeight: 1.4 },
+  sheetCancel: { border: 'none', background: 'transparent', padding: 10, fontSize: 14, fontWeight: 600, color: '#64748B', cursor: 'pointer' },
+  linkBox: { padding: '10px 12px', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 10, fontSize: 13, color: '#111', wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, monospace' },
+  note: { fontSize: 13, color: '#3d3212', background: '#FFF9E8', border: '1px solid #F1DFA6', borderRadius: 10, padding: '10px 12px', lineHeight: 1.45, marginBottom: 4 },
+  check: { display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0', fontSize: 14, color: '#111' },
+  coverThumb: { width: '100%', aspectRatio: '16 / 7', borderRadius: 10, backgroundSize: 'cover', backgroundPosition: 'center', marginTop: 8, border: '1px solid #ECECEC' },
   save: { border: 'none', background: '#000', color: '#fff', padding: '9px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' },
 
   previewPane: { minHeight: 0, background: '#eef1f4', padding: 10, position: 'relative', borderBottom: '1px solid #e5e7eb' },

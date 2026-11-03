@@ -932,7 +932,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                             <div style={styles.allergenList}>
                               {prodAllergens.map(a => (
                                 <span key={a.key} style={styles.allergenChip}>
-                                  {a.emoji} {a.label}
+                                  {a.label}
                                 </span>
                               ))}
                             </div>

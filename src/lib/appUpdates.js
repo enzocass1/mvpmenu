@@ -4,6 +4,35 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-03-editor-bozza',
+    date: '2026-11-03',
+    type: 'novita',
+    title: 'Editor del menu: "I più visti", foto delle sezioni, bozze da far approvare',
+    description:
+      "Nell'Editor dal vivo della home componibile ci sono tre novità. 1) Nuova sezione \"I più visti\": si riempie da sola con i prodotti che i clienti aprono di più nel menu, con i numeri 1, 2, 3… Scegli quanti mostrarne, quanti al massimo per categoria e il periodo. 2) Ogni sezione può avere una foto in testa, con il titolo sopra: quella della categoria, quella di un'altra categoria o una foto che carichi tu. Puoi anche numerare i prodotti di qualsiasi sezione. 3) Bozze: quando premi Salva scegli se pubblicare subito o salvare come bozza. La bozza non cambia il menu dei clienti e ti dà un link di anteprima da mandare (le visite all'anteprima non contano nelle statistiche). Quando va bene, la pubblichi con un tocco. In più, \"Ordina per popolarità\" mette le categorie dalla più aperta alla meno aperta, anche nei badge in alto. In Prodotti → Categorie → Ordina trovi la stessa scelta (\"Più visti nel menu\"), anche per i prodotti di una categoria. I prodotti senza foto ora appaiono come schede di testo eleganti, senza riquadri vuoti.",
+    steps: [
+      'Apri Impostazioni → Temi e Stile → Apri Editor dal vivo.',
+      'Tocca "+ Aggiungi carosello" e scegli "I più visti": la sezione si riempie da sola con i prodotti più aperti.',
+      'In "Stile della sezione" attiva "Numera i prodotti" e "Foto in testa alla sezione", poi scegli la foto.',
+      'In fondo, "Ordina per popolarità" mette prima le categorie più aperte dai clienti.',
+      'Premi Salva → "Salva come bozza": copia il link dell\'anteprima e mandalo. Il menu dei clienti non cambia.',
+      'Quando la bozza va bene, riapri l\'editor e premi Salva → "Pubblica sul menu". Con "Elimina" nella barra gialla la scarti.'
+    ]
+  },
+  {
+    id: '2026-11-03-ritocchi-menu',
+    date: '2026-11-03',
+    type: 'miglioramento',
+    title: 'Finestra prodotto più fluida, allergeni solo testo, icone Android e Apple',
+    description:
+      "Aprendo un prodotto senza varianti la finestra non mostra più per un attimo \"Caricamento varianti...\" e non cambia più dimensione: si apre subito, già pronta. I badge degli allergeni, nel menu online e nella scheda prodotto della dashboard, mostrano solo il nome (Glutine, Latte e lattosio...), senza emoji. Nella finestra \"Scarica app\" ci sono i loghi di Android e Apple e icone pulite al posto delle emoji.",
+    steps: [
+      'Apri il tuo menu e tocca un prodotto: la finestra si apre subito, senza scatti.',
+      'Tocca "Contiene allergeni*" su un prodotto: vedi i nomi degli allergeni, senza emoji.',
+      'Nel menu laterale tocca "Scarica app" per vedere le nuove icone.'
+    ]
+  },
+  {
     id: '2026-11-03-esplora-dati',
     date: '2026-11-03',
     type: 'novita',
@@ -398,6 +427,8 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-03-editor-bozza': '/updates/editor-bozza.gif',
+  '2026-11-03-ritocchi-menu': '/updates/scarica-app-icone.png',
   '2026-11-03-esplora-dati': '/updates/esplora-dati.gif',
   '2026-11-03-analytics-categorie': '/updates/analytics-categorie.gif',
   '2026-11-03-staff-servizio': '/updates/staff-servizio.gif',
