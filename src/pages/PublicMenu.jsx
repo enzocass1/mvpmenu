@@ -196,17 +196,40 @@ function PublicMenu() {
     return () => window.removeEventListener('message', onMsg)
   }, [searchParams])
 
+  // Bozza da approvare (?bozza=1): mostra theme_config.draft (tema, home e ordine categorie)
+  // al posto del menu pubblicato, senza cambiare quello che vedono i clienti
+  const isDraftPreview = searchParams.get('bozza') === '1'
+  const draftConfig = isDraftPreview ? restaurant?.theme_config?.draft || null : null
+  const draftTheme = useMemo(
+    () => (draftConfig ? { ...(restaurant?.theme_config || {}), ...draftConfig } : null),
+    [restaurant?.theme_config, draftConfig]
+  )
+
   // Configurazione tema effettiva: bozza live, oppure anteprima di un layout
-  // (?previewLayout=carousel|store|builder) senza salvare, oppure quella salvata
+  // (?previewLayout=carousel|store|builder) senza salvare, oppure la bozza da approvare, oppure quella salvata
   const previewLayoutParam = searchParams.get('previewLayout')
   const effectiveThemeConfig = previewOverride
     || (previewLayoutParam
         ? { ...(restaurant?.theme_config || {}), layoutStyle: previewLayoutParam }
-        : restaurant?.theme_config)
+        : draftTheme || restaurant?.theme_config)
+
+  // Categorie nell'ordine della bozza (se indicato)
+  const orderedCategories = useMemo(() => {
+    const order = draftConfig?.categoryOrder
+    if (!order?.length) return categories
+    const idx = new Map(order.map((id, i) => [id, i]))
+    return [...categories].sort((a, b) => (idx.get(a.id) ?? 1e9) - (idx.get(b.id) ?? 1e9))
+  }, [categories, draftConfig])
+
+  // La finestra del prodotto usa lo stesso tema mostrato (anche in bozza)
+  const themedRestaurant = useMemo(
+    () => (restaurant && effectiveThemeConfig !== restaurant.theme_config ? { ...restaurant, theme_config: effectiveThemeConfig } : restaurant),
+    [restaurant, effectiveThemeConfig]
+  )
 
   // Statistiche prodotto (visualizzazioni, aperture, carrello, ordini): solo per i clienti,
-  // non in anteprima dall'editor né quando il titolare guarda il proprio menu
-  const isPreview = searchParams.get('preview') === '1' || !!previewLayoutParam
+  // non in anteprima dall'editor o della bozza, né quando il titolare guarda il proprio menu
+  const isPreview = searchParams.get('preview') === '1' || !!previewLayoutParam || isDraftPreview
   useEffect(() => {
     if (!restaurant?.id || isPreview) return
     let stop = () => {}
@@ -301,7 +324,7 @@ function PublicMenu() {
           .from('restaurant_order_settings')
           .select('orders_enabled')
           .eq('restaurant_id', restaurant.id)
-          .single()
+          .maybeSingle()
 
         setOrderSettingsEnabled(data?.orders_enabled || false)
       } catch {
@@ -348,7 +371,7 @@ function PublicMenu() {
     trackProductCartAdd(productWithDetails.id, productWithDetails.quantity)
 
     // Traccia analytics (senza await/then la query non partirebbe mai)
-    if (restaurant?.id) {
+    if (restaurant?.id && !isPreview) {
       supabase.from('analytics_events').insert({
         restaurant_id: restaurant.id,
         event_type: 'order_item_added',
@@ -679,7 +702,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
         </>
       )}
       <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} restaurant={restaurant} cartItems={cartItems} onUpdateQuantity={handleUpdateQuantity} onRemoveItem={handleRemoveFromCart} onClearCart={handleClearCart} trafficSource={trafficSource} />
-      <AddToCartModal isOpen={!!addToCartModalProduct} onClose={() => setAddToCartModalProduct(null)} product={addToCartModalProduct} onAddToCart={handleAddToCart} restaurant={restaurant} />
+      <AddToCartModal isOpen={!!addToCartModalProduct} onClose={() => setAddToCartModalProduct(null)} product={addToCartModalProduct} onAddToCart={handleAddToCart} restaurant={themedRestaurant} viewOnly={!orderSettingsEnabled} />
     </>
   )
 
@@ -690,7 +713,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
         <style>{globalStyles}</style>
         <MenuBuilderLayout
           restaurant={restaurant}
-          categories={categories}
+          categories={orderedCategories}
           products={products}
           openingHours={openingHours}
           theme={themeStyles}
@@ -718,7 +741,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
         <style>{globalStyles}</style>
         <MenuStoreLayout
           restaurant={restaurant}
-          categories={categories}
+          categories={orderedCategories}
           products={products}
           openingHours={openingHours}
           theme={themeStyles}
@@ -1065,7 +1088,8 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
             onClose={() => setAddToCartModalProduct(null)}
             product={addToCartModalProduct}
             onAddToCart={handleAddToCart}
-            restaurant={restaurant}
+            restaurant={themedRestaurant}
+            viewOnly={!orderSettingsEnabled}
           />
 
           {/* Modal immagine prodotto (lightbox) */}

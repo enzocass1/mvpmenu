@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient'
+import { isPreviewVisit } from '../lib/previewMode'
 
 // ============================================
 // HELPER FUNCTIONS - Sanitize & Format
@@ -262,6 +263,7 @@ export const createRichEventData = ({
  * Track rich event (wrapper per createRichEventData + insert)
  */
 export const trackRichEvent = async (params) => {
+  if (isPreviewVisit()) return { success: true, skipped: 'anteprima' }
   try {
     const eventData = createRichEventData(params)
 

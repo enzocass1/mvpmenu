@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react'
 import { formatPrice } from '../lib/priceFormat'
 import { isProductEsaurito } from '../lib/stock'
 import { getAllergenInfo } from '../lib/allergens'
+import { formatOpeningHour } from '../lib/openingHours'
 
 /**
  * Layout alternativo "Store" per il menu pubblico: impaginazione tipo e-commerce.
@@ -100,7 +101,7 @@ export default function MenuStoreLayout({
     const allergensShown = !!allergensOpen[p.id]
     return (
       <div data-pid={p.id} style={S.card}>
-        <div style={S.imageWrap} onClick={() => { trackProductViewed?.(restaurant.id, p.id, categoryId); orderSettingsEnabled && !esaurito && onAddProduct(p) }}>
+        <div style={S.imageWrap} onClick={() => { trackProductViewed?.(restaurant.id, p.id, categoryId); (!orderSettingsEnabled || !esaurito) && onAddProduct(p) }}>
           {p.image_url
             ? <img src={p.image_url} alt={p.name} style={S.image} loading="lazy" />
             : <div style={{ ...S.image, ...S.imagePlaceholder }}>🍽️</div>}
@@ -242,7 +243,7 @@ export default function MenuStoreLayout({
             {openingHours.length === 0
               ? <div style={S.infoText}>Orari non disponibili</div>
               : openingHours.map((h, i) => (
-                  <div key={i} style={S.infoText}>{h.day_label || h.day || ''} {h.is_closed ? 'Chiuso' : `${h.open_time || ''}–${h.close_time || ''}`}</div>
+                  <div key={i} style={S.infoText}>{formatOpeningHour(h)}</div>
                 ))}
           </div>
           {restaurant.address && (

@@ -119,7 +119,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         .from('restaurant_order_settings')
         .select('*')
         .eq('restaurant_id', restaurant.id)
-        .single()
+        .maybeSingle()
 
       if (error && error.code !== 'PGRST116') throw error
       setOrderSettings(data)

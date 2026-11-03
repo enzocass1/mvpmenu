@@ -198,7 +198,7 @@ function StaffOrders() {
         .from('restaurant_order_settings')
         .select('orders_enabled')
         .eq('restaurant_id', restaurantId)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 

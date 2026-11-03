@@ -16,8 +16,11 @@ export function getPriceInfo(p) {
   return { value: Number(p?.price || 0), from: false }
 }
 
-// Stringa pronta da mostrare, es. "Da €7.00" oppure "€3.50"
+// Importo all'italiana, es. "€3,50"
+export const euro = (value) => '€' + Number(value || 0).toFixed(2).replace('.', ',')
+
+// Stringa pronta da mostrare, es. "Da €7,00" oppure "€3,50"
 export function formatPrice(p) {
   const { value, from } = getPriceInfo(p)
-  return (from ? 'Da ' : '') + '€' + value.toFixed(2)
+  return (from ? 'Da ' : '') + euro(value)
 }

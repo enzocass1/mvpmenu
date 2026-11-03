@@ -4,6 +4,7 @@ import MenuTopBar from './MenuTopBar'
 import { formatPrice } from '../lib/priceFormat'
 import { isProductEsaurito } from '../lib/stock'
 import { getAllergenInfo } from '../lib/allergens'
+import { formatOpeningHour } from '../lib/openingHours'
 
 /**
  * Layout "Builder": home componibile a SEZIONI (caroselli) definite nel tema
@@ -164,21 +165,44 @@ export default function MenuBuilderLayout({
     />
   )
 
-  const Card = ({ p, wide }) => {
+  // Apre il prodotto: con gli ordini attivi per aggiungerlo, altrimenti per leggerne i dettagli
+  const openProduct = (p, esaurito) => {
+    trackProductViewed?.(restaurant.id, p.id, p._cat?.id)
+    if (!orderSettingsEnabled || !esaurito) onAddProduct(p)
+  }
+  const heartIcon = (p, onImage) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav(p.id) ? (t.favoriteActiveColor || '#e74c3c') : 'none'} stroke={isFav(p.id) ? (t.favoriteActiveColor || '#e74c3c') : (onImage ? '#374151' : textSoft)} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+  )
+
+  const Card = ({ p, wide, rank }) => {
     const esaurito = isProductEsaurito(p)
     const prodAllergens = getAllergenInfo(p)
     const allergensShown = !!allergensOpen[p.id]
+    const hasImage = !!p.image_url
+    const rankBadge = rank ? <span style={{ ...S.rank, background: btnBg, color: btnText }}>{rank}</span> : null
     return (
     <div data-pid={p.id} style={{ ...S.card, width: wide ? 'auto' : `${cardW}px`, background: cardBg, border: `1px solid ${border}`, borderRadius: radius }}>
-      <div style={{ ...S.imgWrap, borderRadius: `${radius} ${radius} 0 0`, background: t.backgroundTertiary || '#f3f3f3' }}
-        onClick={() => { trackProductViewed?.(restaurant.id, p.id, p._cat?.id); orderSettingsEnabled && !esaurito && onAddProduct(p) }}>
-        {p.image_url ? <img src={p.image_url} alt={p.name} style={S.img} loading="lazy" /> : <div style={{ ...S.img, ...S.imgPh }}>🍽️</div>}
-        <button style={S.heart} onClick={(e) => { e.stopPropagation(); onToggleFavorite(e, p, p._cat?.name, p._cat?.id) }} aria-label="Preferito">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav(p.id) ? (t.favoriteActiveColor || '#e74c3c') : 'none'} stroke={isFav(p.id) ? (t.favoriteActiveColor || '#e74c3c') : '#374151'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        </button>
-      </div>
-      <div style={S.body}>
-        <div style={{ ...S.name, color: textMain, fontSize: px(13) }}>{p.name}</div>
+      {hasImage ? (
+        <div style={{ ...S.imgWrap, borderRadius: `${radius} ${radius} 0 0`, background: t.backgroundTertiary || '#f3f3f3' }}
+          onClick={() => openProduct(p, esaurito)}>
+          <img src={p.image_url} alt={p.name} style={S.img} loading="lazy" />
+          {rankBadge && <span style={S.rankOnImage}>{rankBadge}</span>}
+          <button style={S.heart} onClick={(e) => { e.stopPropagation(); onToggleFavorite(e, p, p._cat?.name, p._cat?.id) }} aria-label="Preferito">
+            {heartIcon(p, true)}
+          </button>
+        </div>
+      ) : (
+        // Senza foto: scheda di testo (nome in evidenza, descrizione breve), niente segnaposto vuoti
+        <div style={S.textTop} onClick={() => openProduct(p, esaurito)}>
+          {rankBadge || <span />}
+          <button style={S.heartPlain} onClick={(e) => { e.stopPropagation(); onToggleFavorite(e, p, p._cat?.name, p._cat?.id) }} aria-label="Preferito">
+            {heartIcon(p, false)}
+          </button>
+        </div>
+      )}
+      <div style={S.body} onClick={hasImage ? undefined : () => openProduct(p, esaurito)}>
+        <div style={{ ...S.name, color: textMain, fontSize: px(hasImage ? 13 : 15), ...(hasImage ? {} : { fontFamily: t.headingFontFamily, WebkitLineClamp: 3, cursor: 'pointer' }) }}>{p.name}</div>
+        {!hasImage && p.description && <div style={{ ...S.desc, color: textSoft, fontSize: px(11.5) }}>{p.description}</div>}
         {prodAllergens.length > 0 && (
           allergensShown ? (
             <div
@@ -211,6 +235,33 @@ export default function MenuBuilderLayout({
         </div>
       </div>
     </div>
+    )
+  }
+
+  // Testata della sezione: titolo e descrizione, oppure la foto (della categoria o scelta) con il titolo sopra
+  const SectionHead = ({ sec }) => {
+    const cat = sec.type === 'carousel_category' ? categories.find(c => c.id === sec.categoryId) : null
+    const cover = sec.showCover ? (sec.coverImage || cat?.image_url) : null
+    const titleStyle = { ...S.secTitle, fontSize: px(21), fontFamily: t.headingFontFamily, textTransform: t.headingUppercase ? 'uppercase' : 'none' }
+    if (cover) {
+      return (
+        <div style={S.coverWrap}>
+          <div style={{ ...S.cover, borderRadius: radius, backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.72) 100%), url("${cover}")` }}>
+            <div style={S.coverText}>
+              <div style={{ ...titleStyle, color: '#fff' }}>{sec.title}</div>
+              {sec.description && <div style={{ ...S.secDesc, color: 'rgba(255,255,255,0.88)', fontSize: px(13) }}>{sec.description}</div>}
+            </div>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div style={S.secHead}>
+        <div>
+          <div style={{ ...titleStyle, color: textMain, textShadow: t.headingGlow ? `0 0 8px ${t.headingGlow}` : 'none' }}>{sec.title}</div>
+          {sec.description && <div style={{ ...S.secDesc, color: textSoft, fontSize: px(13) }}>{sec.description}</div>}
+        </div>
+      </div>
     )
   }
 
@@ -260,14 +311,9 @@ export default function MenuBuilderLayout({
         const showViewAll = sec.type === 'carousel_category' && sec.showViewAll !== false && total > items.length
         return (
           <section key={sec.id} style={{ ...S.section, marginBottom: `${sectionGap}px` }}>
-            <div style={S.secHead}>
-              <div>
-                <div style={{ ...S.secTitle, fontSize: px(21), fontFamily: t.headingFontFamily, color: textMain, textTransform: t.headingUppercase ? 'uppercase' : 'none', textShadow: t.headingGlow ? `0 0 8px ${t.headingGlow}` : 'none' }}>{sec.title}</div>
-                {sec.description && <div style={{ ...S.secDesc, color: textSoft, fontSize: px(13) }}>{sec.description}</div>}
-              </div>
-            </div>
+            <SectionHead sec={sec} />
             <div style={S.carousel}>
-              {items.map(p => <Card key={p.id} p={p} />)}
+              {items.map((p, i) => <Card key={p.id} p={p} rank={sec.showRank ? i + 1 : null} />)}
               {showViewAll && (
                 <div style={{ ...S.viewAllCard, border: `1px dashed ${border}`, borderRadius: radius, color: accent }} onClick={() => setViewAllCat(categoryId)}>
                   Guarda<br />tutti<br />→
@@ -283,7 +329,7 @@ export default function MenuBuilderLayout({
         <div>
           <div style={{ ...S.infoLabel, color: textSoft }}>Orari di apertura</div>
           {openingHours.length === 0 ? <div style={{ color: textMain }}>Orari non disponibili</div>
-            : openingHours.map((h, i) => <div key={i} style={{ color: textMain, fontSize: '14px' }}>{h.day_label || h.day || ''} {h.is_closed ? 'Chiuso' : `${h.open_time || ''}–${h.close_time || ''}`}</div>)}
+            : openingHours.map((h, i) => <div key={i} style={{ color: textMain, fontSize: '14px' }}>{formatOpeningHour(h)}</div>)}
         </div>
         {restaurant.address && <div><div style={{ ...S.infoLabel, color: textSoft }}>Indirizzo</div><div style={{ color: textMain, fontSize: '14px' }}>{restaurant.address}</div></div>}
       </section>
@@ -311,7 +357,14 @@ const S = {
   card: { flexShrink: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   imgWrap: { position: 'relative', width: '100%', aspectRatio: '1 / 1', cursor: 'pointer', overflow: 'hidden' },
   img: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
-  imgPh: { display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px' },
+  textTop: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '10px 8px 0 10px', cursor: 'pointer' },
+  heartPlain: { width: '30px', height: '30px', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, flexShrink: 0 },
+  rank: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '26px', height: '26px', padding: '0 7px', borderRadius: '999px', fontSize: '13px', fontWeight: 800, boxSizing: 'border-box' },
+  rankOnImage: { position: 'absolute', top: '6px', left: '6px' },
+  desc: { lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
+  coverWrap: { padding: '0 16px 12px' },
+  cover: { position: 'relative', width: '100%', aspectRatio: '16 / 7', backgroundSize: 'cover', backgroundPosition: 'center', overflow: 'hidden', display: 'flex', alignItems: 'flex-end' },
+  coverText: { padding: '14px 16px' },
   heart: { position: 'absolute', top: '6px', right: '6px', width: '30px', height: '30px', borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.95)', boxShadow: '0 2px 6px rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 },
   body: { padding: '8px 10px 10px', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 },
   name: { fontSize: '13px', fontWeight: 600, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },

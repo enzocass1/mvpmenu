@@ -5,6 +5,7 @@
 
 import { supabase } from '../supabaseClient'
 import { fetchAllRows } from '../lib/fetchAllRows'
+import { isPreviewVisit } from '../lib/previewMode'
 
 /**
  * Tipi di eventi supportati - Allineati con database constraint
@@ -44,6 +45,7 @@ export const EVENT_TYPES = {
  * @returns {Promise<boolean>} - True se successo
  */
 export const trackEvent = async (eventTypeOrRestaurantId, dataOrEventType, options = {}) => {
+  if (isPreviewVisit()) return { success: true, skipped: 'anteprima' }
   try {
     let restaurantId, eventType, metadata = {}
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { getAvailability } from '../lib/stock'
 import { getAllergenInfo } from '../lib/allergens'
+import { euro } from '../lib/priceFormat'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -40,7 +41,8 @@ const getThemeStyles = (themeConfig) => {
  * Modale per aggiungere prodotto al carrello
  * Permette di selezionare varianti, quantità e aggiungere note
  */
-function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
+// viewOnly: locale senza ordini dal menu → solo dettagli del prodotto (descrizione, allergeni, prezzi)
+function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, viewOnly = false }) {
   const [quantity, setQuantity] = useState(1)
   const [notes, setNotes] = useState('')
   const [variants, setVariants] = useState([])
@@ -236,7 +238,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.header}>
-          <h3 style={styles.title}>Aggiungi al carrello</h3>
+          <h3 style={styles.title}>{viewOnly ? 'Dettagli' : 'Aggiungi al carrello'}</h3>
           <button
             onClick={handleClose}
             style={styles.closeButton}
@@ -248,7 +250,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} style={styles.body}>
+        <form onSubmit={viewOnly ? (e) => e.preventDefault() : handleSubmit} style={styles.body}>
           {/* Product Info */}
           <div style={styles.productInfo}>
             {product.image_url && (
@@ -275,7 +277,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
               {/* Mostra prezzo solo se non ci sono varianti */}
               {!hasVariants && (
                 <p style={styles.productPrice}>
-                  €{finalPrice.toFixed(2)}
+                  {euro(finalPrice)}
                 </p>
               )}
             </div>
@@ -288,7 +290,20 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
             </div>
           )}
 
-          {!loadingVariants && hasVariants && (
+          {/* Solo consultazione: le varianti come elenco con i prezzi */}
+          {viewOnly && !loadingVariants && hasVariants && variants.length > 0 && (
+            <div style={styles.variantsSection}>
+              <h5 style={styles.variantsSectionTitle}>Prezzi</h5>
+              {variants.map(v => (
+                <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '8px 0', borderBottom: `1px solid ${themeStyles.borderColor || '#eee'}` }}>
+                  <span>{v.title}</span>
+                  <strong>{euro(v.price ?? product.price)}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!viewOnly && !loadingVariants && hasVariants && (
             <div style={styles.variantsSection}>
               <h5 style={styles.variantsSectionTitle}>Seleziona opzioni</h5>
               {options.map((option) => {
@@ -340,6 +355,11 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
             </div>
           )}
 
+          {viewOnly ? (
+            <div style={styles.actions}>
+              <button type="button" onClick={handleClose} style={{ ...styles.addButton, flex: 1 }}>Chiudi</button>
+            </div>
+          ) : (<>
           {/* Quantity */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Quantità</label>
@@ -411,7 +431,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
             <div style={styles.subtotalSection}>
               <span style={styles.subtotalLabel}>Subtotale</span>
               <span style={styles.subtotalAmount}>
-                €{(finalPrice * quantity).toFixed(2)}
+                {euro(finalPrice * quantity)}
               </span>
             </div>
           )}
@@ -433,6 +453,7 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant }) {
               {blockOrder ? 'Esaurito' : 'Aggiungi al carrello'}
             </button>
           </div>
+          </>)}
         </form>
       </div>
     </div>

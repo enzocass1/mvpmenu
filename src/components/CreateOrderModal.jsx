@@ -73,7 +73,7 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
         .from('restaurant_order_settings')
         .select('*')
         .eq('restaurant_id', restaurantId)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
       if (data) {
