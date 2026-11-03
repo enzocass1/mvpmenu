@@ -52,6 +52,9 @@ function Sidebar({ isOpen, onClose, restaurantName, userName, isPremium, permiss
     let active = true
     const load = async () => {
       try {
+        // Solo il titolare ha i ticket: lo staff (login proprio, senza sessione) riceverebbe un 401
+        const { data: auth } = await supabase.auth.getSession()
+        if (!auth?.session) return
         const { data } = await supabase
           .from('support_tickets')
           .select('replied_at, owner_seen_at')

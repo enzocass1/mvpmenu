@@ -57,6 +57,7 @@ import Landing from './pages/Landing'
 import AnalyticsSelection from './pages/AnalyticsSelection'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import ConversionFunnel from './pages/ConversionFunnel'
+import ServiceAnalytics from './pages/ServiceAnalytics'
 import TopProductsOrdered from './pages/TopProductsOrdered'
 import RevenueAnalytics from './pages/RevenueAnalytics'
 import TimeBasedAnalysis from './pages/TimeBasedAnalysis'
@@ -290,6 +291,16 @@ function App() {
       <Route
         path="/analytics/conversion-funnel"
         element={session ? <ConversionFunnel /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Staff e Servizio (chi prende/approva/prepara/chiude, canali, tempi) - solo se loggato */}
+      <Route
+        path="/analytics/staff-performance"
+        element={session ? <ServiceAnalytics /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/analytics/orders-performance"
+        element={session ? <ServiceAnalytics /> : <Navigate to="/login" replace />}
       />
 
       {/* Top Products Ordered - solo se loggato */}

@@ -94,7 +94,7 @@ function AnalyticsSelection() {
     {
       id: 'conversion-funnel',
       title: 'Funnel Conversione',
-      description: 'Vista → Preferito → Carrello → Ordine',
+      description: 'Visti → Aperti → Aggiunti al carrello → Ordinati, anche per fascia oraria',
       category: 'menu',
       active: true
     },
@@ -117,9 +117,9 @@ function AnalyticsSelection() {
     {
       id: 'orders-performance',
       title: 'Performance Ordini',
-      description: 'Tempo medio gestione, SLA compliance, picchi orari',
+      description: 'Tempi di approvazione e preparazione, canali (QR, staff, cassa, banco) e picchi orari',
       category: 'orders',
-      active: false
+      active: true
     },
     {
       id: 'top-products-ordered',
@@ -150,13 +150,13 @@ function AnalyticsSelection() {
       active: true
     },
 
-    // METRICHE STAFF (IN ARRIVO)
+    // METRICHE STAFF
     {
       id: 'staff-performance',
-      title: 'Performance Staff',
-      description: 'Ordini gestiti, tempo medio, operatore più veloce',
+      title: 'Staff e Servizio',
+      description: 'Chi prende, approva, prepara e chiude gli ordini, con i tempi per persona e per fascia oraria',
       category: 'staff',
-      active: false
+      active: true
     },
     {
       id: 'staff-leaderboard',

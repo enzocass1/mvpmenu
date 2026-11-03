@@ -555,6 +555,7 @@ function OrdersPage({ session }) {
       {showCreateOrder && (
         <CreateOrderModal
           restaurantId={restaurant?.id}
+          source="ordini"
           staffSession={session?.user?.id === restaurant?.user_id ? {
             name: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
             fullName: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',

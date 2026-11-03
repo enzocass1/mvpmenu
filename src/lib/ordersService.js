@@ -41,6 +41,7 @@ export const createTableOrder = async ({
         room_id: roomId,
         order_type: 'table',
         status: 'pending',
+        source: 'menu',
         customer_name: customerName,
         customer_notes: customerNotes,
         opened_at: new Date().toISOString()
@@ -140,6 +141,7 @@ export const createTableOrderByStaff = async ({
         room_id: roomId,
         order_type: 'table',
         status: 'preparing',
+        source: 'staff',
         customer_name: customerName,
         customer_notes: customerNotes,
         opened_at: new Date().toISOString(),
@@ -251,8 +253,10 @@ export const createCounterOrder = async ({
         closed_at: now,
         total_amount: itemsTotal,
         metadata: { receipt_number: receiptNumber, receipt_date: now },
+        source: 'cassa',
         created_by_staff_id: staffId,
-        confirmed_by_staff_id: staffId
+        confirmed_by_staff_id: staffId,
+        closed_by_staff_id: staffId
       })
       .select()
       .single()
@@ -314,9 +318,10 @@ export const createCounterOrder = async ({
  * Annulla un ordine rimasto senza prodotti dopo un inserimento fallito
  */
 export const discardOrphanOrder = async (orderId) => {
+  // "discarded" distingue questa pulizia tecnica da un ordine rifiutato dallo staff (statistiche)
   const { error } = await supabase
     .from('orders')
-    .update({ status: 'cancelled', deleted_at: new Date().toISOString() })
+    .update({ status: 'cancelled', deleted_at: new Date().toISOString(), metadata: { discarded: 'incomplete' } })
     .eq('id', orderId)
 
   if (error) console.error('Errore annullamento ordine incompleto:', error)
@@ -419,7 +424,11 @@ export const markBatchPrepared = async (orderId, batchNumber, staffId, prepared 
   try {
     const { error } = await supabase
       .from('order_items')
-      .update({ prepared, prepared_at: prepared ? new Date().toISOString() : null })
+      .update({
+        prepared,
+        prepared_at: prepared ? new Date().toISOString() : null,
+        prepared_by_staff_id: prepared ? staffId : null
+      })
       .eq('order_id', orderId)
       .eq('batch_number', batchNumber)
 
@@ -448,7 +457,8 @@ export const closeTableOrder = async (orderId, staffId, receiptNumber = null) =>
     const updateData = {
       status: 'completed',
       closed_at: new Date().toISOString(),
-      modified_by_staff_id: staffId
+      modified_by_staff_id: staffId,
+      closed_by_staff_id: staffId
     }
 
     if (receiptNumber) {
@@ -795,7 +805,8 @@ export const confirmNewProducts = async (orderId, batchNumber, staffId) => {
       .from('order_items')
       .update({
         prepared: true,
-        prepared_at: new Date().toISOString()
+        prepared_at: new Date().toISOString(),
+        prepared_by_staff_id: staffId
       })
       .eq('order_id', orderId)
       .eq('batch_number', batchNumber)
@@ -1303,6 +1314,7 @@ export const closeTableUnpaid = async (orderId, staffId, reason = null) => {
         closed_at: new Date().toISOString(),
         payment_status: 'unpaid',
         modified_by_staff_id: staffId,
+        closed_by_staff_id: staffId,
         metadata: { ...(order.metadata || {}), unpaid: true, lost_amount: lostAmount, unpaid_reason: reason || 'Clienti usciti senza pagare' }
       })
       .eq('id', orderId)

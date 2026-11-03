@@ -728,6 +728,7 @@ function OrderDetailPage({ session }) {
       {showEditOrderModal && (
         <CreateOrderModal
           restaurantId={restaurant?.id}
+          source="ordini"
           onClose={() => setShowEditOrderModal(false)}
           onOrderCreated={() => {
             loadData()

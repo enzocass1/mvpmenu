@@ -255,6 +255,16 @@ export const addTimelineEntry = async ({
       created_at: new Date().toISOString()
     }
 
+    // Azione "staff" senza staff_id: l'ha fatta il titolare (cassa / pannello ordini).
+    // Lo staff usa il proprio login (staff_id sempre presente), il titolare ha la sessione Supabase.
+    if (entry.created_by_type === 'staff' && !entry.staff_id && !entry.user_id) {
+      const { data } = await supabase.auth.getSession()
+      if (data?.session?.user?.id) {
+        entry.user_id = data.session.user.id
+        entry.created_by_type = 'owner'
+      }
+    }
+
     // Insert
     const { error } = await supabase
       .from('order_timeline')

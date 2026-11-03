@@ -16,6 +16,8 @@ import { TIME_RANGE_OPTIONS, getDateRangeFromTimeRange } from '../utils/analytic
 const DAY_MS = 24 * 60 * 60 * 1000
 const toDay = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}` }
 const fromDay = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d) }
+// Somma giorni di calendario (non 24 ore fisse: col cambio dell'ora legale un giorno si ripeterebbe o sparirebbe)
+const addDays = (s, n) => { const x = fromDay(s); x.setDate(x.getDate() + n); return toDay(x) }
 const pct = (a, b) => (b > 0 ? (a / b) * 100 : null)
 const fmtPct = (v) => (v == null ? '—' : `${v.toFixed(1).replace('.', ',')}%`)
 const fmtNum = (n) => Number(n || 0).toLocaleString('it-IT')
@@ -91,8 +93,8 @@ function ConversionFunnel() {
     const startDay = toDay(range.startDate)
     const endDay = toDay(range.endDate)
     const days = Math.round((fromDay(endDay) - fromDay(startDay)) / DAY_MS) + 1
-    const prevEnd = toDay(fromDay(startDay).getTime() - DAY_MS)
-    const prevStart = toDay(fromDay(startDay).getTime() - days * DAY_MS)
+    const prevEnd = addDays(startDay, -1)
+    const prevStart = addDays(startDay, -days)
     let cancelled = false
     ;(async () => {
       setLoading(true)
@@ -129,7 +131,7 @@ function ConversionFunnel() {
     const m = new Map((report?.by_day || []).map(d => [d.day, d]))
     const out = []
     for (let i = 0; i < period.days; i++) {
-      const day = toDay(fromDay(period.startDay).getTime() + i * DAY_MS)
+      const day = addDays(period.startDay, i)
       const t = m.get(day) || EMPTY
       out.push({ day: `${day.slice(8, 10)}/${day.slice(5, 7)}`, Visualizzazioni: t.impressions, Aperture: t.opens, 'Aggiunte al carrello': t.cart_adds })
     }

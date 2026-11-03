@@ -9,7 +9,8 @@ import {
 } from '../lib/timelineService'
 import { trackEvent } from '../utils/analytics'
 
-function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession, existingOrder = null, preselectedRoomId = null, preselectedTableNumber = null, isOpen = true }) {
+// source: da dove nasce l'ordine ('staff' = app staff, 'cassa', 'ordini' = pannello Ordini del titolare)
+function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession, existingOrder = null, preselectedRoomId = null, preselectedTableNumber = null, isOpen = true, source = 'staff' }) {
 
   const [tableNumber, setTableNumber] = useState(existingOrder?.table_number || preselectedTableNumber || '')
   const [customerName, setCustomerName] = useState(existingOrder?.customer_name || '')
@@ -457,6 +458,8 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
         is_priority_order: isPriorityOrder,
         priority_order_amount: priorityAmount,
         status: 'pending',
+        source,
+        created_by_staff_id: staffSession?.staff_id || null,
         confirmed_by: staffSession?.staff_id || null
       })
       .select()
@@ -474,7 +477,8 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       notes: p.notes || null,
       subtotal: p.subtotal,
       variant_id: p.variant_id || null,
-      variant_title: p.variant_title || null
+      variant_title: p.variant_title || null,
+      added_by_staff_id: staffSession?.staff_id || null
     }))
 
     console.log('📦 Inserting order items:', orderItems)
@@ -500,7 +504,9 @@ function CreateOrderModal({ restaurantId, onClose, onOrderCreated, staffSession,
       await addTimelineEntry({
         orderId: order.id,
         action: TIMELINE_ACTION.CREATED,
-        eventSource: EVENT_SOURCE.TABLE_SERVICE, // Staff crea ordine dalla cassa
+        eventSource: source === 'cassa' ? EVENT_SOURCE.CASHIER
+          : source === 'ordini' ? EVENT_SOURCE.ORDERS_PAGE
+          : EVENT_SOURCE.TABLE_SERVICE,
         operator: buildOperatorInfo({
           staffId: staffSession?.staff_id || null,
           userId: staffSession?.isOwner ? staffSession?.user_id : null,

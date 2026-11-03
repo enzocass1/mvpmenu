@@ -35,7 +35,8 @@ export const FEATURE_GROUPS = [
   { title: 'Staff', items: [
     'Accesso dedicato per camerieri',
     'Ruoli e permessi personalizzabili',
-    'Ogni ordine registra chi l\'ha preso',
+    'Ogni ordine registra chi l\'ha preso, approvato, preparato e chiuso',
+    'Tempi di servizio per persona e per fascia oraria',
   ] },
   { title: 'Inventario', items: [
     'Scorte che si scalano a ogni vendita',

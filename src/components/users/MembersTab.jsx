@@ -77,15 +77,31 @@ function MembersTab({ restaurantId, session }) {
   }
 
   const handleDeleteMember = async (member) => {
-    if (!confirm(`Sei sicuro di voler eliminare "${member.name}"?`)) {
-      return
-    }
-
     try {
+      // Se ha già lavorato su ordini lo disattiviamo invece di eliminarlo:
+      // eliminandolo, i suoi ordini e le sue statistiche passerebbero al titolare
+      const id = member.id
+      const [{ count: orders }, { count: items }] = await Promise.all([
+        supabase.from('orders').select('id', { count: 'exact', head: true })
+          .or(`created_by_staff_id.eq.${id},confirmed_by_staff_id.eq.${id},closed_by_staff_id.eq.${id},modified_by_staff_id.eq.${id}`),
+        supabase.from('order_items').select('id', { count: 'exact', head: true })
+          .or(`added_by_staff_id.eq.${id},prepared_by_staff_id.eq.${id}`),
+      ])
+
+      if ((orders || 0) + (items || 0) > 0) {
+        if (!confirm(`"${member.name}" ha già lavorato su degli ordini: per non perdere il suo storico e le sue statistiche verrà disattivato (non potrà più accedere) invece che eliminato. Continuare?`)) return
+        const { error } = await supabase.from('restaurant_staff').update({ is_active: false }).eq('id', id)
+        if (error) throw error
+        alert('Membro disattivato: il suo storico resta nelle statistiche')
+        loadMembers()
+        return
+      }
+
+      if (!confirm(`Sei sicuro di voler eliminare "${member.name}"?`)) return
       const { error } = await supabase
         .from('restaurant_staff')
         .delete()
-        .eq('id', member.id)
+        .eq('id', id)
 
       if (error) throw error
 

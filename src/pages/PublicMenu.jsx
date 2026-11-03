@@ -1984,15 +1984,18 @@ const getStyles = (theme = {}) => ({
     boxShadow: 'none',
   },
 
+  // Pulsante secondario a contorno, come negli altri layout: leggibile con ogni tema
+  // (sfondo "primario" + testo "primario" potevano essere entrambi scuri)
   stickyButtonRight: {
     flex: 1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '8px',
-    padding: '16px',
-    backgroundColor: theme.primaryColor || '#000',
-    color: theme.textPrimaryColor || '#fff',
+    padding: '15px',
+    backgroundColor: 'transparent',
+    color: theme.textSecondaryColor || '#000',
+    border: `1px solid ${theme.borderColor || '#e0e0e0'}`,
     textDecoration: 'none',
     borderRadius: theme.borderRadius || '12px',
     fontWeight: '600',

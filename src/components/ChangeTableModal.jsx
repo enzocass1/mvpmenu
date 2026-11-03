@@ -20,7 +20,8 @@ function ChangeTableModal({
   onClose,
   order,
   onTableChanged,
-  restaurantId
+  restaurantId,
+  operator = null // dalla Cassa: lo staff scelto in "In cassa" ({ id, name }); null = titolare
 }) {
   const [rooms, setRooms] = useState([])
   const [tables, setTables] = useState([])
@@ -162,12 +163,14 @@ function ChangeTableModal({
         orderId: order.id,
         action: TIMELINE_ACTION.TABLE_CHANGED,
         eventSource: EVENT_SOURCE.TABLE_SERVICE, // Cambio tavolo è operazione di servizio
-        operator: buildOperatorInfo({
-          staffId: null, // NULL per proprietario
-          userId: user.id,
-          createdByType: 'owner',
-          staffName: userName
-        }),
+        operator: operator
+          ? buildOperatorInfo({ staffId: operator.id, createdByType: 'staff', staffName: operator.name })
+          : buildOperatorInfo({
+              staffId: null, // NULL per proprietario
+              userId: user.id,
+              createdByType: 'owner',
+              staffName: userName
+            }),
         data: {
           previousStatus: order.status,
           newStatus: order.status, // Status rimane lo stesso
@@ -201,7 +204,8 @@ function ChangeTableModal({
           new_room_name: newRoomName,
           new_table_number: newTable?.number,
           changed_by_user_id: user.id,
-          changed_by_name: userName,
+          changed_by_name: operator?.name || userName,
+          changed_by_type: operator ? 'staff' : 'owner',
           changed_at: new Date().toISOString()
         })
 

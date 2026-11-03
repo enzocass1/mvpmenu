@@ -62,6 +62,7 @@ function AnalyticsPage({ session }) {
     { label: 'Vendite', value: 'sales' },
     { label: 'Prodotti', value: 'products' },
     { label: 'Conversione', value: 'conversion' },
+    { label: 'Staff e servizio', value: 'staff' },
   ]
 
   const analyticsOptions = [
@@ -99,6 +100,13 @@ function AnalyticsPage({ session }) {
       path: '/analytics/conversion-funnel',
       premium: true,
       category: 'conversion',
+    },
+    {
+      title: 'Staff e Servizio',
+      description: 'Chi prende, approva, prepara e chiude gli ordini, da dove arrivano e quanto tempo servono',
+      path: '/analytics/staff-performance',
+      premium: true,
+      category: 'staff',
     },
   ]
 

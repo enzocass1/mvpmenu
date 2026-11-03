@@ -4,6 +4,60 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-03-staff-servizio',
+    date: '2026-11-03',
+    type: 'novita',
+    title: 'Staff e Servizio: chi prende, approva, prepara e chiude ogni ordine, con i tempi',
+    description:
+      "Nuova pagina Analytics → Staff e Servizio. Per ogni persona vedi quanti ordini ha preso (dall'app staff, in cassa o al banco) e quanto hanno incassato, quanti ordini dei clienti dal QR ha approvato e in quanto tempo, quante comande ha aggiunto e segnato come preparate, quanti tavoli ha chiuso, i rifiutati e i non pagati. Vedi anche da dove arrivano gli ordini (menu QR, app staff, cassa, banco) con incasso, scontrino medio e pezzi per ordine di ogni canale, e i tempi del servizio: quanto aspetta il cliente prima che l'ordine venga approvato, quanto ci mette una comanda a essere pronta e quanto resta un tavolo aperto. Tutto anche per fascia oraria e giorno della settimana, con le comande più lente. Cliccando una persona vedi le sue ore di lavoro.",
+    steps: [
+      'Apri Analytics → Staff e Servizio e scegli il periodo.',
+      'In alto trovi ordini, incasso, pezzi per ordine e i tempi (attesa approvazione, preparazione, permanenza al tavolo), con il confronto col periodo precedente.',
+      'In "Da dove arrivano gli ordini" confronti menu QR, app staff, cassa e banco.',
+      'Nella tabella "Staff" vedi cosa ha fatto ogni persona: cliccala per vedere le sue ore.',
+      'In "Per fascia oraria" capisci in quali ore i clienti aspettano di più e serve una persona in più.'
+    ]
+  },
+  {
+    id: '2026-11-03-cassa-operatore',
+    date: '2026-11-03',
+    type: 'novita',
+    title: 'In cassa: scegli chi sta lavorando',
+    description:
+      "Nella Cassa, sotto il titolo, c'è la voce \"In cassa\": scegli chi sta usando la cassa (tu oppure una persona dello staff). Da quel momento ogni scontrino, vendita al banco, tavolo aperto, approvazione e comanda preparata viene registrata a nome di quella persona, anche nello storico dell'ordine. La scelta vale per la giornata su quel dispositivo: ogni nuovo giorno la cassa riparte da te. Anche il cambio tavolo viene registrato a nome della persona scelta. Nell'app staff invece conta sempre il cameriere collegato.",
+    steps: [
+      'Apri la Cassa.',
+      'Sotto il titolo, in "In cassa", scegli il tuo nome o quello della persona dello staff che sta lavorando.',
+      'Lavora come sempre: ogni azione viene attribuita alla persona scelta.',
+      'A fine turno cambia la persona: i dati per persona li trovi in Analytics → Staff e Servizio.'
+    ]
+  },
+  {
+    id: '2026-11-03-staff-storico',
+    date: '2026-11-03',
+    type: 'miglioramento',
+    title: 'Staff: il lavoro di ogni persona resta sempre suo',
+    description:
+      "Se elimini dagli Utenti una persona dello staff che ha già lavorato su degli ordini, ora viene disattivata invece che cancellata: non può più accedere, ma ordini, scontrini e statistiche restano a suo nome (prima passavano a te). Chi non ha mai lavorato viene eliminato come sempre. Inoltre i tempi di servizio non contano più le comande segnate \"pronte\" all'istante, i rifiutati non includono gli ordini annullati per un errore tecnico, e nei grafici giorno per giorno ogni giornata compare una sola volta anche al cambio dell'ora legale.",
+    steps: [
+      'Apri Utenti → Membri.',
+      'Premi "Elimina" su una persona: se ha già lavorato, ti viene chiesto di disattivarla per conservare il suo storico.',
+      'La trovi sempre nella lista come "Disattivato" e puoi riattivarla in qualsiasi momento.'
+    ]
+  },
+  {
+    id: '2026-11-03-scontrino-banco',
+    date: '2026-11-03',
+    type: 'correzione',
+    title: 'Scontrino al banco: ora si salva e si stampa sempre',
+    description:
+      "Lo \"Scontrino Fiscale\" nella modalità Al Banco poteva dare errore e non registrare la vendita, oppure registrarla ma mostrare comunque un errore (con il rischio di batterla due volte). Ora la vendita al banco viene salvata, lo scontrino si stampa e il carrello si svuota. Inoltre il preconto ora compare nello storico dell'ordine, e nel menu classico il pulsante \"Vieni a trovarci\" in basso si legge con tutti i temi.",
+    steps: [
+      'Apri la Cassa → Al Banco.',
+      'Aggiungi i prodotti e premi "Scontrino Fiscale": compare la conferma con il numero dello scontrino.'
+    ]
+  },
+  {
     id: '2026-11-03-conversion-funnel',
     date: '2026-11-03',
     type: 'novita',
@@ -316,6 +370,10 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-03-staff-servizio': '/updates/staff-servizio.gif',
+  '2026-11-03-cassa-operatore': '/updates/cassa-operatore.gif',
+  '2026-11-03-staff-storico': '/updates/staff-storico.png',
+  '2026-11-03-scontrino-banco': '/updates/scontrino-banco.png',
   '2026-11-03-conversion-funnel': '/updates/conversion-funnel.gif',
   '2026-11-03-analytics-precise': '/updates/analytics-precise.gif',
   '2026-11-02-assistenza': '/updates/assistenza.gif',

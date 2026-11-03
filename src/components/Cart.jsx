@@ -316,6 +316,7 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         .from('orders')
         .insert({
           restaurant_id: restaurant.id,
+          source: 'menu',
           table_id: selectedTable?.id || null,
           table_number: parseInt(tableNumber),
           room_id: selectedRoomId || null,

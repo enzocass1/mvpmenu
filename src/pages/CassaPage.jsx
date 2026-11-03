@@ -52,6 +52,9 @@ function CassaPage({ session }) {
   const [showChangeTableModal, setShowChangeTableModal] = useState(false)
   const [showRoomManagementModal, setShowRoomManagementModal] = useState(false)
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false)
+  // Chi sta usando la cassa: null = titolare, altrimenti id dello staff (scelta ricordata sul dispositivo)
+  const [cassaStaff, setCassaStaff] = useState([])
+  const [operatorId, setOperatorId] = useState(null)
 
   // Ordini mode states
   const [ordersTab, setOrdersTab] = useState('all') // 'all' | 'table' | 'counter' | 'deleted'
@@ -213,6 +216,23 @@ function CassaPage({ session }) {
       }
 
       setTables(tablesData || [])
+
+      // Staff attivo: per attribuire a ognuno ordini, comande e chiusure fatte in cassa
+      const { data: staffData } = await supabase
+        .from('restaurant_staff')
+        .select('id, name, primary_role:staff_roles!primary_role_id(name)')
+        .eq('restaurant_id', restaurantData.id)
+        .eq('is_active', true)
+        .order('name')
+      const activeStaff = (staffData || []).map(s => ({ id: s.id, name: s.name, role: s.primary_role?.name || '' }))
+      setCassaStaff(activeStaff)
+      // La scelta vale per la giornata: ogni nuovo giorno la cassa riparte dal titolare
+      let savedOperator = null
+      try {
+        const saved = JSON.parse(localStorage.getItem(`mvp_cassa_operator_${restaurantData.id}`) || 'null')
+        if (saved?.day === new Date().toDateString()) savedOperator = saved.id
+      } catch { /* storage non disponibile o valore vecchio */ }
+      setOperatorId(activeStaff.some(s => s.id === savedOperator) ? savedOperator : null)
 
       // Load active orders and pending count using new ordersService
       // IMPORTANTE: Passare tablesData per calcolare stats correttamente
@@ -550,7 +570,7 @@ function CassaPage({ session }) {
       const result = await ordersService.createCounterOrder({
         restaurantId: restaurant.id,
         items,
-        staffId: null // TODO: Add staff authentication
+        staffId: operatorId
       })
 
       if (result.success) {
@@ -610,7 +630,7 @@ function CassaPage({ session }) {
 
             <div class="separator"></div>
 
-            ${result.order.items.map(item => `
+            ${items.map(item => `
               <div class="line">
                 <span>${item.quantity}x ${item.product_name}${item.variant_title ? ` (${item.variant_title})` : ''}</span>
                 <span>€${parseFloat(item.subtotal).toFixed(2)}</span>
@@ -641,8 +661,11 @@ function CassaPage({ session }) {
           </html>
         `
 
-        printWindow.document.write(html)
-        printWindow.document.close()
+        // L'ordine è già salvato: anche se la finestra di stampa è bloccata non va ribattuto
+        if (printWindow) {
+          printWindow.document.write(html)
+          printWindow.document.close()
+        }
 
         // Clear cart and show success message
         setCart([])
@@ -715,6 +738,39 @@ function CassaPage({ session }) {
   }
 
   // Handler to change table for existing order
+  const ownerFullName = `${restaurant?.owner_first_name || ''} ${restaurant?.owner_last_name || ''}`.trim()
+  const cassaOperator = cassaStaff.find(s => s.id === operatorId) || null
+
+  // Chi opera in cassa per i moduli ordine: lo staff scelto oppure il titolare
+  const cassaSession = !restaurant ? null : cassaOperator
+    ? {
+        name: cassaOperator.name,
+        fullName: cassaOperator.name,
+        role: cassaOperator.role || 'Staff',
+        displayRole: cassaOperator.role || 'Staff',
+        restaurant_id: restaurant.id,
+        staff_id: cassaOperator.id,
+        isOwner: false
+      }
+    : {
+        name: ownerFullName || 'Proprietario',
+        fullName: ownerFullName || 'Proprietario',
+        role: 'Admin',
+        displayRole: 'Admin',
+        restaurant_id: restaurant.id,
+        staff_id: null,
+        isOwner: true,
+        user_id: session?.user?.id
+      }
+
+  const changeOperator = (id) => {
+    setOperatorId(id)
+    try {
+      if (id) localStorage.setItem(`mvp_cassa_operator_${restaurant.id}`, JSON.stringify({ id, day: new Date().toDateString() }))
+      else localStorage.removeItem(`mvp_cassa_operator_${restaurant.id}`)
+    } catch { /* storage non disponibile */ }
+  }
+
   const handleChangeTable = (order) => {
     setSelectedOrder(order)
     setShowTableDetailModal(false)
@@ -1086,6 +1142,26 @@ function CassaPage({ session }) {
   const filteredTables = getTablesForRoom(selectedRoom)
 
   // Styles
+  const operatorLabelStyles = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacing.sm,
+    marginTop: tokens.spacing.sm,
+    fontSize: tokens.typography.fontSize.sm,
+    fontWeight: tokens.typography.fontWeight.medium,
+    color: tokens.colors.gray[700],
+  }
+
+  const operatorSelectStyles = {
+    padding: `${tokens.spacing.xs} ${tokens.spacing.sm}`,
+    fontSize: tokens.typography.fontSize.sm,
+    border: `1px solid ${tokens.colors.gray[300]}`,
+    borderRadius: tokens.borderRadius.md,
+    backgroundColor: tokens.colors.white,
+    color: tokens.colors.black,
+    cursor: 'pointer',
+  }
+
   const pageHeaderStyles = {
     marginBottom: tokens.spacing.lg,
     display: 'flex',
@@ -1249,6 +1325,22 @@ function CassaPage({ session }) {
           <p style={{ margin: 0, fontSize: isMobile ? tokens.typography.fontSize.sm : tokens.typography.fontSize.base, color: tokens.colors.gray[600] }}>
             Gestisci i tavoli e gli ordini al banco
           </p>
+          {cassaStaff.length > 0 && (
+            <label style={operatorLabelStyles}>
+              In cassa
+              <select
+                value={operatorId || ''}
+                onChange={(e) => changeOperator(e.target.value || null)}
+                style={operatorSelectStyles}
+                aria-label="Chi sta usando la cassa"
+              >
+                <option value="">{ownerFullName ? `${ownerFullName} (titolare)` : 'Titolare'}</option>
+                {cassaStaff.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}{s.role ? ` · ${s.role}` : ''}</option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         {/* Mode Toggle */}
@@ -2103,16 +2195,8 @@ function CassaPage({ session }) {
             // Reload active orders after creating order
             handleOrderUpdated()
           }}
-          staffSession={session?.user?.id === restaurant?.user_id ? {
-            name: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
-            fullName: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
-            role: 'Admin',
-            displayRole: 'Admin',
-            restaurant_id: restaurant.id,
-            staff_id: null,
-            isOwner: true,
-            user_id: session.user.id
-          } : null}
+          staffSession={cassaSession}
+          source="cassa"
           session={session}
           restaurantId={restaurant?.id}
           preselectedRoomId={selectedRoom?.id}
@@ -2132,6 +2216,7 @@ function CassaPage({ session }) {
         onAddProducts={handleAddProducts}
         onChangeTable={handleChangeTable}
         restaurantId={restaurant?.id}
+        staffId={operatorId}
       />
 
       {/* STEP 6: Add Products Modal - Edit existing order */}
@@ -2147,16 +2232,8 @@ function CassaPage({ session }) {
             setSelectedOrder(null)
             handleOrderUpdated()
           }}
-          staffSession={{
-            name: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
-            fullName: `${restaurant.owner_first_name || ''} ${restaurant.owner_last_name || ''}`.trim() || 'Proprietario',
-            role: 'Admin',
-            displayRole: 'Admin',
-            restaurant_id: restaurant.id,
-            staff_id: null,
-            isOwner: true,
-            user_id: session.user.id
-          }}
+          staffSession={cassaSession}
+          source="cassa"
           existingOrder={selectedOrder}
           preselectedRoomId={selectedOrder?.room_id}
           preselectedTableNumber={selectedOrder?.table_number}
@@ -2172,6 +2249,7 @@ function CassaPage({ session }) {
             setSelectedOrder(null)
           }}
           order={selectedOrder}
+          operator={cassaOperator}
           onTableChanged={() => {
             setShowChangeTableModal(false)
             setSelectedOrder(null)

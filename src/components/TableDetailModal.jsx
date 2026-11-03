@@ -14,7 +14,8 @@ function TableDetailModal({
   onOrderUpdated,
   onAddProducts,
   onChangeTable,
-  restaurantId
+  restaurantId,
+  staffId = null // chi sta usando la cassa (null = titolare)
 }) {
   const [loading, setLoading] = useState(false)
   const [timeDisplay, setTimeDisplay] = useState({ type: 'static', text: '' })
@@ -106,7 +107,7 @@ function TableDetailModal({
   const handleConfirm = async () => {
     setLoading(true)
     try {
-      const result = await ordersService.confirmOrder(order.id, null) // TODO: pass staffId
+      const result = await ordersService.confirmOrder(order.id, staffId)
       if (result.success) {
         alert('Ordine confermato!')
         onOrderUpdated?.()
@@ -125,7 +126,7 @@ function TableDetailModal({
   const handlePreconto = async () => {
     setLoading(true)
     try {
-      const result = await ordersService.generatePreconto(order.id, null) // TODO: pass staffId
+      const result = await ordersService.generatePreconto(order.id, staffId)
       if (result.success) {
         // Generate print HTML
         printReceipt(result.order, false)
@@ -145,7 +146,7 @@ function TableDetailModal({
 
     setLoading(true)
     try {
-      const result = await ordersService.generateScontrino(order.id, null) // TODO: pass staffId
+      const result = await ordersService.generateScontrino(order.id, staffId)
       if (result.success) {
         // Generate print HTML
         printReceipt(result.order, true, result.receiptNumber)
@@ -168,7 +169,7 @@ function TableDetailModal({
 
     setLoading(true)
     try {
-      const result = await ordersService.deleteOrder(order.id, null) // TODO: pass staffId
+      const result = await ordersService.deleteOrder(order.id, staffId)
       if (result.success) {
         alert('Ordine eliminato')
         onOrderUpdated?.()
@@ -189,7 +190,7 @@ function TableDetailModal({
 
     setLoading(true)
     try {
-      const result = await ordersService.closeTableWithoutReceipt(order.id, null) // TODO: pass staffId
+      const result = await ordersService.closeTableWithoutReceipt(order.id, staffId)
       if (result.success) {
         alert('Tavolo chiuso con successo!')
         onOrderUpdated?.()
@@ -212,7 +213,7 @@ function TableDetailModal({
 
     setLoading(true)
     try {
-      const result = await ordersService.closeTableUnpaid(order.id, null)
+      const result = await ordersService.closeTableUnpaid(order.id, staffId)
       if (result.success) {
         alert(`Tavolo chiuso come non pagato. Incasso perso: €${(result.lostAmount || 0).toFixed(2)}`)
         onOrderUpdated?.()
@@ -230,20 +231,20 @@ function TableDetailModal({
   }
 
   const sendBatchNow = async (batchNumber) => {
-    const result = await ordersService.sendBatch(order.id, batchNumber, null)
+    const result = await ordersService.sendBatch(order.id, batchNumber, staffId)
     if (result.success) onOrderUpdated?.()
     else alert(`Errore invio: ${result.error?.message || ''}`)
   }
 
   const toggleBatchPrepared = async (batchNumber, prepared) => {
-    const result = await ordersService.markBatchPrepared(order.id, batchNumber, null, prepared)
+    const result = await ordersService.markBatchPrepared(order.id, batchNumber, staffId, prepared)
     if (result.success) onOrderUpdated?.()
     else alert(`Errore: ${result.error?.message || ''}`)
   }
 
   const removeItem = async (item) => {
     if (!confirm(`Rimuovere ${item.quantity}× ${item.product_name}?`)) return
-    const result = await ordersService.removeProductFromOrder(item.id, null)
+    const result = await ordersService.removeProductFromOrder(item.id, staffId)
     if (result.success) onOrderUpdated?.()
     else alert(`Errore: ${result.error?.message || ''}`)
   }
