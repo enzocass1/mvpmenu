@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import Spinner from '../components/ui/Spinner'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -92,8 +93,7 @@ function OrderConfirmation() {
     return (
       <div style={styles.container}>
         <div style={styles.loadingBox}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⏳</div>
-          <div>Caricamento...</div>
+          <Spinner size="lg" text="Caricamento..." />
         </div>
       </div>
     )

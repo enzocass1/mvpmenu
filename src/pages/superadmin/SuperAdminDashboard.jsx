@@ -239,7 +239,7 @@ function SuperAdminDashboard() {
             borderColor: tokens.colors.warning.light,
           }}
         >
-          {isExpiring ? '⏳ Esecuzione...' : '⏰ Esegui Scadenze'}
+          {isExpiring ? 'Esecuzione...' : 'Esegui scadenze'}
         </Button>
       </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { isSubscriptionBlocked } from './lib/subscriptionStatus'
+import Spinner from './components/ui/Spinner'
 
 // Guardia sezioni: se il ristorante ha allowed_nav (es. solo /prodotti),
 // reindirizza le pagine admin non consentite verso la prima sezione permessa.
@@ -224,20 +225,15 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: '#F5F5F5',
+        backgroundColor: '#FAFAFA',
         fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-        fontSize: '18px',
-        color: '#666',
-        flexDirection: 'column',
-        gap: '20px'
       }}>
-        <div style={{ fontSize: '48px' }}>⏳</div>
-        <div>Caricamento...</div>
+        <Spinner size="lg" text="Caricamento..." />
       </div>
     )
   }

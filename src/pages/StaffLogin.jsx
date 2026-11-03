@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import Spinner from '../components/ui/Spinner'
 
 function StaffLogin() {
   const { subdomain } = useParams()
@@ -109,8 +110,7 @@ function StaffLogin() {
     return (
       <div style={styles.container}>
         <div style={styles.loadingBox}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⏳</div>
-          <div>Caricamento...</div>
+          <Spinner size="lg" text="Caricamento..." />
         </div>
       </div>
     )
