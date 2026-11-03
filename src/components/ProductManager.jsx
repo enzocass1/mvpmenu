@@ -79,10 +79,15 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
         .order('name', { ascending: true })
 
       if (productsData) {
-        setProducts(productsData)
+        // Costo d'acquisto: sta in una tabella privata visibile solo al titolare
+        const prodIds = productsData.map(p => p.id)
+        const { data: costs } = prodIds.length
+          ? await supabase.from('product_costs').select('product_id, cost').in('product_id', prodIds)
+          : { data: [] }
+        const costById = Object.fromEntries((costs || []).map(c => [c.product_id, Number(c.cost) || 0]))
+        setProducts(productsData.map(p => ({ ...p, cost: costById[p.id] ?? 0 })))
 
         // Carica varianti (conteggi + titoli) in una sola query
-        const prodIds = productsData.map(p => p.id)
         const counts = {}
         const titles = {}
         if (prodIds.length > 0) {
@@ -114,6 +119,10 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
 
     setLoading(true)
 
+    // il costo si salva a parte, nella tabella privata del titolare
+    const saveCost = (productId) => supabase.from('product_costs')
+      .upsert({ product_id: productId, cost: parseFloat(formData.cost) || 0, updated_at: new Date().toISOString() })
+
     try {
       if (editingProduct) {
         const { error } = await supabase
@@ -122,7 +131,6 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
             name: formData.name,
             description: formData.description,
             price: parseFloat(formData.price),
-            cost: parseFloat(formData.cost) || 0,
             image_url: formData.image_url,
             category_id: formData.category_id,
             allergens: formData.allergens,
@@ -130,11 +138,13 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
           .eq('id', editingProduct.id)
 
         if (error) throw error
+        const { error: costError } = await saveCost(editingProduct.id)
+        if (costError) throw costError
         alert('Prodotto aggiornato!')
       } else {
         const maxOrder = products.length > 0 ? Math.max(...products.map(p => p.order)) : -1
 
-        const { error } = await supabase
+        const { data: created, error } = await supabase
           .from('products')
           .insert([
             {
@@ -142,15 +152,20 @@ function ProductManager({ restaurantId, restaurant, layout = 'grid' }) {
               name: formData.name,
               description: formData.description,
               price: parseFloat(formData.price),
-              cost: parseFloat(formData.cost) || 0,
               image_url: formData.image_url,
               allergens: formData.allergens,
               order: maxOrder + 1,
               is_visible: true,
             }
           ])
+          .select('id')
+          .single()
 
         if (error) throw error
+        if (parseFloat(formData.cost) > 0) {
+          const { error: costError } = await saveCost(created.id)
+          if (costError) throw costError
+        }
         alert('Prodotto creato!')
       }
 

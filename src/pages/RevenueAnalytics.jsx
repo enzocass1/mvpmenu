@@ -6,6 +6,12 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
 import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
+// Costo del prodotto venduto: sta nella tabella privata order_item_costs (visibile solo al titolare)
+const itemCost = (it) => {
+  const c = Array.isArray(it.order_item_costs) ? it.order_item_costs[0] : it.order_item_costs
+  return Number(c?.product_cost || 0)
+}
+
 function RevenueAnalytics() {
   const navigate = useNavigate()
 
@@ -115,6 +121,7 @@ function RevenueAnalytics() {
         .from('order_items')
         .select(`
           *,
+          order_item_costs(product_cost),
           orders!inner(
             id,
             restaurant_id,
@@ -139,7 +146,7 @@ function RevenueAnalytics() {
       const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
 
       // Margine netto (COGS): ricavo - costo prodotti. Tutto IVA inclusa.
-      const totalCost = (orderItems || []).reduce((sum, it) => sum + Number(it.product_cost || 0) * Number(it.quantity || 0), 0)
+      const totalCost = (orderItems || []).reduce((sum, it) => sum + itemCost(it) * Number(it.quantity || 0), 0)
       const netMargin = totalRevenue - totalCost
       const marginPct = totalRevenue > 0 ? (netMargin / totalRevenue) * 100 : 0
 
@@ -152,7 +159,7 @@ function RevenueAnalytics() {
       const costByType = { table: 0, counter: 0 }
       for (const it of orderItems || []) {
         const t = it.orders?.order_type === 'counter' ? 'counter' : 'table'
-        costByType[t] += Number(it.product_cost || 0) * Number(it.quantity || 0)
+        costByType[t] += itemCost(it) * Number(it.quantity || 0)
       }
       const marginByType = {
         table: revByType.table - costByType.table,

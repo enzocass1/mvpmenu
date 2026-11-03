@@ -74,12 +74,12 @@ FROM orders o
 LEFT JOIN restaurant_staff cs ON cs.id = o.created_by_staff_id
 LEFT JOIN restaurant_staff cl ON cl.id = o.closed_by_staff_id
 LEFT JOIN rooms rm ON rm.id = o.room_id
-LEFT JOIN LATERAL (SELECT sum(subtotal) AS sales, sum(quantity) AS qty, sum(coalesce(product_cost, 0) * quantity) AS cost
-                   FROM order_items WHERE order_id = o.id) it ON true
+LEFT JOIN LATERAL (SELECT sum(oi.subtotal) AS sales, sum(oi.quantity) AS qty, sum(coalesce(oc.product_cost, 0) * oi.quantity) AS cost
+                   FROM order_items oi LEFT JOIN order_item_costs oc ON oc.order_item_id = oi.id WHERE oi.order_id = o.id) it ON true
 WHERE o.restaurant_id = :R AND o.created_at >= :S AND o.created_at < :E
 $q$),
 ('products', 'Prodotti venduti', 'Un elemento per prodotto ordinato: pezzi, vendite, costo e margine per prodotto e categoria.', 2, $q$
-SELECT oi.id, o.created_at AS ts, oi.order_id, oi.quantity, oi.subtotal, coalesce(oi.product_cost, 0) * oi.quantity AS cost,
+SELECT oi.id, o.created_at AS ts, oi.order_id, oi.quantity, oi.subtotal, coalesce(oc.product_cost, 0) * oi.quantity AS cost,
   coalesce(nullif(trim(oi.product_name), ''), trim(p.name)) AS product, trim(c.name) AS category, nullif(trim(oi.variant_title), '') AS variant,
   (o.deleted_at IS NOT NULL OR o.status = 'cancelled') AS is_void,
   (o.status = 'completed' AND o.deleted_at IS NULL AND coalesce(o.payment_status, 'paid') <> 'unpaid') AS is_paid,
@@ -91,6 +91,7 @@ JOIN orders o ON o.id = oi.order_id
 LEFT JOIN products p ON p.id = oi.product_id
 LEFT JOIN categories c ON c.id = p.category_id
 LEFT JOIN restaurant_staff ab ON ab.id = oi.added_by_staff_id
+LEFT JOIN order_item_costs oc ON oc.order_item_id = oi.id
 WHERE o.restaurant_id = :R AND o.created_at >= :S AND o.created_at < :E
 $q$),
 ('menu', 'Menu: visti e aperti', 'Statistiche del menu online per prodotto e ora: schede viste, aperte, aggiunte al carrello e ordinate.', 3, $q$
