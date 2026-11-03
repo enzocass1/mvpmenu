@@ -365,7 +365,7 @@ function AOVAnalysis() {
       {/* Header */}
       <div style={styles.header}>
         <button
-          onClick={() => navigate('/analytics-selection', { state: { restaurant } })}
+          onClick={() => navigate('/analytics')}
           style={styles.backButton}
         >
           ← Analytics

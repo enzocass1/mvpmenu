@@ -4,6 +4,34 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-03-esplora-dati',
+    date: '2026-11-03',
+    type: 'novita',
+    title: 'Esplora dati: le tue analisi personalizzate, come su Shopify',
+    description:
+      "Nuova pagina Analytics → Esplora dati. Scegli i dati (vendite, prodotti venduti, menu online, visite al menu, servizio, comande), cosa mostrare (incasso, ordini, scontrino medio, margine, pezzi, visualizzazioni, aperture, tempi di preparazione e molto altro), come raggruppare (canale, prodotto, categoria, tavolo, persona dello staff, fascia oraria, giorno della settimana...), il periodo e il confronto. Ottieni subito totali con le variazioni, grafico e tabella, che puoi scaricare in CSV. Chi preferisce può scrivere la query nello stile di Shopify (FROM sales SHOW total_sales TIMESERIES hour DURING today COMPARE TO yesterday) e salvare le proprie analisi. Ci sono già 21 analisi pronte da cui partire.",
+    steps: [
+      'Apri Analytics → Esplora dati.',
+      "A sinistra scegli un'analisi pronta, per esempio \"Incasso per canale\" o \"Prodotti più venduti\".",
+      'Cambia con i menu cosa vedere: dati, raggruppamento, andamento nel tempo, periodo e confronto. Tocca le metriche per aggiungerle o toglierle.',
+      'Se vuoi, modifica direttamente la query e premi "Esegui" (o Ctrl + Invio). "Guida e campi" mostra tutto quello che puoi usare.',
+      'Premi "Salva analisi" per ritrovarla in alto a sinistra, oppure "Scarica CSV" per aprirla in Excel.'
+    ]
+  },
+  {
+    id: '2026-11-03-analytics-categorie',
+    date: '2026-11-03',
+    type: 'miglioramento',
+    title: 'Analytics riorganizzate, con i numeri più importanti in evidenza',
+    description:
+      "La pagina Analytics ora si apre su \"Tutte\": in alto trovi i numeri più interessanti degli ultimi 30 giorni (incasso, ordini, scontrino medio, margine, prodotto più venduto, ora di punta, canale principale, visite al menu, tempi di preparazione e di approvazione), ognuno con il confronto e un tocco per approfondire. Sotto, le analisi divise per categoria: Vendite, Prodotti, Menu e clienti, Staff e servizio, Esplora dati. Tutte le analisi sono disponibili per tutti, senza abbonamenti speciali, e in \"Menu e clienti\" ora trovi anche tempo sul menu, prodotti e categorie aperte e preferiti.",
+    steps: [
+      'Apri Analytics: la scheda "Tutte" mostra i numeri in evidenza.',
+      'Tocca un numero per vedere il dettaglio.',
+      'Usa le schede in alto per vedere solo le analisi di una categoria e le relative analisi pronte.'
+    ]
+  },
+  {
     id: '2026-11-03-staff-servizio',
     date: '2026-11-03',
     type: 'novita',
@@ -370,6 +398,8 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-03-esplora-dati': '/updates/esplora-dati.gif',
+  '2026-11-03-analytics-categorie': '/updates/analytics-categorie.gif',
   '2026-11-03-staff-servizio': '/updates/staff-servizio.gif',
   '2026-11-03-cassa-operatore': '/updates/cassa-operatore.gif',
   '2026-11-03-staff-storico': '/updates/staff-storico.png',

@@ -58,6 +58,7 @@ import AnalyticsSelection from './pages/AnalyticsSelection'
 import AnalyticsDashboard from './pages/AnalyticsDashboard'
 import ConversionFunnel from './pages/ConversionFunnel'
 import ServiceAnalytics from './pages/ServiceAnalytics'
+import ExploreAnalytics from './pages/ExploreAnalytics'
 import TopProductsOrdered from './pages/TopProductsOrdered'
 import RevenueAnalytics from './pages/RevenueAnalytics'
 import TimeBasedAnalysis from './pages/TimeBasedAnalysis'
@@ -291,6 +292,12 @@ function App() {
       <Route
         path="/analytics/conversion-funnel"
         element={session ? <ConversionFunnel /> : <Navigate to="/login" replace />}
+      />
+
+      {/* Esplora dati: analisi personalizzate in stile ShopifyQL - solo se loggato */}
+      <Route
+        path="/analytics/esplora"
+        element={session ? <ExploreAnalytics /> : <Navigate to="/login" replace />}
       />
 
       {/* Staff e Servizio (chi prende/approva/prepara/chiude, canali, tempi) - solo se loggato */}

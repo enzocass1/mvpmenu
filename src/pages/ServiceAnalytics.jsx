@@ -269,7 +269,7 @@ function ServiceAnalytics() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <button onClick={() => navigate('/analytics-selection', { state: { restaurant } })} style={styles.backButton}>← Analytics</button>
+        <button onClick={() => navigate('/analytics')} style={styles.backButton}>← Analytics</button>
         <h1 style={styles.title}>Staff e Servizio</h1>
         <p style={styles.subtitle}>
           Chi <strong>prende</strong>, <strong>approva</strong>, <strong>prepara</strong> e <strong>chiude</strong> gli ordini, da dove arrivano

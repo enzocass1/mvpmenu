@@ -276,7 +276,7 @@ function ConversionFunnel() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <button onClick={() => navigate('/analytics-selection', { state: { restaurant } })} style={styles.backButton}>← Analytics</button>
+        <button onClick={() => navigate('/analytics')} style={styles.backButton}>← Analytics</button>
         <h1 style={styles.title}>Conversion Funnel</h1>
         <p style={styles.subtitle}>
           Il percorso di ogni prodotto nel tuo menu: quanti clienti lo <strong>vedono</strong> nella lista, lo <strong>aprono</strong>, lo <strong>aggiungono al carrello</strong> e lo <strong>ordinano</strong> — anche per fascia oraria e giorno della settimana.

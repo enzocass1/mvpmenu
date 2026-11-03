@@ -49,6 +49,7 @@ export const FEATURE_GROUPS = [
     'Prodotti più e meno venduti',
     'Prodotti visti, aperti, aggiunti e ordinati, anche per fascia oraria',
     'Scontrino medio e margine sui costi',
+    'Analisi su misura ed export in Excel',
   ] },
   { title: 'Ovunque tu sia', items: [
     'In tempo reale da telefono, tablet e PC',
