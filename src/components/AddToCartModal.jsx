@@ -370,11 +370,8 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
             </div>
           )}
 
-          {viewOnly ? (
-            <div style={styles.actions}>
-              <button type="button" onClick={handleClose} style={{ ...styles.addButton, flex: 1 }}>Chiudi</button>
-            </div>
-          ) : (<>
+          {/* Per chiudere basta la X in alto a destra (o un tocco fuori dalla finestra) */}
+          {!viewOnly && (<>
           {/* Quantity */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Quantità</label>
@@ -453,13 +450,6 @@ function AddToCartModal({ isOpen, onClose, product, onAddToCart, restaurant, vie
 
           {/* Actions */}
           <div style={styles.actions}>
-            <button
-              type="button"
-              onClick={handleClose}
-              style={styles.cancelButton}
-            >
-              Annulla
-            </button>
             <button
               type="submit"
               disabled={blockOrder || loadingVariants}
@@ -685,23 +675,8 @@ const getStyles = (theme = {}) => ({
   },
   actions: {
     display: 'grid',
-    gridTemplateColumns: '1fr 2fr',
+    gridTemplateColumns: '1fr',
     gap: '10px'
-  },
-  cancelButton: {
-    padding: '14px 12px',
-    backgroundColor: 'transparent',
-    color: theme.textTertiaryColor || '#666',
-    border: `1px solid ${theme.cardBorder || theme.borderColor || '#ddd'}`,
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center'
   },
   addButton: {
     padding: '14px 12px',

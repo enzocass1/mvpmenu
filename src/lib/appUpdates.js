@@ -25,9 +25,9 @@ export const APP_UPDATES = [
     type: 'miglioramento',
     title: 'Finestra prodotto più fluida, allergeni solo testo, icone Android e Apple',
     description:
-      "Aprendo un prodotto senza varianti la finestra non mostra più per un attimo \"Caricamento varianti...\" e non cambia più dimensione: si apre subito, già pronta. I badge degli allergeni, nel menu online e nella scheda prodotto della dashboard, mostrano solo il nome (Glutine, Latte e lattosio...), senza emoji. Nella finestra \"Scarica app\" ci sono i loghi di Android e Apple e icone pulite al posto delle emoji.",
+      "Aprendo un prodotto senza varianti la finestra non mostra più per un attimo \"Caricamento varianti...\" e non cambia più dimensione: si apre subito, già pronta. In tutti i menu (classico, negozio, home componibile) la finestra prodotto si chiude con la X in alto a destra o toccando fuori: niente più pulsanti \"Chiudi\" e \"Annulla\" doppioni, e \"Aggiungi al carrello\" è più grande. I badge degli allergeni, nel menu online e nella scheda prodotto della dashboard, mostrano solo il nome (Glutine, Latte e lattosio...), senza emoji. Nella finestra \"Scarica app\" ci sono i loghi di Android e Apple e icone pulite al posto delle emoji.",
     steps: [
-      'Apri il tuo menu e tocca un prodotto: la finestra si apre subito, senza scatti.',
+      'Apri il tuo menu e tocca un prodotto: la finestra si apre subito, senza scatti. Per chiuderla usa la X in alto a destra.',
       'Tocca "Contiene allergeni*" su un prodotto: vedi i nomi degli allergeni, senza emoji.',
       'Nel menu laterale tocca "Scarica app" per vedere le nuove icone.'
     ]
