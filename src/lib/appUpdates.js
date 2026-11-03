@@ -7,14 +7,15 @@ export const APP_UPDATES = [
     id: '2026-11-03-conversion-funnel',
     date: '2026-11-03',
     type: 'novita',
-    title: 'Conversion Funnel: quanti clienti vedono, aprono e ordinano ogni prodotto',
+    title: 'Conversion Funnel: quanti clienti vedono, aprono e ordinano ogni prodotto, ora per ora',
     description:
-      "Nuova pagina Analytics → Conversion Funnel. Per ogni prodotto del menu online vedi quante volte la scheda è stata vista nella lista (almeno 1 secondo a schermo), quante volte è stata aperta, quante volte è stata aggiunta al carrello e quanti pezzi sono stati ordinati. Funziona allo stesso modo in tutti e tre gli stili del menu. La pagina ti segnala da sola i prodotti \"visti ma poco aperti\" (da rivedere foto, nome o posizione) e quelli \"aperti ma poco aggiunti\" (da rivedere prezzo o descrizione). Le tue visite da titolare e le anteprime dell'editor non vengono contate.",
+      "Nuova pagina Analytics → Conversion Funnel. Per ogni prodotto del menu online vedi quante volte la scheda è stata vista nella lista (almeno 1 secondo a schermo), quante volte è stata aperta, quante volte è stata aggiunta al carrello e quanti pezzi sono stati ordinati. Tutto anche per fascia oraria (mattina, pranzo, pomeriggio, aperitivo, sera, notte) e per giorno della settimana; cliccando un prodotto vedi le sue fasce orarie, per esempio a che ora viene aperto di più. Funziona allo stesso modo in tutti e tre gli stili del menu. La pagina ti segnala da sola i prodotti \"visti ma poco aperti\" (da rivedere foto, nome o posizione) e quelli \"aperti ma poco aggiunti\" (da rivedere prezzo o descrizione). Le tue visite da titolare e le anteprime dell'editor non vengono contate.",
     steps: [
       'Apri Analytics → Conversion Funnel e scegli il periodo.',
       'In alto trovi i 4 passaggi: visualizzazioni, aperture, aggiunte al carrello, pezzi ordinati, con il confronto col periodo precedente.',
+      'In "Per fascia oraria" vedi a che ora i clienti guardano e aprono i prodotti, con le percentuali di ogni fascia.',
       'Guarda i riquadri "Visti ma poco aperti" e "Aperti ma poco aggiunti": sono i prodotti su cui intervenire.',
-      'Nella tabella "Tutti i prodotti" clicca sul nome di una colonna per ordinare.'
+      'Nella tabella "Tutti i prodotti" clicca sul nome di una colonna per ordinare, oppure su un prodotto per vedere le sue fasce orarie.'
     ]
   },
   {

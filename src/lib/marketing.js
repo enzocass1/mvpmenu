@@ -46,7 +46,7 @@ export const FEATURE_GROUPS = [
     'Fatturato e trend, confronto col periodo precedente',
     'Vendite per fascia oraria, giorno e mese',
     'Prodotti più e meno venduti',
-    'Prodotti visti, aperti, aggiunti al carrello e ordinati',
+    'Prodotti visti, aperti, aggiunti e ordinati, anche per fascia oraria',
     'Scontrino medio e margine sui costi',
   ] },
   { title: 'Ovunque tu sia', items: [

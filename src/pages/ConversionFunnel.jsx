@@ -2,14 +2,15 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { fetchAllRows } from '../lib/fetchAllRows'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 import { TIME_RANGE_OPTIONS, getDateRangeFromTimeRange } from '../utils/analytics'
 
 /**
  * Conversion Funnel: il percorso di ogni prodotto nel menu pubblico.
- * Visualizzato (scheda vista nella lista) -> Aperto -> Aggiunto al carrello -> Ordinato.
- * Dati: tabella product_stats_daily (contatori giornalieri, vedi src/lib/productStats.js).
+ * Visualizzato (scheda vista nella lista) -> Aperto -> Aggiunto al carrello -> Ordinato,
+ * anche per fascia oraria e giorno della settimana.
+ * Dati: tabella product_stats_hourly, aggregati dal database con product_stats_report().
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -18,22 +19,54 @@ const fromDay = (s) => { const [y, m, d] = s.split('-').map(Number); return new 
 const pct = (a, b) => (b > 0 ? (a / b) * 100 : null)
 const fmtPct = (v) => (v == null ? '—' : `${v.toFixed(1).replace('.', ',')}%`)
 const fmtNum = (n) => Number(n || 0).toLocaleString('it-IT')
+const hh = (h) => `${String(h).padStart(2, '0')}:00`
 const EMPTY = { impressions: 0, opens: 0, cart_adds: 0, cart_qty: 0, ordered_qty: 0 }
+const WEEKDAYS = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+// Fasce orarie di un bar/ristorante (ora di fine esclusa)
+const BANDS = [
+  { label: 'Mattina', from: 6, to: 11 },
+  { label: 'Pranzo', from: 11, to: 15 },
+  { label: 'Pomeriggio', from: 15, to: 18 },
+  { label: 'Aperitivo', from: 18, to: 21 },
+  { label: 'Sera', from: 21, to: 24 },
+  { label: 'Notte', from: 0, to: 6 },
+]
 
-const sumRows = (rows) => rows.reduce((t, r) => ({
-  impressions: t.impressions + r.impressions,
-  opens: t.opens + r.opens,
-  cart_adds: t.cart_adds + r.cart_adds,
-  cart_qty: t.cart_qty + r.cart_qty,
-  ordered_qty: t.ordered_qty + r.ordered_qty,
-}), { ...EMPTY })
+const loadReport = async (restaurantId, startDay, endDay, productId = null) => {
+  const { data, error } = await supabase.rpc('product_stats_report', {
+    p_restaurant_id: restaurantId, p_start: startDay, p_end: endDay, p_product_id: productId,
+  })
+  if (error) console.error('Errore statistiche prodotto:', error)
+  return data || { totals: EMPTY, by_product: [], by_day: [], by_hour: [], by_weekday: [] }
+}
 
-const loadStats = (restaurantId, startDay, endDay) => fetchAllRows(() => supabase
-  .from('product_stats_daily')
-  .select('product_id, day, impressions, opens, cart_adds, cart_qty, ordered_qty')
-  .eq('restaurant_id', restaurantId)
-  .gte('day', startDay)
-  .lte('day', endDay), { orderBy: ['day', 'product_id'] })
+// Ore in ordine di giornata del locale (06 -> 23, poi la notte 00 -> 05),
+// senza le ore vuote all'inizio e alla fine
+const DAY_ORDER = [...Array(18).keys()].map(i => i + 6).concat([0, 1, 2, 3, 4, 5])
+const hourSeries = (byHour) => {
+  const m = new Map((byHour || []).map(h => [h.hour, h]))
+  const has = (h) => { const r = m.get(h); return r && r.impressions + r.opens + r.cart_adds > 0 }
+  const first = DAY_ORDER.findIndex(has)
+  if (first < 0) return []
+  const last = DAY_ORDER.length - 1 - [...DAY_ORDER].reverse().findIndex(has)
+  return DAY_ORDER.slice(first, last + 1).map(h => {
+    const r = m.get(h) || EMPTY
+    return { ora: hh(h), Visualizzazioni: r.impressions, Aperture: r.opens, 'Aggiunte al carrello': r.cart_adds }
+  })
+}
+
+const bandRows = (byHour) => BANDS.map(b => {
+  const t = (byHour || []).filter(h => h.hour >= b.from && h.hour < b.to).reduce((s, h) => ({
+    impressions: s.impressions + h.impressions, opens: s.opens + h.opens, cart_adds: s.cart_adds + h.cart_adds,
+    cart_qty: s.cart_qty + h.cart_qty, ordered_qty: s.ordered_qty + h.ordered_qty,
+  }), { ...EMPTY })
+  return { ...b, ...t, openRate: pct(t.opens, t.impressions), addRate: pct(t.cart_adds, t.opens) }
+}).filter(b => b.impressions + b.opens + b.cart_adds + b.ordered_qty > 0)
+
+const weekdaySeries = (byWeekday) => WEEKDAYS.map((name, i) => {
+  const r = (byWeekday || []).find(w => w.weekday === i + 1) || EMPTY
+  return { giorno: name.slice(0, 3), Visualizzazioni: r.impressions, Aperture: r.opens, 'Aggiunte al carrello': r.cart_adds }
+})
 
 function ConversionFunnel() {
   const navigate = useNavigate()
@@ -43,12 +76,13 @@ function ConversionFunnel() {
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
   const [loading, setLoading] = useState(true)
-  const [rows, setRows] = useState([])
-  const [prevRows, setPrevRows] = useState([])
+  const [report, setReport] = useState(null)
+  const [prevTotals, setPrevTotals] = useState(EMPTY)
   const [products, setProducts] = useState({})
   const [period, setPeriod] = useState(null)
   const [sort, setSort] = useState({ key: 'impressions', dir: 'desc' })
   const [showAll, setShowAll] = useState(false)
+  const [detail, setDetail] = useState(null) // { product, report | null }
 
   useEffect(() => {
     if (!restaurant) return
@@ -63,17 +97,16 @@ function ConversionFunnel() {
     ;(async () => {
       setLoading(true)
       const [cur, prev, prods] = await Promise.all([
-        loadStats(restaurant.id, startDay, endDay),
-        loadStats(restaurant.id, prevStart, prevEnd),
+        loadReport(restaurant.id, startDay, endDay),
+        loadReport(restaurant.id, prevStart, prevEnd),
         fetchAllRows(() => supabase
           .from('products')
           .select('id, name, categories!inner(name, restaurant_id)')
           .eq('categories.restaurant_id', restaurant.id)),
       ])
       if (cancelled) return
-      if (cur.error) console.error('Errore statistiche prodotto:', cur.error)
-      setRows(cur.data || [])
-      setPrevRows(prev.data || [])
+      setReport(cur)
+      setPrevTotals(prev.totals || EMPTY)
       setProducts(Object.fromEntries((prods.data || []).map(p => [p.id, { name: p.name, category: p.categories?.name || '' }])))
       setPeriod({ startDay, endDay, days })
       setLoading(false)
@@ -81,34 +114,19 @@ function ConversionFunnel() {
     return () => { cancelled = true }
   }, [restaurant, timeRange, customStartDate, customEndDate])
 
-  // Totali, per prodotto e per giorno
-  const totals = useMemo(() => sumRows(rows), [rows])
-  const prevTotals = useMemo(() => sumRows(prevRows), [prevRows])
+  const totals = report?.totals || EMPTY
 
-  const byProduct = useMemo(() => {
-    const m = new Map()
-    for (const r of rows) {
-      const t = m.get(r.product_id) || { product_id: r.product_id, ...EMPTY }
-      t.impressions += r.impressions; t.opens += r.opens; t.cart_adds += r.cart_adds; t.cart_qty += r.cart_qty; t.ordered_qty += r.ordered_qty
-      m.set(r.product_id, t)
-    }
-    return [...m.values()].map(t => ({
-      ...t,
-      name: products[t.product_id]?.name || 'Prodotto eliminato',
-      category: products[t.product_id]?.category || '',
-      openRate: pct(t.opens, t.impressions),
-      addRate: pct(t.cart_adds, t.opens),
-    }))
-  }, [rows, products])
+  const byProduct = useMemo(() => (report?.by_product || []).map(t => ({
+    ...t,
+    name: products[t.product_id]?.name || 'Prodotto eliminato',
+    category: products[t.product_id]?.category || '',
+    openRate: pct(t.opens, t.impressions),
+    addRate: pct(t.cart_adds, t.opens),
+  })), [report, products])
 
   const daily = useMemo(() => {
     if (!period) return []
-    const m = new Map()
-    for (const r of rows) {
-      const t = m.get(r.day) || { ...EMPTY }
-      t.impressions += r.impressions; t.opens += r.opens; t.cart_adds += r.cart_adds
-      m.set(r.day, t)
-    }
+    const m = new Map((report?.by_day || []).map(d => [d.day, d]))
     const out = []
     for (let i = 0; i < period.days; i++) {
       const day = toDay(fromDay(period.startDay).getTime() + i * DAY_MS)
@@ -116,7 +134,24 @@ function ConversionFunnel() {
       out.push({ day: `${day.slice(8, 10)}/${day.slice(5, 7)}`, Visualizzazioni: t.impressions, Aperture: t.opens, 'Aggiunte al carrello': t.cart_adds })
     }
     return out
-  }, [rows, period])
+  }, [report, period])
+
+  const hourly = useMemo(() => hourSeries(report?.by_hour), [report])
+  const bands = useMemo(() => bandRows(report?.by_hour), [report])
+  const weekdays = useMemo(() => weekdaySeries(report?.by_weekday), [report])
+
+  // Apre il dettaglio di un prodotto con le sue fasce orarie
+  const openDetail = async (p) => {
+    setDetail({ product: p, report: null })
+    const rep = await loadReport(restaurant.id, period.startDay, period.endDay, p.product_id)
+    setDetail(d => (d && d.product.product_id === p.product_id ? { ...d, report: rep } : d))
+  }
+  useEffect(() => {
+    if (!detail) return
+    const onKey = (e) => { if (e.key === 'Escape') setDetail(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [detail])
 
   // Prodotti da migliorare: confronto con la media del locale
   const avgOpenRate = pct(totals.opens, totals.impressions)
@@ -167,7 +202,7 @@ function ConversionFunnel() {
       {items.length === 0 ? (
         <p style={styles.insightEmpty}>Nessun prodotto sotto la media: ottimo!</p>
       ) : items.map(p => (
-        <div key={p.product_id} style={styles.insightRow}>
+        <div key={p.product_id} style={{ ...styles.insightRow, cursor: 'pointer' }} onClick={() => openDetail(p)} title="Vedi le fasce orarie del prodotto">
           <div style={{ minWidth: 0 }}>
             <div style={styles.insightName}>{p.name}</div>
             <div style={styles.insightSub}>{p.category}</div>
@@ -181,6 +216,59 @@ function ConversionFunnel() {
     </div>
   )
 
+  // Grafico a barre condiviso (fasce orarie / giorni della settimana)
+  const Bars3 = ({ data, x, height = 280 }) => (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+        <XAxis dataKey={x} style={{ fontSize: '12px' }} interval={0} angle={data.length > 10 ? -45 : 0} textAnchor={data.length > 10 ? 'end' : 'middle'} height={data.length > 10 ? 50 : 30} />
+        <YAxis style={{ fontSize: '12px' }} allowDecimals={false} />
+        <Tooltip contentStyle={{ background: '#FFF', border: '1px solid #E0E0E0', borderRadius: '4px' }} />
+        <Legend wrapperStyle={{ fontSize: 13 }} />
+        <Bar dataKey="Visualizzazioni" fill="#000000" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="Aperture" fill="#9CA3AF" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="Aggiunte al carrello" fill="#16A34A" radius={[3, 3, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+
+  const BandTable = ({ rows }) => {
+    const top = rows.reduce((m, r) => (r.opens > (m?.opens ?? -1) ? r : m), null)
+    return (
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={{ ...styles.th, textAlign: 'left', color: '#666' }}>Fascia</th>
+              <th style={{ ...styles.th, textAlign: 'right', color: '#666' }}>Visualizzazioni</th>
+              <th style={{ ...styles.th, textAlign: 'right', color: '#666' }}>Aperture</th>
+              <th style={{ ...styles.th, textAlign: 'right', color: '#666' }}>% apertura</th>
+              <th style={{ ...styles.th, textAlign: 'right', color: '#666' }}>Aggiunte</th>
+              <th style={{ ...styles.th, textAlign: 'right', color: '#666' }}>% aggiunta</th>
+              <th style={{ ...styles.th, textAlign: 'right', color: '#666' }}>Pezzi ordinati</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.label} style={{ ...styles.tr, background: r === top ? '#F9FAFB' : 'transparent' }}>
+                <td style={styles.td}>
+                  <div style={{ fontWeight: 600 }}>{r.label}{r === top ? <span style={styles.topTag}>più aperture</span> : null}</div>
+                  <div style={{ fontSize: 12, color: '#999' }}>{hh(r.from)} – {hh(r.to % 24)}</div>
+                </td>
+                <td style={styles.tdNum}>{fmtNum(r.impressions)}</td>
+                <td style={styles.tdNum}>{fmtNum(r.opens)}</td>
+                <td style={styles.tdNum}>{fmtPct(r.openRate)}</td>
+                <td style={styles.tdNum}>{fmtNum(r.cart_adds)}</td>
+                <td style={styles.tdNum}>{fmtPct(r.addRate)}</td>
+                <td style={styles.tdNum}>{fmtNum(r.ordered_qty)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   const hasData = totals.impressions + totals.opens + totals.cart_adds + totals.ordered_qty > 0
 
   return (
@@ -189,7 +277,7 @@ function ConversionFunnel() {
         <button onClick={() => navigate('/analytics-selection', { state: { restaurant } })} style={styles.backButton}>← Analytics</button>
         <h1 style={styles.title}>Conversion Funnel</h1>
         <p style={styles.subtitle}>
-          Il percorso di ogni prodotto nel tuo menu: quanti clienti lo <strong>vedono</strong> nella lista, lo <strong>aprono</strong>, lo <strong>aggiungono al carrello</strong> e lo <strong>ordinano</strong>.
+          Il percorso di ogni prodotto nel tuo menu: quanti clienti lo <strong>vedono</strong> nella lista, lo <strong>aprono</strong>, lo <strong>aggiungono al carrello</strong> e lo <strong>ordinano</strong> — anche per fascia oraria e giorno della settimana.
         </p>
       </div>
 
@@ -220,7 +308,7 @@ function ConversionFunnel() {
         <div style={styles.emptyCard}>
           <h2 style={styles.chartTitle}>Ancora nessun dato in questo periodo</h2>
           <p style={styles.emptyText}>
-            I dati si raccolgono da soli quando i clienti usano il menu online: ogni prodotto che vedono nella lista, aprono, aggiungono al carrello o ordinano.
+            I dati si raccolgono da soli quando i clienti usano il menu online: ogni prodotto che vedono nella lista, aprono, aggiungono al carrello o ordinano, con l'ora.
             Le visite che fai tu da titolare e le anteprime dell'editor non vengono contate.
           </p>
         </div>
@@ -257,6 +345,20 @@ function ConversionFunnel() {
             })}
           </div>
 
+          {/* Fasce orarie */}
+          <div style={styles.chartCard}>
+            <h2 style={styles.chartTitle}>Per fascia oraria</h2>
+            <p style={styles.chartHint}>A che ora i clienti guardano, aprono e aggiungono i prodotti: utile per decidere cosa mettere in evidenza nei diversi momenti della giornata.</p>
+            <Bars3 data={hourly} x="ora" />
+            <div style={{ marginTop: 20 }}><BandTable rows={bands} /></div>
+          </div>
+
+          {/* Giorni della settimana */}
+          <div style={styles.chartCard}>
+            <h2 style={styles.chartTitle}>Per giorno della settimana</h2>
+            <Bars3 data={weekdays} x="giorno" height={240} />
+          </div>
+
           {/* Andamento */}
           <div style={styles.chartCard}>
             <h2 style={styles.chartTitle}>Andamento giorno per giorno</h2>
@@ -291,6 +393,7 @@ function ConversionFunnel() {
           {/* Tabella prodotti */}
           <div style={styles.tableContainer}>
             <h2 style={styles.sectionTitle}>Tutti i prodotti</h2>
+            <p style={styles.chartHint}>Clicca un prodotto per vedere le sue fasce orarie e i giorni della settimana.</p>
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
@@ -306,7 +409,7 @@ function ConversionFunnel() {
                 </thead>
                 <tbody>
                   {visibleRows.map(p => (
-                    <tr key={p.product_id} style={styles.tr}>
+                    <tr key={p.product_id} style={{ ...styles.tr, cursor: 'pointer' }} onClick={() => openDetail(p)}>
                       <td style={styles.td}>
                         <div style={{ fontWeight: 600 }}>{p.name}</div>
                         <div style={{ fontSize: 12, color: '#999' }}>{p.category}</div>
@@ -329,10 +432,50 @@ function ConversionFunnel() {
             )}
             <p style={styles.footnote}>
               Visualizzazione: la scheda resta a schermo per almeno 1 secondo. Visualizzazioni e aperture contano una volta per visita del cliente;
-              aggiunte e ordini contano ogni volta. Le visite del titolare e le anteprime dell'editor non vengono contate.
+              aggiunte e ordini contano ogni volta. Le visite del titolare e le anteprime dell'editor non vengono contate. Orari in ora italiana.
             </p>
           </div>
         </>
+      )}
+
+      {/* Dettaglio prodotto: fasce orarie e giorni */}
+      {detail && (
+        <div style={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) setDetail(null) }}>
+          <div style={styles.modal} role="dialog" aria-modal="true">
+            <div style={styles.modalHeader}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ ...styles.chartTitle, margin: 0 }}>{detail.product.name}</h2>
+                <div style={{ fontSize: 13, color: '#999' }}>{detail.product.category}</div>
+              </div>
+              <button onClick={() => setDetail(null)} style={styles.modalClose} aria-label="Chiudi">×</button>
+            </div>
+            {!detail.report ? (
+              <div style={styles.loading}>Caricamento...</div>
+            ) : (
+              <>
+                <div style={styles.miniStats}>
+                  {[
+                    ['Visualizzazioni', detail.report.totals.impressions, null],
+                    ['Aperture', detail.report.totals.opens, pct(detail.report.totals.opens, detail.report.totals.impressions)],
+                    ['Aggiunte', detail.report.totals.cart_adds, pct(detail.report.totals.cart_adds, detail.report.totals.opens)],
+                    ['Pezzi ordinati', detail.report.totals.ordered_qty, null],
+                  ].map(([l, v, r]) => (
+                    <div key={l} style={styles.miniStat}>
+                      <div style={styles.statLabel}>{l}</div>
+                      <div style={{ fontSize: 22, fontWeight: 600 }}>{fmtNum(v)}</div>
+                      {r != null && <div style={{ fontSize: 12, color: '#666' }}>{fmtPct(r)}</div>}
+                    </div>
+                  ))}
+                </div>
+                <h3 style={styles.modalSection}>Per fascia oraria</h3>
+                <Bars3 data={hourSeries(detail.report.by_hour)} x="ora" height={240} />
+                <div style={{ marginTop: 12 }}><BandTable rows={bandRows(detail.report.by_hour)} /></div>
+                <h3 style={styles.modalSection}>Per giorno della settimana</h3>
+                <Bars3 data={weekdaySeries(detail.report.by_weekday)} x="giorno" height={220} />
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
@@ -360,6 +503,8 @@ const styles = {
   badgeNeutral: { fontSize: '12px', color: '#999', fontWeight: '600' },
   chartCard: { maxWidth: '1200px', margin: '0 auto 32px auto', background: '#FFFFFF', border: '1px solid #E0E0E0', borderRadius: '8px', padding: '24px', boxSizing: 'border-box' },
   chartTitle: { fontSize: '16px', fontWeight: '500', color: '#000', margin: '0 0 20px 0' },
+  chartHint: { fontSize: '13px', color: '#666', margin: '-12px 0 16px 0', lineHeight: 1.5 },
+  topTag: { marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: '#000', borderRadius: 99, padding: '2px 8px', verticalAlign: 'middle' },
   insightsGrid: { maxWidth: '1200px', margin: '0 auto 32px auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: '16px' },
   insightCard: { border: '1px solid #E0E0E0', borderRadius: '8px', padding: '20px 24px' },
   insightTitle: { fontSize: '16px', fontWeight: '600', margin: '0 0 6px 0' },
@@ -379,6 +524,13 @@ const styles = {
   tdNum: { padding: '12px 14px', fontSize: '14px', color: '#000', textAlign: 'right', whiteSpace: 'nowrap' },
   showAll: { marginTop: 16, padding: '10px 16px', borderRadius: 6, border: '1px solid #E0E0E0', background: '#FFF', cursor: 'pointer', fontSize: 14, fontWeight: 500 },
   footnote: { fontSize: '12px', color: '#999', lineHeight: 1.6, margin: '16px 0 0 0' },
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto' },
+  modal: { background: '#FFF', borderRadius: 12, width: '100%', maxWidth: 880, padding: 24, boxSizing: 'border-box', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' },
+  modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 },
+  modalClose: { background: 'none', border: '1px solid #E0E0E0', borderRadius: '50%', width: 36, height: 36, minWidth: 36, padding: 0, boxSizing: 'border-box', aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, lineHeight: 1, cursor: 'pointer', color: '#666', flexShrink: 0 },
+  modalSection: { fontSize: 15, fontWeight: 600, margin: '24px 0 12px 0' },
+  miniStats: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 },
+  miniStat: { background: '#F5F5F5', borderRadius: 8, padding: '14px 16px' },
 }
 
 export default ConversionFunnel

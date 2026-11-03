@@ -1,4 +1,4 @@
-// Statistiche prodotto del menu pubblico (contatori anonimi, tabella product_stats_daily):
+// Statistiche prodotto del menu pubblico (contatori anonimi per ora, tabella product_stats_hourly):
 //   visualizzazione = la scheda del prodotto resta a schermo (almeno metà) per 1 secondo
 //   apertura        = il cliente apre il prodotto ("Scopri di più" o la finestra del prodotto)
 //   carrello        = il prodotto viene aggiunto al carrello
