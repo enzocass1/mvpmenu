@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
 import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
 
@@ -89,7 +90,7 @@ function TimeBasedAnalysis() {
       }
 
       // Query per periodo corrente
-      const currentResult = await supabase
+      const currentResult = await fetchAllRows(() => supabase
         .from('order_items')
         .select(`
           *,
@@ -105,12 +106,12 @@ function TimeBasedAnalysis() {
         .neq('orders.payment_status', 'unpaid') // esclude i non pagati
         .is('orders.deleted_at', null)
         .gte('orders.created_at', startDate)
-        .lte('orders.created_at', endDate)
+        .lte('orders.created_at', endDate))
 
       // Query per periodo precedente (se necessario)
       let previousResult = { data: [] }
       if (previousStartDate && previousEndDate) {
-        previousResult = await supabase
+        previousResult = await fetchAllRows(() => supabase
           .from('order_items')
           .select(`
             *,
@@ -126,7 +127,7 @@ function TimeBasedAnalysis() {
           .neq('orders.payment_status', 'unpaid') // esclude i non pagati
           .is('orders.deleted_at', null)
           .gte('orders.created_at', previousStartDate)
-          .lte('orders.created_at', previousEndDate)
+          .lte('orders.created_at', previousEndDate))
       }
 
       if (currentResult.error) throw currentResult.error
@@ -249,7 +250,7 @@ function TimeBasedAnalysis() {
       const { startDate, endDate } = dateRange
 
       // Carica order_items per questo periodo
-      const { data: orderItems } = await supabase
+      const { data: orderItems } = await fetchAllRows(() => supabase
         .from('order_items')
         .select(`
           *,
@@ -264,7 +265,7 @@ function TimeBasedAnalysis() {
         .neq('orders.payment_status', 'unpaid') // esclude i non pagati
         .is('orders.deleted_at', null)
         .gte('orders.created_at', startDate)
-        .lte('orders.created_at', endDate)
+        .lte('orders.created_at', endDate))
 
       // Filtra per periodo temporale
       const filteredItems = orderItems?.filter(item => {
@@ -340,7 +341,7 @@ function TimeBasedAnalysis() {
 
   const ComparisonBadge = ({ current, previous }) => {
     const growth = calculateGrowth(current, previous)
-    if (growth === 0) {
+    if (Math.abs(growth) < 0.05) { // sotto 0,05% si leggerebbe "0.0%": niente freccia
       return <span style={{ fontSize: '12px', color: '#999', fontWeight: '600' }}>→ 0% vs periodo precedente</span>
     }
     const color = growth > 0 ? '#10B981' : '#EF4444'

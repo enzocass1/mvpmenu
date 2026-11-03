@@ -85,7 +85,7 @@ export default function MenuTopBar({
             ) : (
               <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {results.map(p => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', border: `1px solid ${border}`, borderRadius: '10px' }}>
+                  <div key={p.id} data-pid={p.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px', border: `1px solid ${border}`, borderRadius: '10px' }}>
                     {p.image_url
                       ? <img src={p.image_url} alt="" style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover' }} />
                       : <div style={{ width: '44px', height: '44px', borderRadius: '8px', background: t.backgroundTertiary || '#f1f1f1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🍽️</div>}

@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabaseClient'
+import { fetchAllRows } from '../lib/fetchAllRows'
 
 /**
  * Tipi di eventi supportati - Allineati con database constraint
@@ -222,26 +223,27 @@ export const startSessionTracking = (restaurantId) => {
  */
 export const getAnalyticsEvents = async (restaurantId, eventType, startDate, endDate) => {
   try {
-    let query = supabase
-      .from('analytics_events')
-      .select('*')
-      .eq('restaurant_id', restaurantId)
+    // Letta a pagine: oltre 1000 eventi il database ne restituirebbe solo una parte
+    const { data, error } = await fetchAllRows(() => {
+      let query = supabase
+        .from('analytics_events')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
 
-    if (eventType) {
-      query = query.eq('event_type', eventType)
-    }
+      if (eventType) {
+        query = query.eq('event_type', eventType)
+      }
 
-    if (startDate) {
-      query = query.gte('created_at', startDate)
-    }
+      if (startDate) {
+        query = query.gte('created_at', startDate)
+      }
 
-    if (endDate) {
-      query = query.lte('created_at', endDate)
-    }
+      if (endDate) {
+        query = query.lte('created_at', endDate)
+      }
 
-    query = query.order('created_at', { ascending: false })
-
-    const { data, error } = await query
+      return query.order('created_at', { ascending: false })
+    })
 
     if (error) {
       console.error('Errore getAnalyticsEvents:', error)

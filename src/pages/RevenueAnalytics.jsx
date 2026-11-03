@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
 import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
@@ -96,7 +97,7 @@ function RevenueAnalytics() {
       }
 
       // Query per tutti gli ordini nel periodo corrente
-      const { data: orders, error: ordersError } = await supabase
+      const { data: orders, error: ordersError } = await fetchAllRows(() => supabase
         .from('orders')
         .select('*')
         .eq('restaurant_id', restaurant.id)
@@ -105,12 +106,12 @@ function RevenueAnalytics() {
         .is('deleted_at', null)
         .gte('created_at', startDate)
         .lte('created_at', endDate)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: true }))
 
       if (ordersError) throw ordersError
 
       // Query per order_items per analisi per prodotto
-      const { data: orderItems, error: itemsError } = await supabase
+      const { data: orderItems, error: itemsError } = await fetchAllRows(() => supabase
         .from('order_items')
         .select(`
           *,
@@ -128,7 +129,7 @@ function RevenueAnalytics() {
         .neq('orders.payment_status', 'unpaid') // esclude i non pagati
         .is('orders.deleted_at', null)
         .gte('orders.created_at', startDate)
-        .lte('orders.created_at', endDate)
+        .lte('orders.created_at', endDate))
 
       if (itemsError) throw itemsError
 
@@ -161,7 +162,7 @@ function RevenueAnalytics() {
       // Query per periodo precedente (se necessario)
       let previousOrders = []
       if (previousStartDate && previousEndDate) {
-        const { data } = await supabase
+        const { data } = await fetchAllRows(() => supabase
           .from('orders')
           .select('total_amount')
           .eq('restaurant_id', restaurant.id)
@@ -169,7 +170,7 @@ function RevenueAnalytics() {
           .neq('payment_status', 'unpaid') // esclude i non pagati
           .is('deleted_at', null)
           .gte('created_at', previousStartDate)
-          .lte('created_at', previousEndDate)
+          .lte('created_at', previousEndDate))
         previousOrders = data || []
       }
 
@@ -304,7 +305,7 @@ function RevenueAnalytics() {
       const { startDate, endDate } = dateRange
 
       // Carica tutti gli order_items per questo prodotto
-      const { data: orderItems } = await supabase
+      const { data: orderItems } = await fetchAllRows(() => supabase
         .from('order_items')
         .select(`
           *,
@@ -321,7 +322,7 @@ function RevenueAnalytics() {
         .is('orders.deleted_at', null)
         .eq('product_name', product.name)
         .gte('orders.created_at', startDate)
-        .lte('orders.created_at', endDate)
+        .lte('orders.created_at', endDate))
 
       // Analisi per fascia oraria
       const hourCounts = {}
@@ -423,7 +424,7 @@ function RevenueAnalytics() {
 
   const ComparisonBadge = ({ current, previous }) => {
     const growth = calculateGrowth(current, previous)
-    if (growth === 0) {
+    if (Math.abs(growth) < 0.05) { // sotto 0,05% si leggerebbe "0.0%": niente freccia
       return <span style={{ fontSize: '12px', color: '#999', fontWeight: '600' }}>→ 0% vs periodo precedente</span>
     }
     const color = growth > 0 ? '#10B981' : '#EF4444'

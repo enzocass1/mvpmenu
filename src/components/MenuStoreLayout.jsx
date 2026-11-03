@@ -99,7 +99,7 @@ export default function MenuStoreLayout({
     const prodAllergens = getAllergenInfo(p)
     const allergensShown = !!allergensOpen[p.id]
     return (
-      <div style={S.card}>
+      <div data-pid={p.id} style={S.card}>
         <div style={S.imageWrap} onClick={() => { trackProductViewed?.(restaurant.id, p.id, categoryId); orderSettingsEnabled && !esaurito && onAddProduct(p) }}>
           {p.image_url
             ? <img src={p.image_url} alt={p.name} style={S.image} loading="lazy" />

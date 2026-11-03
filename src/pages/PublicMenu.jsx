@@ -28,6 +28,7 @@ import { getPriceInfo } from '../lib/priceFormat'
 import { isProductEsaurito } from '../lib/stock'
 import { getAllergenInfo } from '../lib/allergens'
 import { isSubscriptionBlocked } from '../lib/subscriptionStatus'
+import { startProductStats, trackProductOpen, trackProductCartAdd } from '../lib/productStats'
 
 // Prezzo in formato italiano: "1,20 €" oppure "Da 7,00 €" se varianti a prezzi diversi
 const formatPriceIt = (p) => {
@@ -164,6 +165,12 @@ function PublicMenu() {
   const [addToCartModalProduct, setAddToCartModalProduct] = useState(null)
   const [orderSettingsEnabled, setOrderSettingsEnabled] = useState(false)
 
+  // Apertura della finestra prodotto (da "+", foto, preferiti, ricerca): conta come apertura
+  const openProductModal = (product) => {
+    trackProductOpen(product?.id)
+    setAddToCartModalProduct(product)
+  }
+
   // Traffic source tracking (QR, organic, social)
   const tableId = searchParams.get('table_id')
   const tableNumber = searchParams.get('table_number')
@@ -196,6 +203,20 @@ function PublicMenu() {
     || (previewLayoutParam
         ? { ...(restaurant?.theme_config || {}), layoutStyle: previewLayoutParam }
         : restaurant?.theme_config)
+
+  // Statistiche prodotto (visualizzazioni, aperture, carrello, ordini): solo per i clienti,
+  // non in anteprima dall'editor né quando il titolare guarda il proprio menu
+  const isPreview = searchParams.get('preview') === '1' || !!previewLayoutParam
+  useEffect(() => {
+    if (!restaurant?.id || isPreview) return
+    let stop = () => {}
+    let cancelled = false
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled || data?.session?.user?.id === restaurant.user_id) return
+      stop = startProductStats(restaurant.id)
+    })
+    return () => { cancelled = true; stop() }
+  }, [restaurant?.id, restaurant?.user_id, isPreview])
 
   // Calcola stili dinamici basati sul theme_config effettivo
   const themeStyles = useMemo(() => {
@@ -324,6 +345,7 @@ function PublicMenu() {
   // Cart functions (le righe sono identificate da prodotto + variante + note)
   const handleAddToCart = (productWithDetails) => {
     setCartItems(items => addCartItem(items, productWithDetails))
+    trackProductCartAdd(productWithDetails.id, productWithDetails.quantity)
 
     // Traccia analytics (senza await/then la query non partirebbe mai)
     if (restaurant?.id) {
@@ -548,6 +570,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
     // Traccia visualizzazione prodotto solo quando viene espanso
     if (!wasExpanded && restaurant?.id) {
       trackProductViewed(restaurant.id, productId, categoryId)
+      trackProductOpen(productId)
     }
   }
 
@@ -636,13 +659,13 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                 </div>
               ) : (
                 favorites.map((fav) => (
-                  <div key={fav.id} style={styles.favoriteItem}>
+                  <div key={fav.id} data-pid={fav.id} style={styles.favoriteItem}>
                     <div style={{ flex: 1 }}>
                       <div style={styles.favoriteItemName}>{fav.name}</div>
                       <div style={styles.favoriteItemCategory}>{fav.categoryName}</div>
                       <div style={styles.favoriteItemPrice}>€{fav.price.toFixed(2)}</div>
                       {orderSettingsEnabled && (
-                        <div onClick={() => setAddToCartModalProduct({ id: fav.id, name: fav.name, price: fav.price, image_url: fav.image_url, description: fav.description })} style={styles.favoriteOrderButton} role="button" tabIndex={0}>ORDINA</div>
+                        <div onClick={() => openProductModal({ id: fav.id, name: fav.name, price: fav.price, image_url: fav.image_url, description: fav.description })} style={styles.favoriteOrderButton} role="button" tabIndex={0}>ORDINA</div>
                       )}
                     </div>
                     <button onClick={() => handleRemoveFromFavorites(fav.id)} style={styles.removeFavoriteButton} aria-label="Rimuovi dai preferiti">
@@ -677,7 +700,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
           cartCount={countCartPieces(cartItems)}
           onOpenCart={() => setIsCartOpen(true)}
           onOpenFavorites={() => setIsFavoritesSidebarOpen(true)}
-          onAddProduct={(p) => setAddToCartModalProduct(p)}
+          onAddProduct={(p) => openProductModal(p)}
           onToggleFavorite={handleToggleFavorite}
           isFav={(id) => isFavorite(subdomain, id)}
           trackProductViewed={trackProductViewed}
@@ -705,7 +728,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
           cartCount={countCartPieces(cartItems)}
           onOpenCart={() => setIsCartOpen(true)}
           onOpenFavorites={() => setIsFavoritesSidebarOpen(true)}
-          onAddProduct={(p) => setAddToCartModalProduct(p)}
+          onAddProduct={(p) => openProductModal(p)}
           onToggleFavorite={handleToggleFavorite}
           isFav={(id) => isFavorite(subdomain, id)}
           trackProductViewed={trackProductViewed}
@@ -791,7 +814,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                 const hasDetails = !!(product.image_url || product.description || prodAllergens.length > 0)
                 const esaurito = isProductEsaurito(product)
                 return (
-                  <div key={product.id} style={styles.productCard}>
+                  <div key={product.id} data-pid={product.id} style={styles.productCard}>
                     <div style={styles.productHeader}>
                       {/* Colonna sinistra: nome, poi prezzo + "Scopri di più" */}
                       <div style={styles.productMain}>
@@ -849,7 +872,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
 
                         {orderSettingsEnabled && (
                           <div
-                            onClick={esaurito ? undefined : (e) => { e.stopPropagation(); setAddToCartModalProduct(product) }}
+                            onClick={esaurito ? undefined : (e) => { e.stopPropagation(); openProductModal(product) }}
                             style={{ ...styles.addToCartButtonCompact, ...(esaurito ? styles.addToCartButtonDisabled : {}) }}
                             role="button"
                             tabIndex={esaurito ? -1 : 0}
@@ -980,7 +1003,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                     </div>
                   ) : (
                     favorites.map((fav) => (
-                      <div key={fav.id} style={styles.favoriteItem}>
+                      <div key={fav.id} data-pid={fav.id} style={styles.favoriteItem}>
                         <div style={{ flex: 1 }}>
                           <div style={styles.favoriteItemName}>{fav.name}</div>
                           <div style={styles.favoriteItemCategory}>{fav.categoryName}</div>
@@ -990,7 +1013,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
                           {orderSettingsEnabled && (
                             <div
                               onClick={() => {
-                                setAddToCartModalProduct({
+                                openProductModal({
                                   id: fav.id,
                                   name: fav.name,
                                   price: fav.price,
@@ -1083,7 +1106,7 @@ const visibleCategories = hasValidAccess ? categoriesData : (categoriesData || [
           cartCount={countCartPieces(cartItems)}
           onOpenFavorites={() => setIsFavoritesSidebarOpen(true)}
           onOpenCart={() => setIsCartOpen(true)}
-          onAddProduct={(p) => setAddToCartModalProduct(p)}
+          onAddProduct={(p) => openProductModal(p)}
         />
         <div style={styles.header}>
           {restaurant.logo_url && (

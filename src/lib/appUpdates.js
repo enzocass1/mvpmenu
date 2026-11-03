@@ -4,6 +4,32 @@
 
 export const APP_UPDATES = [
   {
+    id: '2026-11-03-conversion-funnel',
+    date: '2026-11-03',
+    type: 'novita',
+    title: 'Conversion Funnel: quanti clienti vedono, aprono e ordinano ogni prodotto',
+    description:
+      "Nuova pagina Analytics → Conversion Funnel. Per ogni prodotto del menu online vedi quante volte la scheda è stata vista nella lista (almeno 1 secondo a schermo), quante volte è stata aperta, quante volte è stata aggiunta al carrello e quanti pezzi sono stati ordinati. Funziona allo stesso modo in tutti e tre gli stili del menu. La pagina ti segnala da sola i prodotti \"visti ma poco aperti\" (da rivedere foto, nome o posizione) e quelli \"aperti ma poco aggiunti\" (da rivedere prezzo o descrizione). Le tue visite da titolare e le anteprime dell'editor non vengono contate.",
+    steps: [
+      'Apri Analytics → Conversion Funnel e scegli il periodo.',
+      'In alto trovi i 4 passaggi: visualizzazioni, aperture, aggiunte al carrello, pezzi ordinati, con il confronto col periodo precedente.',
+      'Guarda i riquadri "Visti ma poco aperti" e "Aperti ma poco aggiunti": sono i prodotti su cui intervenire.',
+      'Nella tabella "Tutti i prodotti" clicca sul nome di una colonna per ordinare.'
+    ]
+  },
+  {
+    id: '2026-11-03-analytics-precise',
+    date: '2026-11-03',
+    type: 'miglioramento',
+    title: 'Analytics più precise con tante vendite',
+    description:
+      "Le statistiche ora leggono tutte le vendite del periodo: prima, oltre una certa quantità di articoli, i prodotti più venduti e il margine netto risultavano incompleti. Ora quantità, incassi e margine corrispondono esattamente alle vendite registrate. Inoltre, quando un valore non cambia rispetto al periodo precedente, viene mostrato neutro (→ 0%) invece che come un calo.",
+    steps: [
+      'Apri Analytics e scegli una pagina (fatturato, prodotti, fasce orarie...).',
+      'Seleziona il periodo: i numeri includono tutte le vendite, anche nei periodi lunghi.'
+    ]
+  },
+  {
     id: '2026-11-02-assistenza',
     date: '2026-11-02',
     type: 'novita',
@@ -289,6 +315,8 @@ export const APP_UPDATES = [
 
 // Immagine/GIF di esempio per ogni aggiornamento (in public/updates/)
 export const EXAMPLE_IMAGE = {
+  '2026-11-03-conversion-funnel': '/updates/conversion-funnel.gif',
+  '2026-11-03-analytics-precise': '/updates/analytics-precise.gif',
   '2026-11-02-assistenza': '/updates/assistenza.gif',
   '2026-11-02-abbonamento': '/updates/abbonamento.gif',
   '2026-11-02-pulsanti-tema': '/updates/pulsanti-tema.gif',

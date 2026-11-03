@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { fetchAllRows } from '../lib/fetchAllRows'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { TIME_RANGE_OPTIONS, COMPARISON_TYPES, getDateRangeFromTimeRange } from '../utils/analytics'
 import useAnalyticsRestaurant from '../hooks/useAnalyticsRestaurant'
@@ -101,7 +102,7 @@ function AOVAnalysis() {
 
       // Query per periodo corrente
       const currentResult = await Promise.all([
-        supabase
+        fetchAllRows(() => supabase
           .from('orders')
           .select('*')
           .eq('restaurant_id', restaurant.id)
@@ -110,8 +111,8 @@ function AOVAnalysis() {
           .is('deleted_at', null)
           .gte('created_at', startDate)
           .lte('created_at', endDate)
-          .order('created_at', { ascending: true }),
-        supabase
+          .order('created_at', { ascending: true })),
+        fetchAllRows(() => supabase
           .from('order_items')
           .select(`
             *,
@@ -126,14 +127,14 @@ function AOVAnalysis() {
           .neq('orders.payment_status', 'unpaid') // esclude i non pagati
           .is('orders.deleted_at', null)
           .gte('orders.created_at', startDate)
-          .lte('orders.created_at', endDate)
+          .lte('orders.created_at', endDate))
       ])
 
       // Query per periodo precedente (se necessario)
       let previousResult = [{ data: [] }, { data: [] }]
       if (previousStartDate && previousEndDate) {
         previousResult = await Promise.all([
-          supabase
+          fetchAllRows(() => supabase
             .from('orders')
             .select('*')
             .eq('restaurant_id', restaurant.id)
@@ -141,8 +142,8 @@ function AOVAnalysis() {
             .neq('payment_status', 'unpaid') // esclude i non pagati
             .is('deleted_at', null)
             .gte('created_at', previousStartDate)
-            .lte('created_at', previousEndDate),
-          supabase
+            .lte('created_at', previousEndDate)),
+          fetchAllRows(() => supabase
             .from('order_items')
             .select(`
               *,
@@ -157,7 +158,7 @@ function AOVAnalysis() {
             .neq('orders.payment_status', 'unpaid') // esclude i non pagati
             .is('orders.deleted_at', null)
             .gte('orders.created_at', previousStartDate)
-            .lte('orders.created_at', previousEndDate)
+            .lte('orders.created_at', previousEndDate))
         ])
       }
 
@@ -293,10 +294,10 @@ function AOVAnalysis() {
     setOrderItems([])
 
     try {
-      const { data: items } = await supabase
+      const { data: items } = await fetchAllRows(() => supabase
         .from('order_items')
         .select('*')
-        .eq('order_id', order.id)
+        .eq('order_id', order.id))
 
       const itemsData = items?.filter(item => item.product_name !== '⚡ Ordine Prioritario').map(item => ({
         ...item,
@@ -346,7 +347,7 @@ function AOVAnalysis() {
 
   const ComparisonBadge = ({ current, previous }) => {
     const growth = calculateGrowth(current, previous)
-    if (growth === 0) {
+    if (Math.abs(growth) < 0.05) { // sotto 0,05% si leggerebbe "0.0%": niente freccia
       return <span style={{ fontSize: '12px', color: '#999', fontWeight: '600' }}>→ 0% vs periodo precedente</span>
     }
     const color = growth > 0 ? '#10B981' : '#EF4444'

@@ -46,7 +46,7 @@ function Home({ session }) {
         .eq('restaurant_id', restaurantData.id)
         .eq('is_active', true)
         .gt('expires_at', new Date().toISOString())
-        .single()
+        .maybeSingle() // di solito non c'è nessun upgrade: niente errore 406
 
       if (!tempUpgradeError && tempUpgradeData) {
         setTemporaryUpgrade(tempUpgradeData)

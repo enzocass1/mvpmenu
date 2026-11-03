@@ -6,6 +6,7 @@ import { getOccupiedTables } from '../lib/orderOperations'
 import { discardOrphanOrder } from '../lib/ordersService'
 import { addTimelineEntry, buildOperatorInfo, EVENT_SOURCE, TIMELINE_ACTION } from '../lib/timelineService'
 import { cartLineKey } from '../utils/cart'
+import { trackProductsOrdered } from '../lib/productStats'
 
 // Helper functions for theme styling (must be defined before component)
 const getThemeStyles = (themeConfig) => {
@@ -350,6 +351,9 @@ function Cart({ isOpen, onClose, restaurant, cartItems, onUpdateQuantity, onRemo
         .insert(orderItems)
 
       if (itemsError) throw itemsError
+
+      // Statistiche prodotto: pezzi ordinati dal menu
+      trackProductsOrdered(orderItems)
     } catch (err) {
       console.error('Errore invio ordine:', err)
       // Non lasciare in cucina un ordine senza prodotti

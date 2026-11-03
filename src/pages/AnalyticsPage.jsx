@@ -95,7 +95,7 @@ function AnalyticsPage({ session }) {
     },
     {
       title: 'Conversion Funnel',
-      description: 'Analisi del funnel di conversione',
+      description: 'Quanti clienti vedono, aprono, aggiungono al carrello e ordinano ogni prodotto',
       path: '/analytics/conversion-funnel',
       premium: true,
       category: 'conversion',

@@ -169,7 +169,7 @@ export default function MenuBuilderLayout({
     const prodAllergens = getAllergenInfo(p)
     const allergensShown = !!allergensOpen[p.id]
     return (
-    <div style={{ ...S.card, width: wide ? 'auto' : `${cardW}px`, background: cardBg, border: `1px solid ${border}`, borderRadius: radius }}>
+    <div data-pid={p.id} style={{ ...S.card, width: wide ? 'auto' : `${cardW}px`, background: cardBg, border: `1px solid ${border}`, borderRadius: radius }}>
       <div style={{ ...S.imgWrap, borderRadius: `${radius} ${radius} 0 0`, background: t.backgroundTertiary || '#f3f3f3' }}
         onClick={() => { trackProductViewed?.(restaurant.id, p.id, p._cat?.id); orderSettingsEnabled && !esaurito && onAddProduct(p) }}>
         {p.image_url ? <img src={p.image_url} alt={p.name} style={S.img} loading="lazy" /> : <div style={{ ...S.img, ...S.imgPh }}>🍽️</div>}
